@@ -7,6 +7,7 @@ import {
   ArrowRight,
   CheckCircle2,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -16,8 +17,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
     useCart();
   const { user } = useAuth();
 
-  // Stages: 'cart' -> 'address' -> 'payment' -> 'success'
-  const [step, setStep] = useState("cart");
+  const [step, setStep] = useState("cart"); // 'cart' | 'address' | 'payment' | 'success'
   const [address, setAddress] = useState({
     fullName: "",
     phone: "",
@@ -39,75 +39,85 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
   const handleCashfreePayment = () => {
     setIsProcessing(true);
-    // Simulation of Cashfree checkout trigger
     setTimeout(() => {
       setIsProcessing(false);
       setStep("success");
       clearCart();
-    }, 1800);
+    }, 1500);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end">
-      <div className="w-full max-w-lg bg-slate-900/90 border-l border-white/20 h-full p-6 flex flex-col justify-between overflow-y-auto shadow-2xl">
-        {/* Drawer Header */}
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
+      <div className="w-full max-w-lg bg-[#070e1a] border-l border-white/10 h-full p-6 flex flex-col justify-between overflow-y-auto shadow-2xl">
+        {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white tracking-wide">
-            {step === "cart" && "Your Shopping Bag"}
-            {step === "address" && "Delivery Address"}
-            {step === "payment" && "Cashfree Checkout"}
-            {step === "success" && "Order Placed!"}
-          </h2>
+          <div>
+            <h2 className="text-lg font-black text-white uppercase tracking-wider">
+              {step === "cart" && "Shopping Bag"}
+              {step === "address" && "Delivery Address"}
+              {step === "payment" && "Cashfree Secure Checkout"}
+              {step === "success" && "Order Confirmed"}
+            </h2>
+            <span className="text-[11px] text-amber-400 font-semibold">
+              GATE<span className="text-white">MATE</span> Checkout
+            </span>
+          </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-white/10 text-white/70"
+            className="p-2 rounded-xl bg-[#0c182b] text-slate-400 hover:text-white border border-white/5"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content Body */}
+        {/* Body Content */}
         <div className="flex-1 py-4 overflow-y-auto">
           {step === "cart" && (
             <div>
               {cart.length === 0 ? (
-                <div className="text-center py-12 text-blue-200/60">
-                  Your cart is empty.
+                <div className="text-center py-16 text-slate-400 text-sm">
+                  Your shopping bag is currently empty.
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {cart.map((item) => (
                     <div
                       key={item.id}
-                      className="glass-card p-3 rounded-xl flex items-center gap-3"
+                      className="premium-card p-3.5 rounded-xl flex items-center gap-3.5"
                     >
                       <img
                         src={item.img}
                         alt={item.name}
-                        className="w-14 h-14 object-cover rounded-lg"
+                        className="w-16 h-16 object-cover rounded-lg bg-black"
                       />
                       <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-white line-clamp-1">
+                        <h4 className="text-sm font-bold text-white line-clamp-1">
                           {item.name}
                         </h4>
-                        <span className="text-cyan-300 font-bold text-sm">
+                        <span className="text-amber-400 font-black text-sm">
                           ₹{item.price}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 bg-white/10 rounded-lg px-2 py-1">
-                        <button onClick={() => updateQuantity(item.id, -1)}>
-                          <Minus className="w-3.5 h-3.5 text-white" />
+                      <div className="flex items-center gap-2 bg-[#050b14] border border-white/10 rounded-lg px-2.5 py-1">
+                        <button
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="text-slate-300 hover:text-white"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="text-xs font-semibold text-white px-1">
+                        <span className="text-xs font-bold text-white px-1">
                           {item.quantity}
                         </span>
-                        <button onClick={() => updateQuantity(item.id, 1)}>
-                          <Plus className="w-3.5 h-3.5 text-white" />
+                        <button
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="text-slate-300 hover:text-white"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="text-rose-400 hover:text-rose-300 p-1"
+                        className="text-rose-400 hover:text-rose-300 p-1.5"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -119,11 +129,11 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           )}
 
           {step === "address" && (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <input
                 type="text"
-                placeholder="Full Name"
-                className="w-full glass-input px-3.5 py-2.5 rounded-xl text-sm"
+                placeholder="Full Recipient Name"
+                className="w-full premium-input px-4 py-3 rounded-xl text-sm"
                 value={address.fullName}
                 onChange={(e) =>
                   setAddress({ ...address, fullName: e.target.value })
@@ -132,7 +142,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
               <input
                 type="text"
                 placeholder="Contact Mobile Number"
-                className="w-full glass-input px-3.5 py-2.5 rounded-xl text-sm"
+                className="w-full premium-input px-4 py-3 rounded-xl text-sm"
                 value={address.phone}
                 onChange={(e) =>
                   setAddress({ ...address, phone: e.target.value })
@@ -140,18 +150,18 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
               />
               <input
                 type="text"
-                placeholder="House / Street / Gate No."
-                className="w-full glass-input px-3.5 py-2.5 rounded-xl text-sm"
+                placeholder="Estate / Street / Gate / Apartment No."
+                className="w-full premium-input px-4 py-3 rounded-xl text-sm"
                 value={address.line1}
                 onChange={(e) =>
                   setAddress({ ...address, line1: e.target.value })
                 }
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <input
                   type="text"
                   placeholder="City"
-                  className="w-1/2 glass-input px-3.5 py-2.5 rounded-xl text-sm"
+                  className="w-1/2 premium-input px-4 py-3 rounded-xl text-sm"
                   value={address.city}
                   onChange={(e) =>
                     setAddress({ ...address, city: e.target.value })
@@ -160,7 +170,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                 <input
                   type="text"
                   placeholder="Pincode"
-                  className="w-1/2 glass-input px-3.5 py-2.5 rounded-xl text-sm"
+                  className="w-1/2 premium-input px-4 py-3 rounded-xl text-sm"
                   value={address.pincode}
                   onChange={(e) =>
                     setAddress({ ...address, pincode: e.target.value })
@@ -171,56 +181,63 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           )}
 
           {step === "payment" && (
-            <div className="space-y-4 text-center py-4">
-              <div className="glass-card p-4 rounded-xl text-left space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-blue-200">Amount Payable:</span>
-                  <span className="text-cyan-300 font-bold text-base">
+            <div className="space-y-4 py-4">
+              <div className="premium-card p-5 rounded-2xl space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Total Payable:</span>
+                  <span className="text-amber-400 font-black text-lg">
                     ₹{subtotal}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-blue-300">
-                  <span>Gateway:</span>
-                  <span>Cashfree Payments (UPI / Card / NetBanking)</span>
+                <div className="flex justify-between text-xs text-slate-300 pt-2 border-t border-white/10">
+                  <span>Gateway Partner:</span>
+                  <span className="font-semibold text-white">
+                    Cashfree Payments India
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs">
-                <ShieldCheck className="w-4 h-4" /> 256-bit Encrypted Secure
-                Gateway
+              <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-semibold">
+                <ShieldCheck className="w-4 h-4" /> 256-Bit Bank Grade
+                Encryption
               </div>
             </div>
           )}
 
           {step === "success" && (
-            <div className="text-center py-8 space-y-3">
-              <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto animate-bounce" />
-              <h3 className="text-lg font-bold text-white">
-                Thank you for your order!
+            <div className="text-center py-10 space-y-3">
+              <div className="w-16 h-16 rounded-full bg-emerald-400/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-400/30">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+              <h3 className="text-xl font-black text-white">
+                Payment Confirmed
               </h3>
-              <p className="text-xs text-blue-200">
-                Order ID: GM-{Math.floor(100000 + Math.random() * 900000)}
+              <p className="text-xs text-slate-300">
+                Order Reference: GM-ORD-
+                {Math.floor(100000 + Math.random() * 900000)}
               </p>
-              <p className="text-xs text-blue-300/80">
-                You can track your order status in real time.
+              <p className="text-xs text-amber-400/90 font-medium">
+                Tracking and invoice sent to your registered contact.
               </p>
             </div>
           )}
         </div>
 
-        {/* Action Footer */}
+        {/* Footer Actions */}
         {cart.length > 0 && step !== "success" && (
           <div className="pt-4 border-t border-white/10 space-y-3">
             <div className="flex justify-between text-sm font-semibold text-white">
-              <span>Total:</span>
-              <span className="text-cyan-300 text-lg">₹{subtotal}</span>
+              <span>Subtotal:</span>
+              <span className="text-amber-400 text-xl font-black">
+                ₹{subtotal}
+              </span>
             </div>
 
             {step === "cart" && (
               <button
                 onClick={handleProceedToBuy}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-400 to-blue-600 hover:from-sky-300 hover:to-blue-500 text-slate-950 font-bold flex items-center justify-center gap-2 transition"
+                className="w-full py-3.5 rounded-xl gold-gradient-btn flex items-center justify-center gap-2 text-sm"
               >
-                <span>Proceed to Buy</span>
+                <span>Proceed to Checkout</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}
@@ -229,9 +246,9 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
               <button
                 disabled={!address.fullName || !address.line1}
                 onClick={() => setStep("payment")}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-400 to-blue-600 disabled:opacity-50 text-slate-950 font-bold transition"
+                className="w-full py-3.5 rounded-xl gold-gradient-btn disabled:opacity-50 text-sm"
               >
-                Continue to Payment
+                Proceed to Cashfree Gateway
               </button>
             )}
 
@@ -239,9 +256,14 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
               <button
                 onClick={handleCashfreePayment}
                 disabled={isProcessing}
-                className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center justify-center gap-2 transition"
+                className="w-full py-3.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg transition"
               >
-                {isProcessing ? "Connecting Cashfree..." : `Pay ₹${subtotal}`}
+                <CreditCard className="w-4 h-4" />
+                <span>
+                  {isProcessing
+                    ? "Connecting Cashfree..."
+                    : `Authorize ₹${subtotal}`}
+                </span>
               </button>
             )}
           </div>

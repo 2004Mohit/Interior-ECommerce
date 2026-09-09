@@ -8,7 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check initial auth state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -26,6 +25,16 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithPassword = async (email, password) => {
     return await supabase.auth.signInWithPassword({ email, password });
+  };
+
+  const signUpWithPassword = async (email, password, fullName) => {
+    return await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+      },
+    });
   };
 
   const loginWithOtp = async (phone) => {
@@ -46,6 +55,7 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         loginWithPassword,
+        signUpWithPassword,
         loginWithOtp,
         verifyOtp,
         logout,
@@ -56,4 +66,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+export const useCartAuth = () => useContext(AuthContext);
 export const useAuth = () => useContext(AuthContext);
