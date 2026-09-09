@@ -16,9 +16,9 @@ import {
   Building2,
   AlertCircle,
   ShoppingBag,
-  Truck,
   Check,
   Edit2,
+  Info,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
@@ -28,42 +28,41 @@ import {
   PAYMENT_METHODS,
   DELIVERY_OPTIONS,
 } from "../../services/orderService";
+import { paymentService } from "../../services/payment/paymentService";
 import { AddressFormModal } from "./AddressFormModal";
 
 export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const { user } = useAuth();
 
-  // Multi-step progress (1 through 7)
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Address State (Step 2)
+  // Address State
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
-  // Delivery Method State (Step 3)
+  // Delivery Method State
   const [deliveryOptionId, setDeliveryOptionId] = useState("express_30min");
 
-  // Payment Method State (Step 4)
+  // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState(
     PAYMENT_METHODS.PAY_ON_DELIVERY,
   );
   const [upiIdInput, setUpiIdInput] = useState("");
   const [selectedBank, setSelectedBank] = useState("HDFC");
 
-  // Authoritative Backend Totals State (Step 5)
+  // Authoritative Calculation State
   const [calculatedTotals, setCalculatedTotals] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Order Placement & Gateway Execution (Step 6 & 7)
+  // Order Placement & Gateway Execution
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState(null);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
 
-  // Load saved addresses on drawer open
   useEffect(() => {
     if (isOpen && user) {
       addressService.getAddresses(user.id).then((list) => {
@@ -74,7 +73,6 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
     }
   }, [isOpen, user, selectedAddressId]);
 
-  // Recalculate authoritative totals whenever cart, address, delivery, or payment method changes
   const activeAddress = savedAddresses.find((a) => a.id === selectedAddressId);
 
   const fetchAuthoritativeTotals = useCallback(async () => {
@@ -89,12 +87,11 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
       });
       setCalculatedTotals(totals);
 
-      // Auto-fallback delivery method if outside 30-min express zone
       if (deliveryOptionId === "express_30min" && !totals.isExpressEligible) {
         setDeliveryOptionId("standard_scheduled");
       }
     } catch (e) {
-      console.error("Authoritative calculation error", e);
+      console.error("Calculation error", e);
     } finally {
       setIsCalculating(false);
     }
@@ -127,7 +124,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
       if (chosen) setSelectedAddressId(chosen.id);
       setIsAddressModalOpen(false);
     } catch (e) {
-      console.error("Failed to save address in checkout", e);
+      console.error("Failed to save address", e);
     } finally {
       setIsSavingAddress(false);
     }
@@ -155,13 +152,17 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
       setConfirmedOrder(result);
       clearCart();
-      setCurrentStep(7); // Step 7: Confirmation
+      setCurrentStep(7);
     } catch (e) {
-      setSubmissionError("Network error while placing order. Please retry.");
+      setSubmissionError("Network error while processing order.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const isOnlinePaymentSelected =
+    paymentMethod !== PAYMENT_METHODS.PAY_ON_DELIVERY;
+  const onlinePaymentStatus = paymentService.isPaymentModeReady(paymentMethod);
 
   const stepLabels = [
     "Cart",
@@ -176,7 +177,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
       <div className="w-full max-w-2xl bg-[#070e1a] border-l border-white/10 h-full p-5 sm:p-7 flex flex-col justify-between overflow-y-auto shadow-2xl">
-        {/* Top Header & Step Progress Bar */}
+        {/* Top Header & Step Indicator */}
         <div>
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div>
@@ -195,7 +196,6 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </button>
           </div>
 
-          {/* Stepper Dots */}
           {currentStep < 7 && (
             <div className="flex items-center justify-between gap-1 py-3 border-b border-white/5 overflow-x-auto">
               {stepLabels.slice(0, 6).map((label, idx) => {
@@ -213,7 +213,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                             : "bg-slate-800 text-slate-400"
                       }`}
                     >
-                      {isDone ? <Check className="w-3 h-3" /> : stepNum}
+                      {isDone ? <Check className="w-3.5 h-3.5" /> : stepNum}
                     </div>
                     <span
                       className={`text-[11px] hidden sm:inline font-semibold ${
@@ -232,9 +232,9 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           )}
         </div>
 
-        {/* Dynamic Step Content */}
+        {/* Step Body Content */}
         <div className="flex-1 py-4 overflow-y-auto space-y-4">
-          {/* STEP 1: CART ITEMS & QUANTITIES */}
+          {/* STEP 1: CART */}
           {currentStep === 1 && (
             <div className="space-y-4">
               {cart.length === 0 ? (
@@ -299,7 +299,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </div>
           )}
 
-          {/* STEP 2: ADDRESS SELECTION / ADDITION */}
+          {/* STEP 2: ADDRESS */}
           {currentStep === 2 && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
@@ -401,7 +401,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </div>
           )}
 
-          {/* STEP 3: DELIVERY METHOD & SERVICEABILITY */}
+          {/* STEP 3: DELIVERY */}
           {currentStep === 3 && (
             <div className="space-y-4">
               <div className="p-3.5 rounded-2xl bg-[#0a1526] border border-white/10 flex items-center gap-2 text-xs">
@@ -480,8 +480,8 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                         <div className="mt-2 text-[10px] text-rose-300 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           <span>
-                            30-minute priority dispatch is currently restricted
-                            to Pune/PCMC/Jodhpur hyper-local zones.
+                            30-minute priority dispatch is restricted to
+                            Pune/PCMC/Jodhpur verified zones.
                           </span>
                         </div>
                       )}
@@ -492,7 +492,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </div>
           )}
 
-          {/* STEP 4: PAYMENT OPTIONS (UPI, Card, Net Banking, Pay on Delivery) */}
+          {/* STEP 4: PAYMENT SELECTION */}
           {currentStep === 4 && (
             <div className="space-y-4">
               <span className="text-xs font-bold text-slate-300">
@@ -500,7 +500,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
               </span>
 
               <div className="space-y-2.5">
-                {/* 1. Pay on Delivery (Functional & Structurally Separate) */}
+                {/* Pay on Delivery */}
                 <div
                   onClick={() =>
                     setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY)
@@ -521,13 +521,13 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-400">
-                        Pay securely once your gate hardware or decor arrives.
+                        Pay safely after inspecting the delivery package.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Cashfree UPI Collect */}
+                {/* Cashfree UPI */}
                 <div
                   onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_COLLECT)}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition ${
@@ -563,7 +563,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                   )}
                 </div>
 
-                {/* 3. Cashfree UPI QR Code */}
+                {/* Dynamic QR */}
                 <div
                   onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_QR)}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition ${
@@ -585,7 +585,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                   </div>
                 </div>
 
-                {/* 4. Cashfree Credit / Debit Card */}
+                {/* Cards */}
                 <div
                   onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition ${
@@ -601,13 +601,13 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                         Credit / Debit Card
                       </div>
                       <p className="text-[10px] text-slate-400">
-                        Visa, MasterCard, RuPay, Diners (256-bit encrypted).
+                        Visa, MasterCard, RuPay (256-bit encrypted).
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* 5. Cashfree Net Banking */}
+                {/* Net Banking */}
                 <div
                   onClick={() => setPaymentMethod(PAYMENT_METHODS.NET_BANKING)}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition ${
@@ -623,7 +623,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                         Net Banking
                       </div>
                       <p className="text-[10px] text-slate-400">
-                        Over 50+ major Indian scheduled banks.
+                        All major Indian scheduled banks.
                       </p>
                     </div>
                   </div>
@@ -644,18 +644,33 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                   )}
                 </div>
               </div>
+
+              {/* Informational notice when digital gateway mode is chosen */}
+              {isOnlinePaymentSelected && !onlinePaymentStatus.ready && (
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-start gap-2">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <div className="space-y-0.5">
+                    <span className="font-bold">
+                      Gateway Integration Notice:
+                    </span>
+                    <p className="text-[11px] text-slate-300">
+                      Online payments are not configured yet. Pay on Delivery is
+                      available for immediate checkout testing.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* STEP 5: FINAL ORDER REVIEW & BACKEND BILLING BREAKDOWN */}
+          {/* STEP 5: REVIEW */}
           {currentStep === 5 && (
             <div className="space-y-4">
-              {/* Destination & Delivery overview */}
               <div className="premium-panel p-4 rounded-2xl space-y-2 text-xs">
                 <div className="flex justify-between items-start border-b border-white/5 pb-2">
                   <div>
                     <span className="text-[10px] font-bold text-amber-400 uppercase">
-                      Shipping To
+                      Shipping Destination
                     </span>
                     <h5 className="font-bold text-white mt-0.5">
                       {activeAddress?.fullName} ({activeAddress?.phone})
@@ -669,12 +684,12 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                     onClick={() => setCurrentStep(2)}
                     className="text-amber-400 hover:underline font-bold text-[11px]"
                   >
-                    Change
+                    Edit
                   </button>
                 </div>
 
                 <div className="flex justify-between items-center pt-1 text-[11px]">
-                  <span className="text-slate-400">Method:</span>
+                  <span className="text-slate-400">Dispatch Service:</span>
                   <span className="font-semibold text-white">
                     {deliveryOptionId === "express_30min"
                       ? "⚡ 30-Minute Priority Express"
@@ -683,19 +698,18 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                 </div>
 
                 <div className="flex justify-between items-center text-[11px]">
-                  <span className="text-slate-400">Payment:</span>
+                  <span className="text-slate-400">Payment Selection:</span>
                   <span className="font-semibold text-amber-300">
                     {paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
                       ? "Pay on Delivery"
-                      : "Cashfree Gateway"}
+                      : "Online Gateway"}
                   </span>
                 </div>
               </div>
 
-              {/* Items in summary */}
               <div className="space-y-2">
                 <span className="text-xs font-bold text-slate-300">
-                  Item Summary ({cart.length})
+                  Items ({cart.length})
                 </span>
                 <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
                   {cart.map((item) => (
@@ -719,10 +733,9 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                 </div>
               </div>
 
-              {/* Authoritative Price Calculation Matrix */}
               <div className="premium-panel p-4 rounded-2xl space-y-2 text-xs">
                 <div className="flex justify-between text-slate-300">
-                  <span>Cart Items Subtotal:</span>
+                  <span>Cart Subtotal:</span>
                   <span className="font-bold text-white font-mono">
                     ₹{calculatedTotals?.itemSubtotal}
                   </span>
@@ -736,7 +749,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-300">
-                  <span>Custom Honeycomb Packaging & Platform Fee:</span>
+                  <span>Packaging & Platform Fee:</span>
                   <span className="font-mono text-white">
                     ₹{calculatedTotals?.packagingFee}
                   </span>
@@ -750,7 +763,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-black text-white pt-2 border-t border-white/10">
-                  <span>Authoritative Grand Total (Incl. GST):</span>
+                  <span>Authoritative Total:</span>
                   <span className="text-amber-400 text-base font-mono">
                     ₹{calculatedTotals?.grandTotal}
                   </span>
@@ -759,25 +772,24 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </div>
           )}
 
-          {/* STEP 6: PLACE ORDER / GATEWAY PROCESSING */}
+          {/* STEP 6: PLACE ORDER */}
           {currentStep === 6 && (
             <div className="py-8 text-center space-y-4">
               <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-amber-400 flex items-center justify-center mx-auto animate-spin">
                 <Zap className="w-7 h-7 fill-current" />
               </div>
               <h3 className="text-lg font-bold text-white">
-                Creating Authoritative Order Record...
+                Processing Order Request...
               </h3>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Validating inventory reservation and dispatching order request
-                through GateMate Core.
+                Authorizing inventory reservation with backend order dispatcher.
               </p>
 
               {submissionError && (
                 <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs text-left max-w-md mx-auto space-y-2">
                   <div className="flex items-center gap-2 font-bold text-rose-200">
                     <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span>Payment Configuration Notice</span>
+                    <span>Gateway Integration Notice</span>
                   </div>
                   <p className="leading-relaxed">{submissionError}</p>
                   <button
@@ -794,7 +806,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </div>
           )}
 
-          {/* STEP 7: ORDER CONFIRMATION & TRACKING */}
+          {/* STEP 7: CONFIRMATION */}
           {currentStep === 7 && confirmedOrder && (
             <div className="py-8 text-center space-y-5">
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
@@ -826,9 +838,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">
-                    Amount Payable at Arrival:
-                  </span>
+                  <span className="text-slate-400">Payable at Delivery:</span>
                   <span className="text-white font-black font-mono">
                     ₹{confirmedOrder.record?.totals?.grandTotal}
                   </span>
@@ -859,11 +869,11 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           )}
         </div>
 
-        {/* Drawer Action Bar */}
+        {/* Action Controls */}
         {cart.length > 0 && currentStep < 6 && (
           <div className="pt-4 border-t border-white/10 space-y-3">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-400">Estimated Total:</span>
+              <span className="text-slate-400">Total Payable:</span>
               <span className="text-amber-400 text-lg font-black font-mono">
                 {isCalculating
                   ? "Computing..."
@@ -932,9 +942,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                   className="flex-1 py-3.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>
-                    Confirm & Place Order (₹{calculatedTotals?.grandTotal})
-                  </span>
+                  <span>Place Order (₹{calculatedTotals?.grandTotal})</span>
                 </button>
               )}
             </div>
@@ -942,7 +950,6 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
         )}
       </div>
 
-      {/* Address modal helper inside checkout */}
       <AddressFormModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}

@@ -1,8 +1,10 @@
 /**
- * Cashfree Payments Service Abstraction (Frontend Client Layer)
+ * GateMate Cashfree Integration Service
  *
- * Note: Secret keys and signature generation must strictly reside in
- * Supabase Edge Functions. The client only handles session checkout tokens.
+ * IMPORTANT ARCHITECTURE SECURITY RULES:
+ * 1. CASHFREE_SECRET_KEY MUST NEVER BE EXPOSED TO THE FRONTEND.
+ * 2. Client-side SDK callbacks MUST NOT mark an order as PAID.
+ * 3. Final payment state is strictly authoritative and verified via server-side webhook/Edge Function.
  */
 
 const CASHFREE_MODE = import.meta.env.VITE_CASHFREE_MODE || "sandbox";
@@ -10,117 +12,126 @@ const CASHFREE_APP_ID = import.meta.env.VITE_CASHFREE_APP_ID || "";
 
 export const cashfreeService = {
   /**
-   * Checks if required Cashfree client configuration is present.
+   * Evaluates if merchant keys and client config are active.
    */
   isConfigured() {
-    return Boolean(CASHFREE_APP_ID && CASHFREE_APP_ID.trim() !== "");
+    return Boolean(CASHFREE_APP_ID && CASHFREE_APP_ID.trim().length > 0);
   },
 
   /**
-   * Step 1: Request backend to initiate a Cashfree PG order
-   * [CASHFREE SETUP REQUIRED]
+   * Step 1: Request Payment Session from Backend Supabase Edge Function
    *
-   * Future implementation:
-   * 1. Call Supabase Edge Function: POST /functions/v1/create-cashfree-order
-   * 2. Edge Function uses CASHFREE_SECRET_KEY to call `POST https://sandbox.cashfree.com/pg/orders`
-   * 3. Returns `payment_session_id` and `cf_order_id`
+   * Expected Server-Side Contract:
+   * Endpoint: POST /functions/v1/create-cashfree-order
+   * Headers: Authorization: Bearer <supabase_anon_or_jwt>
+   * Request Body: { orderId, orderAmount, customerId, customerPhone, customerEmail }
+   * Response: { payment_session_id, order_id, cf_order_id }
    */
   async createPaymentOrder({
     orderId,
-    orderAmount,
-    customerId,
+    amount,
     customerPhone,
     customerEmail,
+    customerId,
   }) {
     if (!this.isConfigured()) {
       return {
         success: false,
-        requiresConfiguration: true,
-        error:
-          "Online payments are not configured yet. Cashfree merchant credentials have not been linked.",
-        session: null,
+        isConfigured: false,
+        message:
+          "Online payments are not configured yet. Cashfree merchant credentials required in backend Edge Functions.",
       };
     }
 
-    // CASHFREE SETUP REQUIRED
-    // const { data, error } = await supabase.functions.invoke('create-cashfree-order', {
-    //   body: { orderId, orderAmount, customerId, customerPhone, customerEmail }
-    // });
-    // if (error) throw error;
-    // return { success: true, session: data.payment_session_id, cfOrderId: data.cf_order_id };
+    // CASHFREE SETUP REQUIRED:
+    // When Cashfree merchant account is active, invoke Supabase Edge Function:
+    /*
+    const { data, error } = await supabase.functions.invoke('create-cashfree-order', {
+      body: {
+        orderId,
+        orderAmount: amount,
+        customerId,
+        customerPhone,
+        customerEmail
+      }
+    });
+    if (error) throw error;
+    return { success: true, paymentSessionId: data.payment_session_id, orderId: data.order_id };
+    */
 
     return {
       success: false,
-      requiresConfiguration: true,
-      error: "Backend Cashfree order creation endpoint is pending deployment.",
-      session: null,
+      isConfigured: true,
+      message:
+        "CASHFREE SETUP REQUIRED: Connect Supabase Edge Function create-cashfree-order.",
     };
   },
 
   /**
-   * Step 2: Mount and trigger Cashfree Web SDK Dropin / Checkout Modal
-   * [CASHFREE SETUP REQUIRED]
-   *
-   * Requires `@cashfreepayments/cashfree-js` or SDK script loader:
-   * const cashfree = await load({ mode: CASHFREE_MODE });
-   * cashfree.checkout({ paymentSessionId: session, redirectTarget: '_modal' });
+   * Step 2: Initialize Cashfree JavaScript SDK and trigger modal/dropin
    */
-  async startPayment({ paymentSessionId }) {
-    if (!paymentSessionId) {
+  async startPayment({ paymentSessionId, returnUrl }) {
+    if (!this.isConfigured()) {
       return {
         success: false,
-        error: "Missing Cashfree payment session token.",
+        message: "Online payments are not configured yet.",
       };
     }
 
-    // CASHFREE SETUP REQUIRED
-    // The browser result MUST NOT directly mark the order as PAID.
-    // It should merely trigger an asynchronous server verification call.
+    // CASHFREE SETUP REQUIRED:
+    // Load official @cashfreepayments/cashfree-js SDK and invoke checkout:
+    /*
+    const cashfree = await loadCashfreeSDK({ mode: CASHFREE_MODE });
+    return cashfree.checkout({
+      paymentSessionId,
+      redirectTarget: '_modal',
+      returnUrl
+    });
+    */
+
     return {
       success: false,
-      error: "Cashfree Web SDK is not loaded.",
+      message:
+        "CASHFREE SETUP REQUIRED: Cashfree SDK checkout is pending merchant initialization.",
     };
   },
 
   /**
-   * Step 3: Request Server-Side Payment Verification
-   * [CASHFREE SETUP REQUIRED]
-   *
-   * Calls Edge Function `verify-cashfree-order` to query Cashfree's authoritative API:
-   * GET `https://sandbox.cashfree.com/pg/orders/{order_id}`
+   * Step 3: Verification request to Backend
+   * The browser NEVER determines final payment success directly.
    */
   async verifyPayment({ orderId }) {
-    // CASHFREE SETUP REQUIRED
-    // const { data, error } = await supabase.functions.invoke('verify-cashfree-order', {
-    //   body: { orderId }
-    // });
-    // return data;
+    // CASHFREE SETUP REQUIRED:
+    // Inquire payment status via backend function:
+    /*
+    const { data, error } = await supabase.functions.invoke('verify-cashfree-payment', {
+      body: { orderId }
+    });
+    return data; // { order_status: 'PAID' | 'FAILED' | 'USER_DROPPED' }
+    */
 
     return {
-      status: "UNVERIFIED",
-      message:
-        "Server-side Cashfree verification endpoint is pending deployment.",
+      orderId,
+      status: "AWAITING_SERVER_VERIFICATION",
+      message: "Payment verification requires backend Edge Function inquiry.",
     };
   },
 
   /**
-   * Step 4: Webhook Contract Specification (Reference Document)
+   * Step 4: Future Supabase Webhook Contract Documentation
    *
-   * Supabase Edge Function Endpoint: `POST /functions/v1/cashfree-webhook`
-   *
-   * Expected Webhook Payload Headers:
-   * - `x-webhook-signature`: HMAC-SHA256 signature generated with CASHFREE_SECRET_KEY
-   * - `x-webhook-timestamp`: Epoch timestamp
-   *
+   * Backend Webhook Target: POST /functions/v1/cashfree-webhook
+   * Signature Verification Header: x-webhook-signature
    * Authoritative Database Action:
-   * - On `PAYMENT_SUCCESS`: Update `orders.payment_status = 'PAID'` and set `orders.order_status = 'CONFIRMED'`
-   * - On `PAYMENT_FAILED`: Update `orders.payment_status = 'FAILED'`
+   *   UPDATE orders
+   *   SET payment_status = 'PAID', status = 'PROCESSING'
+   *   WHERE id = payload.data.order.order_id;
    */
   getWebhookContractDocumentation() {
     return {
       endpoint: "/functions/v1/cashfree-webhook",
-      status: "PENDING_EDGE_FUNCTION_DEPLOYMENT",
-      authoritativeSource: "Cashfree Server Webhook",
+      status: "PENDING_DEPLOYMENT",
+      requiredSecret: "CASHFREE_WEBHOOK_SECRET (Set in Supabase Vault)",
     };
   },
 };
