@@ -1,152 +1,199 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Filter, SlidersHorizontal } from "lucide-react";
-import { PRODUCTS_DATA, QUICK_CATEGORIES } from "../../data/mockData";
-import { ProductCard } from "../../components/customer/ProductCard";
+import { SlidersHorizontal, AlertCircle, RotateCcw } from "lucide-react";
+import { productService } from "../../services/productService";
+import { ProductCard } from "./ProductCard";
+import { ProductCardSkeleton } from "../ProductCardSkeleton";
+import { FilterPanel } from "./FilterPanel";
+import { SortSelect } from "./SortSelect";
 
 export const ProductListing = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedCategorySlug = searchParams.get("category") || "all";
-  const [sortBy, setSortBy] = useState("popular");
-  const [priceMax, setPriceMax] = useState(6000);
 
-  const filteredProducts = useMemo(() => {
-    let result = [...PRODUCTS_DATA];
+  // Extract state directly from URL query parameters
+  const category = searchParams.get("category") || "all";
+  const brand = searchParams.get("brand") || "all";
+  const material = searchParams.get("material") || "all";
+  const minPrice = searchParams.get("minPrice") || "";
+  const maxPrice = searchParams.get("maxPrice") || "";
+  const sort = searchParams.get("sort") || "relevance";
+  const expressOnly = searchParams.get("expressOnly") === "true";
+  const pincode = searchParams.get("pincode") || "";
 
-    if (selectedCategorySlug !== "all") {
-      result = result.filter((p) => p.categorySlug === selectedCategorySlug);
-    }
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
-    result = result.filter((p) => p.price <= priceMax);
+  // Sync and fetch from isolated service
+  const fetchFilteredProducts = useCallback(() => {
+    setLoading(true);
+    setError(null);
 
-    if (sortBy === "price-low") {
-      result.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "price-high") {
-      result.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "rating") {
-      result.sort((a, b) => b.rating - a.rating);
-    }
+    productService
+      .queryProducts({
+        category,
+        brand,
+        material,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        sort,
+        expressOnly,
+        pincode,
+      })
+      .then((data) => setProducts(data))
+      .catch(() =>
+        setError(
+          "Unable to load products. Please check your filters and retry.",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [
+    category,
+    brand,
+    material,
+    minPrice,
+    maxPrice,
+    sort,
+    expressOnly,
+    pincode,
+  ]);
 
-    return result;
-  }, [selectedCategorySlug, priceMax, sortBy]);
+  useEffect(() => {
+    fetchFilteredProducts();
+  }, [fetchFilteredProducts]);
 
-  const handleCategorySelect = (slug) => {
-    if (slug === "all") {
-      searchParams.delete("category");
-      setSearchParams(searchParams);
+  const handleFilterChange = (key, value) => {
+    const updated = new URLSearchParams(searchParams);
+    if (!value || value === "all" || value === "") {
+      updated.delete(key);
     } else {
-      setSearchParams({ category: slug });
+      updated.set(key, value);
     }
+    setSearchParams(updated);
+  };
+
+  const handleClearFilters = () => {
+    setSearchParams({});
+  };
+
+  const currentFilters = {
+    category,
+    brand,
+    material,
+    minPrice,
+    maxPrice,
+    expressOnly,
+    pincode,
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Top Header & Sort Toolbar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white">Product Catalog</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-white">
+            Product Catalog
+          </h1>
           <p className="text-xs text-slate-400">
-            Discover all {filteredProducts.length} verified listings
+            {loading
+              ? "Finding matching items..."
+              : `Showing ${products.length} verified item(s)`}
           </p>
         </div>
 
-        {/* Sort selector */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          <SlidersHorizontal className="w-4 h-4 text-amber-400" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="premium-input px-3 py-2 rounded-xl text-xs font-semibold"
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+          {/* Mobile Filter Drawer Trigger */}
+          <button
+            onClick={() => setMobileFilterOpen(true)}
+            className="lg:hidden premium-card px-3.5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 border border-white/10"
           >
-            <option value="popular">Most Popular</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="rating">Highest Rated</option>
-          </select>
+            <SlidersHorizontal className="w-4 h-4 text-amber-400" />
+            <span>Filters</span>
+          </button>
+
+          <SortSelect
+            value={sort}
+            onChange={(val) => handleFilterChange("sort", val)}
+          />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Filters Sidebar */}
-        <div className="space-y-6">
-          <div className="premium-panel p-5 rounded-2xl space-y-4">
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-              <Filter className="w-4 h-4 text-amber-400" />
-              <h3 className="text-sm font-bold text-white">Categories</h3>
-            </div>
-
-            <div className="space-y-1">
-              <button
-                onClick={() => handleCategorySelect("all")}
-                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                  selectedCategorySlug === "all"
-                    ? "bg-[#172a4d] text-amber-400 border border-amber-400/30"
-                    : "text-slate-300 hover:bg-white/5"
-                }`}
-              >
-                All Categories
-              </button>
-              {QUICK_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.slug)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-between ${
-                    selectedCategorySlug === cat.slug
-                      ? "bg-[#172a4d] text-amber-400 border border-amber-400/30"
-                      : "text-slate-300 hover:bg-white/5"
-                  }`}
-                >
-                  <span>{cat.name}</span>
-                  <span>{cat.icon}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Price Range Filter */}
-          <div className="premium-panel p-5 rounded-2xl space-y-3">
-            <h3 className="text-sm font-bold text-white border-b border-white/10 pb-3">
-              Max Price: ₹{priceMax}
-            </h3>
-            <input
-              type="range"
-              min="1000"
-              max="6000"
-              step="200"
-              value={priceMax}
-              onChange={(e) => setPriceMax(Number(e.target.value))}
-              className="w-full accent-amber-400"
-            />
-            <div className="flex justify-between text-[11px] text-slate-400">
-              <span>₹1,000</span>
-              <span>₹6,000</span>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+        {/* Desktop Sidebar Filters */}
+        <div className="hidden lg:block premium-panel p-5 rounded-3xl sticky top-24">
+          <FilterPanel
+            filters={currentFilters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={handleClearFilters}
+          />
         </div>
 
-        {/* Product Grid */}
-        <div className="lg:col-span-3">
-          {filteredProducts.length === 0 ? (
+        {/* Mobile Filter Modal Drawer */}
+        {mobileFilterOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-end">
+            <div className="w-full max-w-xs bg-[#0a1424] h-full p-5 overflow-y-auto border-l border-white/10 shadow-2xl">
+              <FilterPanel
+                filters={currentFilters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+                isMobileDrawer={true}
+                onCloseMobileDrawer={() => setMobileFilterOpen(false)}
+              />
+              <button
+                onClick={() => setMobileFilterOpen(false)}
+                className="w-full mt-6 gold-gradient-btn py-3 rounded-xl text-xs font-bold"
+              >
+                Apply & View Results
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Results Container (3 cols) */}
+        <div className="lg:col-span-3 space-y-4">
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {Array(6)
+                .fill(0)
+                .map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+            </div>
+          ) : error ? (
             <div className="premium-panel p-12 rounded-3xl text-center space-y-3">
-              <h3 className="text-lg font-bold text-white">
-                No products found
+              <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
+              <h3 className="text-base font-bold text-white">
+                Error Loading Catalog
               </h3>
-              <p className="text-xs text-slate-400">
-                Try adjusting your filters or price range to find items.
+              <p className="text-xs text-slate-400">{error}</p>
+              <button
+                onClick={fetchFilteredProducts}
+                className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </button>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="premium-panel p-16 rounded-3xl text-center space-y-4">
+              <h3 className="text-lg font-bold text-white">
+                No products match your criteria
+              </h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                Try widening your price range or clearing some filters to
+                explore more items.
               </p>
               <button
-                onClick={() => {
-                  handleCategorySelect("all");
-                  setPriceMax(6000);
-                }}
-                className="gold-gradient-btn px-4 py-2 rounded-xl text-xs"
+                onClick={handleClearFilters}
+                className="gold-gradient-btn px-5 py-2.5 rounded-xl text-xs font-bold"
               >
-                Reset Filters
+                Reset All Filters
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

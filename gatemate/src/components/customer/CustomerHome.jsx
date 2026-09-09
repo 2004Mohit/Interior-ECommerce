@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Sparkles,
   Tag,
@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ThumbsUp,
   Clock,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,15 +18,17 @@ import {
   HERO_BANNERS,
   PRODUCTS_DATA,
 } from "../../data/mockData";
-import { ProductCard } from "../../components/customer/ProductCard";
-import { ProductCardSkeleton } from "../../components/ProductCardSkeleton";
+import { ProductCard } from "./ProductCard";
+import { ProductCardSkeleton } from "../ProductCardSkeleton";
 
 export const CustomerHome = () => {
   const [activeBannerIdx, setActiveBannerIdx] = useState(0);
+  const [homeSearch, setHomeSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 400);
+    const timer = setTimeout(() => setLoading(false), 300);
     return () => clearTimeout(timer);
   }, []);
 
@@ -36,10 +39,17 @@ export const CustomerHome = () => {
     return () => clearInterval(bannerInterval);
   }, []);
 
+  const handleHomeSearch = (e) => {
+    e.preventDefault();
+    if (homeSearch.trim()) {
+      navigate(`/search?q=${encodeURIComponent(homeSearch.trim())}`);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-24">
-      {/* 1. Value statement */}
-      <div className="text-center space-y-3 max-w-3xl mx-auto">
+      {/* 1. Value statement & Search */}
+      <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide">
           <Sparkles className="w-3.5 h-3.5" />
           Direct Master Artisans & Verified Hardware Hub
@@ -49,8 +59,29 @@ export const CustomerHome = () => {
         </h1>
         <p className="text-sm sm:text-base text-slate-300 font-normal">
           Direct-from-source Jodhpur handcrafted home decor and premium
-          automated gate systems.
+          automated gate systems with 30-minute priority delivery.
         </p>
+
+        {/* Home Search Input */}
+        <form
+          onSubmit={handleHomeSearch}
+          className="relative w-full max-w-2xl mx-auto pt-2"
+        >
+          <Search className="absolute left-4 top-4 w-5 h-5 text-amber-400" />
+          <input
+            type="text"
+            placeholder="Search gate latches, blue pottery, woodcraft, brassware..."
+            value={homeSearch}
+            onChange={(e) => setHomeSearch(e.target.value)}
+            className="w-full premium-input pl-12 pr-28 py-3.5 rounded-2xl text-sm placeholder-slate-400 shadow-2xl"
+          />
+          <button
+            type="submit"
+            className="absolute right-2 top-3 gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold"
+          >
+            Search
+          </button>
+        </form>
       </div>
 
       {/* 2. Hero banner carousel */}
@@ -120,7 +151,7 @@ export const CustomerHome = () => {
             to="/products"
             className="text-xs text-amber-400 hover:underline font-semibold"
           >
-            View All Categories
+            View All Catalog
           </Link>
         </div>
 
@@ -156,13 +187,11 @@ export const CustomerHome = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="premium-card p-4 rounded-2xl flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shrink-0">
-            <Zap className="w-5 h-5" />
+            <Zap className="w-5 h-5 fill-current" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white">Rapid Dispatch</h4>
-            <p className="text-[11px] text-slate-400">
-              Insured Doorstep Delivery
-            </p>
+            <h4 className="text-xs font-bold text-white">30-Min Express</h4>
+            <p className="text-[11px] text-slate-400">Hyper-Local Dispatch</p>
           </div>
         </div>
         <div className="premium-card p-4 rounded-2xl flex items-center gap-3">
@@ -172,7 +201,7 @@ export const CustomerHome = () => {
           <div>
             <h4 className="text-xs font-bold text-white">100% Certified</h4>
             <p className="text-[11px] text-slate-400">
-              Pure Brass & Solid Sheesham
+              Pure Brass & Solid Wood
             </p>
           </div>
         </div>
@@ -182,9 +211,7 @@ export const CustomerHome = () => {
           </div>
           <div>
             <h4 className="text-xs font-bold text-white">Artisan Direct</h4>
-            <p className="text-[11px] text-slate-400">
-              Zero Intermediary Markups
-            </p>
+            <p className="text-[11px] text-slate-400">Zero Middleman Markup</p>
           </div>
         </div>
         <div className="premium-card p-4 rounded-2xl flex items-center gap-3">
@@ -194,13 +221,13 @@ export const CustomerHome = () => {
           <div>
             <h4 className="text-xs font-bold text-white">Dedicated Support</h4>
             <p className="text-[11px] text-slate-400">
-              Instant Cashfree Resolution
+              Instant Help Resolution
             </p>
           </div>
         </div>
       </div>
 
-      {/* 5. Featured Products */}
+      {/* 5. Featured Masterpieces */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <div>

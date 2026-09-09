@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Heart, ShoppingBag } from "lucide-react";
+import { Heart } from "lucide-react";
 import { useWishlist } from "../../context/WishlistContext";
-import { ProductCard } from "../../components/customer/ProductCard";
+import { ProductCard } from "./ProductCard";
 
 export const Wishlist = () => {
   const { wishlist } = useWishlist();
@@ -33,7 +33,7 @@ export const Wishlist = () => {
           </p>
           <Link
             to="/products"
-            className="gold-gradient-btn inline-block px-5 py-2.5 rounded-xl text-xs"
+            className="gold-gradient-btn inline-block px-5 py-2.5 rounded-xl text-xs font-bold"
           >
             Discover Products
           </Link>

@@ -28,7 +28,7 @@ export const Cart = () => {
         </p>
         <Link
           to="/products"
-          className="gold-gradient-btn inline-block px-6 py-3 rounded-xl text-xs"
+          className="gold-gradient-btn inline-block px-6 py-3 rounded-xl text-xs font-bold"
         >
           Start Shopping
         </Link>
@@ -43,7 +43,6 @@ export const Cart = () => {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Item List */}
         <div className="lg:col-span-2 space-y-4">
           {cart.map((item) => (
             <div
@@ -94,7 +93,6 @@ export const Cart = () => {
           ))}
         </div>
 
-        {/* Order Summary Card */}
         <div>
           <div className="premium-panel p-6 rounded-3xl space-y-4 sticky top-24">
             <h3 className="text-lg font-bold text-white border-b border-white/10 pb-3">
@@ -107,7 +105,9 @@ export const Cart = () => {
               </div>
               <div className="flex justify-between text-slate-300">
                 <span>Estimated Shipping</span>
-                <span className="text-emerald-400 font-semibold">FREE</span>
+                <span className="text-emerald-400 font-semibold">
+                  FREE (30-Min Priority in City)
+                </span>
               </div>
               <div className="flex justify-between text-slate-300">
                 <span>Taxes & GST (18%)</span>
@@ -123,7 +123,7 @@ export const Cart = () => {
 
             <button
               onClick={() => navigate("/checkout")}
-              className="w-full py-3.5 rounded-xl gold-gradient-btn flex items-center justify-center gap-2 text-sm active:scale-98 transition"
+              className="w-full py-3.5 rounded-xl gold-gradient-btn flex items-center justify-center gap-2 text-sm active:scale-98 transition font-bold"
             >
               <span>Proceed to Checkout</span>
               <ArrowRight className="w-4 h-4" />

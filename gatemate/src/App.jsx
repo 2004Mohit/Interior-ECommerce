@@ -5,10 +5,10 @@ import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 
 import { Header } from "./components/Header";
-import { CheckoutDrawer } from "./components/CheckoutDrawer";
+import { CheckoutDrawer } from "./components/customer/CheckoutDrawer";
 import { AuthModal } from "./components/AuthModal";
 
-// Components & Customer Views
+// Customer Components directly from src/components/customer
 import { CustomerHome } from "./components/customer/CustomerHome";
 import { ProductListing } from "./components/customer/ProductListing";
 import { ProductDetails } from "./components/customer/ProductDetails";
@@ -74,8 +74,7 @@ export default function App() {
                               GateMate Seller Hub
                             </h2>
                             <p className="text-slate-400 text-sm">
-                              Step 2: Listing workflows & seller metrics coming
-                              next.
+                              Listing workflows & seller metrics.
                             </p>
                           </div>
                         </div>
@@ -90,8 +89,7 @@ export default function App() {
                               GateMate Admin Portal
                             </h2>
                             <p className="text-slate-400 text-sm">
-                              Step 3: Platform oversight, banners, & category
-                              controls coming next.
+                              Platform oversight, banners, & category controls.
                             </p>
                           </div>
                         </div>
