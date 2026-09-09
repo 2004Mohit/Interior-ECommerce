@@ -23,6 +23,7 @@ import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../AuthModal";
 import { DeliveryChecker } from "./DeliveryChecker";
 import { ProductReviewsSection } from "./ProductReviewsSection";
+import { ProductImage } from "./ProductImage";
 
 export const ProductDetails = () => {
   const { slug } = useParams();
@@ -118,7 +119,7 @@ export const ProductDetails = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-pulse">
         <div className="h-4 bg-white/10 rounded w-48 mb-4"></div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <div className="h-[460px] bg-white/10 rounded-3xl"></div>
+          <div className="aspect-4/3 bg-white/10 rounded-3xl"></div>
           <div className="space-y-4">
             <div className="h-6 bg-white/10 rounded w-1/3"></div>
             <div className="h-10 bg-white/20 rounded w-3/4"></div>
@@ -152,6 +153,8 @@ export const ProductDetails = () => {
     );
   }
 
+  const currentMediaUrl = product.gallery?.[selectedImgIndex] || product.img;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10 pb-28">
       {/* 1. Breadcrumbs */}
@@ -180,12 +183,13 @@ export const ProductDetails = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Gallery Column */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="relative aspect-square sm:aspect-4/3 rounded-3xl overflow-hidden premium-card bg-[#060e1a] border border-white/10 shadow-2xl">
-            <img
-              src={product.gallery[selectedImgIndex] || product.img}
+          <div className="relative rounded-3xl overflow-hidden premium-card border border-white/10 shadow-2xl">
+            <ProductImage
+              src={currentMediaUrl}
               alt={product.name}
-              loading="lazy"
-              className="w-full h-full object-cover transition-all duration-300"
+              aspectRatio="aspect-square sm:aspect-4/3"
+              priority={true}
+              width={1000}
             />
             {product.isExpress30MinAvailable && (
               <span className="absolute top-4 left-4 bg-amber-400 text-slate-950 px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1 shadow-lg">
@@ -208,7 +212,8 @@ export const ProductDetails = () => {
             </button>
           </div>
 
-          {product.gallery.length > 1 && (
+          {/* Interactive Thumbnails */}
+          {product.gallery && product.gallery.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-1">
               {product.gallery.map((imgUrl, idx) => (
                 <button
@@ -216,14 +221,15 @@ export const ProductDetails = () => {
                   onClick={() => setSelectedImgIndex(idx)}
                   className={`relative w-20 h-20 rounded-2xl overflow-hidden shrink-0 border-2 transition ${
                     selectedImgIndex === idx
-                      ? "border-amber-400 shadow-md shadow-amber-500/20"
+                      ? "border-amber-400 shadow-md shadow-amber-500/20 scale-95"
                       : "border-white/10 opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <img
+                  <ProductImage
                     src={imgUrl}
                     alt=""
-                    className="w-full h-full object-cover"
+                    aspectRatio="aspect-square"
+                    width={160}
                   />
                 </button>
               ))}
@@ -380,7 +386,6 @@ export const ProductDetails = () => {
 
       {/* 3. Product Specifications & Customer Review Module */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
-        {/* Left Side: Overview & Full Reviews System */}
         <div className="lg:col-span-2 space-y-8">
           <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-4">
             <h2 className="text-lg font-black text-white border-b border-white/10 pb-3">
@@ -412,11 +417,9 @@ export const ProductDetails = () => {
             )}
           </div>
 
-          {/* Integrated Review & Rating Architecture */}
           <ProductReviewsSection product={product} />
         </div>
 
-        {/* Right Side: Merchant Details & FAQs */}
         <div className="space-y-6">
           {product.seller && (
             <div className="premium-panel p-6 rounded-3xl space-y-3 border border-white/10">

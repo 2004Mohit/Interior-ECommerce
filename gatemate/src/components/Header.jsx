@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ShoppingBag,
@@ -8,19 +8,34 @@ import {
   Heart,
   Search,
   User,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
+import { notificationService } from "../services/notificationService";
 
 export const Header = ({ onOpenAuth, onOpenCart }) => {
   const { user, logout } = useAuth();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
   const [navSearch, setNavSearch] = useState("");
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
   const navigate = useNavigate();
 
   const totalCartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Sync notification unread count when user is logged in
+  useEffect(() => {
+    if (user?.id) {
+      notificationService.getNotifications(user.id).then((list) => {
+        const count = list.filter((n) => !n.isRead).length;
+        setUnreadNotifCount(count);
+      });
+    } else {
+      setUnreadNotifCount(0);
+    }
+  }, [user]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -42,7 +57,7 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
               GATE<span className="text-amber-400">MATE</span>
             </span>
             <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-300/80">
-              Royal Heritage & Hardware
+              Pune & PCMC Gateway Hub
             </span>
           </div>
         </Link>
@@ -55,14 +70,14 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-amber-400" />
           <input
             type="text"
-            placeholder="Search gate accessories, pottery, woodcraft..."
+            placeholder="Search gate latches, ceramics, automated security..."
             value={navSearch}
             onChange={(e) => setNavSearch(e.target.value)}
             className="w-full premium-input pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm placeholder-slate-400"
           />
         </form>
 
-        {/* Navigation Switchers */}
+        {/* Right Action Icons */}
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             to="/products"
@@ -73,9 +88,9 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
 
           {/* Wishlist Link */}
           <Link
-            to="/wishlist"
+            to={user ? "/account/wishlist" : "/wishlist"}
             className="relative p-2 rounded-xl bg-[#0d1c33] border border-white/10 hover:border-amber-400/40 text-slate-300 hover:text-white transition"
-            title="Wishlist"
+            title="Saved Wishlist"
           >
             <Heart className="w-4 h-4 text-amber-400" />
             {wishlist.length > 0 && (
@@ -99,23 +114,40 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
             )}
           </button>
 
-          {/* User Account / Auth */}
+          {/* Authenticated Customer Controls */}
           {user ? (
             <div className="flex items-center gap-2">
+              {/* Notification Button (Visible when logged in) */}
+              <Link
+                to="/account/notifications"
+                className="relative p-2 rounded-xl bg-[#0d1c33] border border-white/10 hover:border-amber-400/40 text-slate-300 hover:text-white transition"
+                title="Notifications & 30-Min Dispatch Alerts"
+              >
+                <Bell className="w-4 h-4 text-amber-400" />
+                {unreadNotifCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-950 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                    {unreadNotifCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Profile Shortcut */}
               <Link
                 to="/account"
                 className="p-2 rounded-xl bg-[#172a4d] border border-amber-400/30 text-amber-300 hover:bg-[#1f3866] transition flex items-center gap-1.5 text-xs font-bold"
-                title="Account"
+                title="Account Hub"
               >
                 <User className="w-4 h-4" />
                 <span className="hidden lg:inline">
-                  {user.email?.split("@")[0] || "My Account"}
+                  {user.email?.split("@")[0] || "Account"}
                 </span>
               </Link>
+
+              {/* Logout Button */}
               <button
                 onClick={logout}
                 className="p-2 rounded-xl bg-[#1a0f18] border border-rose-500/20 text-rose-300 hover:bg-rose-500/20 transition text-xs"
-                title="Logout"
+                title="Sign Out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -123,7 +155,7 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
           ) : (
             <button
               onClick={onOpenAuth}
-              className="gold-gradient-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95"
+              className="gold-gradient-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-md"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Sign In</span>

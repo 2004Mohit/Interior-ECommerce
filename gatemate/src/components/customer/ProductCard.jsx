@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Star, ShoppingBag, Heart } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useWishlist } from "../../context/WishlistContext";
+import { ProductImage } from "./ProductImage";
 
 export const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
@@ -12,17 +13,18 @@ export const ProductCard = ({ product }) => {
   return (
     <div className="premium-card premium-card-hover rounded-2xl overflow-hidden flex flex-col group relative">
       {/* Thumbnail Frame */}
-      <div className="relative h-60 w-full overflow-hidden bg-[#060e1a]">
+      <div className="relative w-full overflow-hidden bg-[#060e1a]">
         <Link to={`/products/${product.slug}`}>
-          <img
+          <ProductImage
             src={product.img}
             alt={product.name}
-            loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            aspectRatio="aspect-square sm:aspect-4/3"
+            imageClassName="group-hover:scale-105"
+            width={600}
           />
         </Link>
         {product.tag && (
-          <span className="absolute top-3 left-3 bg-[#050b14]/90 px-3 py-1 rounded-lg text-xs font-bold text-amber-300 border border-amber-400/30">
+          <span className="absolute top-3 left-3 bg-[#050b14]/90 px-3 py-1 rounded-lg text-xs font-bold text-amber-300 border border-amber-400/30 shadow-md">
             {product.tag}
           </span>
         )}
@@ -73,7 +75,7 @@ export const ProductCard = ({ product }) => {
           </div>
           <button
             onClick={() => addToCart(product)}
-            className="gold-gradient-btn px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95"
+            className="gold-gradient-btn px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 transition active:scale-95 shadow-md"
           >
             <ShoppingBag className="w-4 h-4" />
             <span>Add to Bag</span>
