@@ -1,0 +1,18 @@
+# GateMate Production Crawl Directives
+User-agent: *
+Allow: /
+Allow: /products
+Allow: /products/*
+Allow: /search
+
+# Disallow Private Customer/Checkout & Admin Routes
+Disallow: /account
+Disallow: /account/*
+Disallow: /checkout
+Disallow: /cart
+Disallow: /wishlist
+Disallow: /seller
+Disallow: /admin
+
+# Sitemap Location
+Sitemap: https://gatemate.in/sitemap.xml

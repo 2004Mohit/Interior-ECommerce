@@ -21,12 +21,13 @@ import { ProductCard } from "./ProductCard";
 import { ProductCardSkeleton } from "../ProductCardSkeleton";
 import { useAuth } from "../../context/AuthContext";
 import { notificationService } from "../../services/notificationService";
+import { SeoHead } from "../common/SeoHead";
+import { SITE_CONFIG } from "../../services/seoService";
 
 export const CustomerHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Dynamic Repository Data State
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -84,8 +85,32 @@ export const CustomerHome = () => {
     }
   };
 
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_CONFIG.siteName,
+    url: SITE_CONFIG.siteUrl,
+    logo: `${SITE_CONFIG.siteUrl}/logo.png`,
+    sameAs: [],
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+91-9829012345",
+      contactType: "Customer Service",
+      areaServed: ["Pune", "Pimpri-Chinchwad"],
+      availableLanguage: ["English", "Hindi", "Marathi"],
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-24">
+      {/* Dynamic SEO Meta */}
+      <SeoHead
+        title="GateMate | Architectural Gates, Hardware & Decor Hub in Pune & PCMC"
+        description="Shop authentic handcrafted home decor, blue pottery, and heavy-duty gate automation with 30-minute express priority delivery across Pune and Pimpri-Chinchwad."
+        canonicalUrl="/"
+        structuredData={organizationSchema}
+      />
+
       {/* 1. Value statement & Search */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide">
@@ -326,7 +351,7 @@ export const CustomerHome = () => {
               Featured Masterpieces
             </h2>
             <p className="text-xs text-slate-400">
-              Curated collection from verified regional sellers
+              Curated collection from verified regional sellers in Pune & PCMC
             </p>
           </div>
           <Link

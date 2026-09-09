@@ -24,6 +24,8 @@ import { AuthModal } from "../AuthModal";
 import { DeliveryChecker } from "./DeliveryChecker";
 import { ProductReviewsSection } from "./ProductReviewsSection";
 import { ProductImage } from "./ProductImage";
+import { SeoHead } from "../common/SeoHead";
+import { seoService } from "../../services/seoService";
 
 export const ProductDetails = () => {
   const { slug } = useParams();
@@ -135,6 +137,11 @@ export const ProductDetails = () => {
   if (error || !product) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
+        <SeoHead
+          title="Product Not Found | GateMate"
+          description="The requested hardware or decor item was not found."
+          noIndex={true}
+        />
         <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
           <AlertCircle className="w-8 h-8" />
         </div>
@@ -155,8 +162,30 @@ export const ProductDetails = () => {
 
   const currentMediaUrl = product.gallery?.[selectedImgIndex] || product.img;
 
+  // Generate Schemas for SEO
+  const breadcrumbSchema = seoService.generateBreadcrumbSchema([
+    { name: "Home", url: "/" },
+    { name: "Products", url: "/products" },
+    {
+      name: product.category,
+      url: `/products?category=${product.categorySlug}`,
+    },
+    { name: product.name, url: `/products/${product.slug}` },
+  ]);
+  const productSchema = seoService.generateProductSchema(product);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10 pb-28">
+      {/* Dynamic SEO Meta & Structured Data */}
+      <SeoHead
+        title={`${product.name} | ${product.brand || "GateMate"}`}
+        description={`${product.name} - Buy online in Pune & PCMC. ${product.description.slice(0, 140)}... 30-minute express delivery available.`}
+        canonicalUrl={`/products/${product.slug}`}
+        ogImage={currentMediaUrl}
+        ogType="product"
+        structuredData={[breadcrumbSchema, productSchema]}
+      />
+
       {/* 1. Breadcrumbs */}
       <nav className="flex items-center gap-2 text-xs text-slate-400 overflow-x-auto whitespace-nowrap">
         <Link to="/" className="hover:text-amber-400 transition">
