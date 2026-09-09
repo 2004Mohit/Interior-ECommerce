@@ -8,7 +8,7 @@ import { Header } from "./components/Header";
 import { CheckoutDrawer } from "./components/CheckoutDrawer";
 import { AuthModal } from "./components/AuthModal";
 
-// Customer Pages
+// Components & Customer Views
 import { CustomerHome } from "./components/customer/CustomerHome";
 import { ProductListing } from "./components/customer/ProductListing";
 import { ProductDetails } from "./components/customer/ProductDetails";
@@ -31,11 +31,9 @@ export default function App() {
       <AuthProvider>
         <WishlistProvider>
           <CartProvider>
-            {/* Background Image Container */}
             <div className="min-h-screen bg-city-pattern bg-cover bg-center bg-fixed text-slate-100 flex flex-col relative">
               <div className="absolute inset-0 bg-gradient-to-b from-[#050b14]/90 via-[#0a1424]/92 to-[#050b14]/96 z-0 pointer-events-none" />
 
-              {/* Core App View */}
               <div className="relative z-10 flex flex-col min-h-screen">
                 <Header
                   onOpenAuth={() => setIsAuthOpen(true)}
@@ -44,7 +42,6 @@ export default function App() {
 
                 <main className="flex-1">
                   <Routes>
-                    {/* Customer Routes */}
                     <Route path="/" element={<CustomerHome />} />
                     <Route path="/products" element={<ProductListing />} />
                     <Route
@@ -56,7 +53,6 @@ export default function App() {
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/checkout" element={<Checkout />} />
 
-                    {/* Customer Account Routes */}
                     <Route path="/account" element={<Account />} />
                     <Route path="/account/addresses" element={<Addresses />} />
                     <Route path="/account/orders" element={<Orders />} />
@@ -69,7 +65,6 @@ export default function App() {
                       element={<Notifications />}
                     />
 
-                    {/* Preserved Seller & Admin Placeholders */}
                     <Route
                       path="/seller"
                       element={
@@ -106,7 +101,6 @@ export default function App() {
                 </main>
               </div>
 
-              {/* Overlays & Drawers */}
               <CheckoutDrawer
                 isOpen={isCartOpen}
                 onClose={() => setIsCartOpen(false)}
