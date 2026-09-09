@@ -301,7 +301,7 @@ export const Checkout = () => {
                 <span className="text-white font-bold">₹{subtotal}</span>
               </div>
               <div className="flex justify-between text-slate-300">
-                <span>Delivery (Pune / PCMC / Jodhpur)</span>
+                <span>Delivery (Pune / PCMC)</span>
                 <span className="text-emerald-400 font-bold">FREE</span>
               </div>
               <div className="flex justify-between text-sm font-black text-white pt-2 border-t border-white/10">

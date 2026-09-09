@@ -481,7 +481,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                           <AlertCircle className="w-3 h-3" />
                           <span>
                             30-minute priority dispatch is restricted to
-                            Pune/PCMC/Jodhpur verified zones.
+                            Pune/PCMC verified zones.
                           </span>
                         </div>
                       )}

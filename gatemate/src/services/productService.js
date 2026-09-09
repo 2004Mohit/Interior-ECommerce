@@ -43,7 +43,7 @@ const EXTENDED_PRODUCT_DETAILS = {
       },
       {
         q: "Is it eligible for 30-minute express doorstep delivery?",
-        a: "Yes, within select Jodhpur and Pune central operational zones, 30-min delivery is prioritized.",
+        a: "Yes, within select Pune central operational zones, 30-min delivery is prioritized.",
       },
       {
         q: "How is fragile pottery packaged for shipment?",
@@ -57,7 +57,7 @@ const EXTENDED_PRODUCT_DETAILS = {
         rating: 5,
         date: "2 days ago",
         comment:
-          "Authentic cobalt shade and exceptional glaze quality. Delivered within 30 mins in Jodhpur!",
+          "Authentic cobalt shade and exceptional glaze quality. Delivered within 30 mins in Pune!",
         verified: true,
       },
       {

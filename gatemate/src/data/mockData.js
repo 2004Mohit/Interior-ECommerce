@@ -263,16 +263,6 @@ export const MOCK_ORDERS = [
 
 export const MOCK_ADDRESSES = [
   {
-    id: "addr-1",
-    isDefault: true,
-    fullName: "Aditya Rathore",
-    phone: "+91 98290 12345",
-    line1: "House No. 42, Umaid Heritage Colony",
-    city: "Jodhpur",
-    state: "Rajasthan",
-    pincode: "342011",
-  },
-  {
     id: "addr-2",
     isDefault: false,
     fullName: "Aditya Rathore",

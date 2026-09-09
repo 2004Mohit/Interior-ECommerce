@@ -180,7 +180,7 @@ export const AddressFormModal = ({
           {/* PIN code check with live eligibility */}
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-1">
-              PIN Code (Pune / PCMC / Jodhpur) *
+              PIN Code (Pune / PCMC) *
             </label>
             <input
               type="text"

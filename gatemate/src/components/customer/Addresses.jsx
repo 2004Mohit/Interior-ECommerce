@@ -131,8 +131,7 @@ export const Addresses = () => {
         <div>
           <h1 className="text-2xl font-black text-white">Delivery Addresses</h1>
           <p className="text-xs text-slate-400">
-            Manage your delivery destinations in Pune, Pimpri-Chinchwad, and
-            Jodhpur.
+            Manage your delivery destinations in Pune, Pimpri-Chinchwad.
           </p>
         </div>
         <button

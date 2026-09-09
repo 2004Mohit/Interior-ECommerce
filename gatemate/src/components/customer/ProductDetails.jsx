@@ -12,10 +12,8 @@ import {
   Truck,
   HelpCircle,
   ChevronRight,
-  MapPin,
   Check,
   AlertCircle,
-  Sparkles,
   Building2,
 } from "lucide-react";
 import { productService } from "../../services/productService";
@@ -23,6 +21,8 @@ import { useCart } from "../../context/CartContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../AuthModal";
+import { DeliveryChecker } from "./DeliveryChecker";
+import { ProductReviewsSection } from "./ProductReviewsSection";
 
 export const ProductDetails = () => {
   const { slug } = useParams();
@@ -38,12 +38,9 @@ export const ProductDetails = () => {
   const [selectedImgIndex, setSelectedImgIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState({});
-  const [pincode, setPincode] = useState("");
-  const [deliveryInfo, setDeliveryInfo] = useState(null);
 
-  // Protected action modal state & pending action queue
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null); // 'cart' | 'buy_now' | 'wishlist'
+  const [pendingAction, setPendingAction] = useState(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState(null);
 
   useEffect(() => {
@@ -61,7 +58,6 @@ export const ProductDetails = () => {
           );
         } else {
           setProduct(data);
-          // Set initial variant selections
           if (data.variants) {
             const initial = {};
             data.variants.forEach((v) => {
@@ -115,15 +111,6 @@ export const ProductDetails = () => {
       setPendingAction(null);
       setTimeout(() => executeProtectedAction(action), 100);
     }
-  };
-
-  const handlePincodeCheck = (e) => {
-    e.preventDefault();
-    const result = productService.checkDeliveryPincode(
-      pincode,
-      product?.isExpress30MinAvailable,
-    );
-    setDeliveryInfo(result);
   };
 
   if (loading) {
@@ -189,9 +176,9 @@ export const ProductDetails = () => {
         </span>
       </nav>
 
-      {/* 2. Main Product Showcase */}
+      {/* 2. Product Showcase */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Gallery Column (5 cols) */}
+        {/* Gallery Column */}
         <div className="lg:col-span-6 space-y-4">
           <div className="relative aspect-square sm:aspect-4/3 rounded-3xl overflow-hidden premium-card bg-[#060e1a] border border-white/10 shadow-2xl">
             <img
@@ -203,6 +190,7 @@ export const ProductDetails = () => {
             {product.isExpress30MinAvailable && (
               <span className="absolute top-4 left-4 bg-amber-400 text-slate-950 px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1 shadow-lg">
                 <Zap className="w-3.5 h-3.5 fill-current" />⚡ 30-MIN EXPRESS
+                (PUNE / PCMC)
               </span>
             )}
             <button
@@ -220,7 +208,6 @@ export const ProductDetails = () => {
             </button>
           </div>
 
-          {/* Thumbnail list */}
           {product.gallery.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-1">
               {product.gallery.map((imgUrl, idx) => (
@@ -244,7 +231,7 @@ export const ProductDetails = () => {
           )}
         </div>
 
-        {/* Product Details & Actions Column (7 cols) */}
+        {/* Details & Actions Column */}
         <div className="lg:col-span-6 space-y-6">
           <div>
             <div className="flex items-center justify-between text-xs">
@@ -276,13 +263,13 @@ export const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Price Box */}
+          {/* Price */}
           <div className="premium-panel p-4 rounded-2xl flex items-baseline gap-3 border border-amber-400/20 bg-[#0a1526]">
-            <span className="text-3xl sm:text-4xl font-black text-white">
+            <span className="text-3xl sm:text-4xl font-black text-white font-mono">
               ₹{product.price}
             </span>
             {product.originalPrice && (
-              <span className="text-base text-slate-500 line-through">
+              <span className="text-base text-slate-500 line-through font-mono">
                 ₹{product.originalPrice}
               </span>
             )}
@@ -295,7 +282,7 @@ export const ProductDetails = () => {
             </span>
           </div>
 
-          {/* Dynamic Variant Selector */}
+          {/* Variant Selector */}
           {product.variants && product.variants.length > 0 && (
             <div className="space-y-4 pt-1">
               {product.variants.map((v) => (
@@ -332,63 +319,17 @@ export const ProductDetails = () => {
             </div>
           )}
 
-          {/* 30-Minute Hyper-Local Serviceability Check */}
-          <div className="premium-panel p-4 rounded-2xl space-y-3 border border-white/10">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="text-xs font-bold text-white">
-                Check 30-Minute Hyper-Local Delivery
-              </span>
-            </div>
-
-            <form onSubmit={handlePincodeCheck} className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Enter 6-digit PIN code (e.g. 342001 or 411045)"
-                maxLength={6}
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value)}
-                className="flex-1 premium-input px-3.5 py-2 rounded-xl text-xs"
-              />
-              <button
-                type="submit"
-                className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold active:scale-95"
-              >
-                Verify
-              </button>
-            </form>
-
-            {deliveryInfo && (
-              <div
-                className={`p-3 rounded-xl text-xs flex items-start gap-2 border ${
-                  deliveryInfo.valid
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                    : "bg-rose-500/10 border-rose-500/30 text-rose-300"
-                }`}
-              >
-                {deliveryInfo.valid ? (
-                  <>
-                    <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold text-white">
-                        {deliveryInfo.deliveryTime}
-                      </div>
-                      <div className="text-[11px] text-slate-300">
-                        Eligible for fast dispatch & free doorstep transit.
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <span>{deliveryInfo.message}</span>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Delivery Checker (Pune / PCMC Zones) */}
+          <DeliveryChecker
+            initialPincode="411006"
+            productWeightKg={2.5}
+            deliveryClass="FRAGILE_POTTERY"
+            compact={true}
+          />
 
           {/* Quantity & CTA Actions */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-3">
-              {/* Counter */}
               <div className="flex items-center bg-[#050b14] border border-white/10 rounded-xl p-1">
                 <button
                   type="button"
@@ -409,7 +350,6 @@ export const ProductDetails = () => {
                 </button>
               </div>
 
-              {/* Add to Bag */}
               <button
                 type="button"
                 onClick={() => executeProtectedAction("cart")}
@@ -419,7 +359,6 @@ export const ProductDetails = () => {
                 <span>Add to Shopping Bag</span>
               </button>
 
-              {/* Instant Buy Now */}
               <button
                 type="button"
                 onClick={() => executeProtectedAction("buy_now")}
@@ -439,10 +378,10 @@ export const ProductDetails = () => {
         </div>
       </div>
 
-      {/* 3. Product Specifications & Dynamic Attributes */}
+      {/* 3. Product Specifications & Customer Review Module */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
-        {/* Description & Attributes (2 cols) */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Left Side: Overview & Full Reviews System */}
+        <div className="lg:col-span-2 space-y-8">
           <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-4">
             <h2 className="text-lg font-black text-white border-b border-white/10 pb-3">
               Product Overview
@@ -451,7 +390,6 @@ export const ProductDetails = () => {
               {product.description}
             </p>
 
-            {/* Specifications Matrix */}
             {product.dynamicAttributes && (
               <div className="pt-4 space-y-3">
                 <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">
@@ -474,59 +412,12 @@ export const ProductDetails = () => {
             )}
           </div>
 
-          {/* Customer Reviews */}
-          <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <h2 className="text-lg font-black text-white">
-                  Verified Customer Reviews
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Authentic feedback from verified GateMate buyers
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5 text-amber-400 font-black text-base">
-                <Star className="w-5 h-5 fill-current" />
-                <span>{product.rating}</span>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              {product.reviewsList?.map((rev) => (
-                <div
-                  key={rev.id}
-                  className="premium-card p-4 rounded-2xl space-y-1.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      {rev.author}
-                      {rev.verified && (
-                        <span className="text-[10px] text-emerald-400 font-normal">
-                          ✓ Verified Buyer
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {rev.date}
-                    </span>
-                  </div>
-                  <div className="flex text-amber-400 text-xs">
-                    {Array(rev.rating)
-                      .fill(0)
-                      .map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-current" />
-                      ))}
-                  </div>
-                  <p className="text-xs text-slate-300">{rev.comment}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Integrated Review & Rating Architecture */}
+          <ProductReviewsSection product={product} />
         </div>
 
-        {/* Seller Info & FAQs (1 col) */}
+        {/* Right Side: Merchant Details & FAQs */}
         <div className="space-y-6">
-          {/* Seller Profile Box */}
           {product.seller && (
             <div className="premium-panel p-6 rounded-3xl space-y-3 border border-white/10">
               <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
@@ -563,7 +454,6 @@ export const ProductDetails = () => {
             </div>
           )}
 
-          {/* FAQs */}
           {product.faqs && product.faqs.length > 0 && (
             <div className="premium-panel p-6 rounded-3xl space-y-3">
               <div className="flex items-center gap-2 border-b border-white/10 pb-2">
@@ -585,7 +475,6 @@ export const ProductDetails = () => {
         </div>
       </div>
 
-      {/* Protected Auth Modal for Guests */}
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}

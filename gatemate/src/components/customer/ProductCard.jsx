@@ -17,6 +17,7 @@ export const ProductCard = ({ product }) => {
           <img
             src={product.img}
             alt={product.name}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </Link>
@@ -30,18 +31,18 @@ export const ProductCard = ({ product }) => {
             e.preventDefault();
             toggleWishlist(product);
           }}
-          className={`absolute top-3 right-3 p-2 rounded-xl bg-[#050b14]/80 transition ${
+          className={`absolute top-3 right-3 p-2.5 rounded-xl bg-[#050b14]/80 border border-white/10 backdrop-blur-md transition ${
             activeWish
               ? "text-rose-500 fill-rose-500"
               : "text-slate-300 hover:text-rose-400"
           }`}
-          aria-label="Wishlist toggle"
+          aria-label={activeWish ? "Remove from wishlist" : "Save to wishlist"}
         >
           <Heart className={`w-4 h-4 ${activeWish ? "fill-current" : ""}`} />
         </button>
       </div>
 
-      {/* Content */}
+      {/* Content Meta */}
       <div className="p-5 flex flex-col flex-1 justify-between gap-4">
         <div>
           <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
@@ -66,7 +67,7 @@ export const ProductCard = ({ product }) => {
                 ₹{product.originalPrice}
               </div>
             )}
-            <div className="text-xl font-black text-white">
+            <div className="text-xl font-black text-white font-mono">
               ₹{product.price}
             </div>
           </div>

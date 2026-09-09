@@ -1,4 +1,4 @@
-// Initial Launch Operational Geography (Pune Municipal Corporation + PCMC + Jodhpur Heritage Hub)
+// Initial Launch Operational Geography (Pune Municipal Corporation + PCMC Heritage Hub)
 export const SUPPORTED_DELIVERY_ZONES = [
   // Pune Municipal Corporation (PMC)
   {
@@ -94,26 +94,6 @@ export const SUPPORTED_DELIVERY_ZONES = [
     city: "Pimpri-Chinchwad",
     isExpress30Min: true,
   },
-
-  // Jodhpur Flagship Hub
-  {
-    pincode: "342001",
-    area: "Old City Jodhpur",
-    city: "Jodhpur",
-    isExpress30Min: true,
-  },
-  {
-    pincode: "342006",
-    area: "Circuit House Road",
-    city: "Jodhpur",
-    isExpress30Min: true,
-  },
-  {
-    pincode: "342011",
-    area: "Umaid Heritage",
-    city: "Jodhpur",
-    isExpress30Min: true,
-  },
 ];
 
 const STORAGE_KEY = "gatemate_customer_addresses";
@@ -177,7 +157,7 @@ export const addressService = {
       isServiceable: false,
       isExpress30Min: false,
       message:
-        "Currently outside Pune, Pimpri-Chinchwad & Jodhpur instant delivery zones. Standard courier fulfillment will apply.",
+        "Currently outside Pune, Pimpri-Chinchwad instant delivery zones. Standard courier fulfillment will apply.",
     };
   },
 

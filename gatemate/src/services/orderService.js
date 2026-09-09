@@ -7,7 +7,7 @@ export const DELIVERY_OPTIONS = [
   {
     id: "express_30min",
     name: "⚡ 30-Minute Priority Express",
-    description: "Direct courier dispatch within Pune, PCMC & Jodhpur zones",
+    description: "Direct courier dispatch within Pune, PCMC zones",
     sla: "Within 30 Minutes",
     baseFee: 0,
     cutoffTime: "Available 08:00 AM – 10:00 PM",
