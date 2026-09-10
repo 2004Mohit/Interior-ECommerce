@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SlidersHorizontal, AlertCircle, RotateCcw } from "lucide-react";
+import { SlidersHorizontal, PackageX } from "lucide-react";
 import { productService } from "../../services/productService";
 import { ProductCard } from "./ProductCard";
 import { ProductCardSkeleton } from "../ProductCardSkeleton";
@@ -8,13 +8,16 @@ import { FilterPanel } from "./FilterPanel";
 import { SortSelect } from "./SortSelect";
 import { SeoHead } from "../common/SeoHead";
 import { seoService } from "../../services/seoService";
+import { ErrorStateView, EmptyStateView } from "../common/StateViews";
 
 export const ProductListing = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const category = searchParams.get("category") || "all";
   const brand = searchParams.get("brand") || "all";
-  const material = searchParams.get("material") || "all";
+  const unit = searchParams.get("unit") || "all";
+  const grade = searchParams.get("grade") || "all";
+  const inStockOnly = searchParams.get("inStockOnly") === "true";
   const minPrice = searchParams.get("minPrice") || "";
   const maxPrice = searchParams.get("maxPrice") || "";
   const sort = searchParams.get("sort") || "relevance";
@@ -34,7 +37,9 @@ export const ProductListing = () => {
       .queryProducts({
         category,
         brand,
-        material,
+        unit,
+        grade,
+        inStockOnly,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         sort,
@@ -44,14 +49,16 @@ export const ProductListing = () => {
       .then((data) => setProducts(data))
       .catch(() =>
         setError(
-          "Unable to load products. Please check your filters and retry.",
+          "Unable to load construction products. Please check connection.",
         ),
       )
       .finally(() => setLoading(false));
   }, [
     category,
     brand,
-    material,
+    unit,
+    grade,
+    inStockOnly,
     minPrice,
     maxPrice,
     sort,
@@ -80,7 +87,9 @@ export const ProductListing = () => {
   const currentFilters = {
     category,
     brand,
-    material,
+    unit,
+    grade,
+    inStockOnly,
     minPrice,
     maxPrice,
     expressOnly,
@@ -93,7 +102,7 @@ export const ProductListing = () => {
         .split("-")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(" ")
-    : "All Products & Architectural Fittings";
+    : "All Construction Products";
 
   const canonicalPath = isFilteredCategory
     ? `/products?category=${category}`
@@ -101,37 +110,39 @@ export const ProductListing = () => {
 
   const collectionSchema = seoService.generateCollectionSchema({
     categoryName: categoryTitle,
-    categoryDescription: `Discover verified ${categoryTitle} with 30-minute priority delivery in Pune & PCMC.`,
+    categoryDescription: `Buy verified ${categoryTitle} construction supplies online with 30-minute delivery on eligible Products/orders in Pune & PCMC.`,
     products,
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-24">
       {/* Category SEO Tags */}
       <SeoHead
-        title={`${categoryTitle} | GateMate Catalog`}
-        description={`Explore our collection of ${categoryTitle} in Pune & PCMC. Guaranteed quality, express 30-min courier dispatch, and GST input tax credit for contractors.`}
+        title={`${categoryTitle} | GateMate Construction Products`}
+        description={`Explore certified ${categoryTitle} supplies in Pune & PCMC. Direct wholesale depot rates, 30-minute delivery on eligible Products/orders, and GST input tax credit for contractors.`}
         canonicalUrl={canonicalPath}
         structuredData={collectionSchema}
       />
 
       {/* Top Header & Sort Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
+          <h1 className="text-xl sm:text-2xl font-black text-white">
             {categoryTitle}
           </h1>
           <p className="text-xs text-slate-400">
             {loading
-              ? "Finding matching items..."
-              : `Showing ${products.length} verified item(s) in Pune / PCMC`}
+              ? "Finding matching construction products..."
+              : `Showing ${products.length} verified product(s) in Pune / PCMC`}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
           <button
+            type="button"
             onClick={() => setMobileFilterOpen(true)}
-            className="lg:hidden premium-card px-3.5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 border border-white/10"
+            className="lg:hidden premium-card min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 border border-white/10"
+            aria-label="Open Filter Controls"
           >
             <SlidersHorizontal className="w-4 h-4 text-amber-400" />
             <span>Filters</span>
@@ -154,10 +165,15 @@ export const ProductListing = () => {
           />
         </div>
 
-        {/* Mobile Filter Modal Drawer */}
+        {/* Mobile Filter Slide-out Drawer */}
         {mobileFilterOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-end">
-            <div className="w-full max-w-xs bg-[#0a1424] h-full p-5 overflow-y-auto border-l border-white/10 shadow-2xl">
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-end"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Construction Product Filters"
+          >
+            <div className="w-full max-w-xs bg-[#0a1424] h-full p-5 overflow-y-auto border-l border-white/10 shadow-2xl flex flex-col justify-between">
               <FilterPanel
                 filters={currentFilters}
                 onFilterChange={handleFilterChange}
@@ -166,10 +182,11 @@ export const ProductListing = () => {
                 onCloseMobileDrawer={() => setMobileFilterOpen(false)}
               />
               <button
+                type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="w-full mt-6 gold-gradient-btn py-3 rounded-xl text-xs font-bold"
+                className="w-full mt-6 gold-gradient-btn min-h-[44px] py-3 rounded-xl text-xs font-bold"
               >
-                Apply & View Results
+                Apply Product Filters
               </button>
             </div>
           </div>
@@ -178,7 +195,7 @@ export const ProductListing = () => {
         {/* Results Container */}
         <div className="lg:col-span-3 space-y-4">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {Array(6)
                 .fill(0)
                 .map((_, i) => (
@@ -186,38 +203,21 @@ export const ProductListing = () => {
                 ))}
             </div>
           ) : error ? (
-            <div className="premium-panel p-12 rounded-3xl text-center space-y-3">
-              <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
-              <h3 className="text-base font-bold text-white">
-                Error Loading Catalog
-              </h3>
-              <p className="text-xs text-slate-400">{error}</p>
-              <button
-                onClick={fetchFilteredProducts}
-                className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Retry</span>
-              </button>
-            </div>
+            <ErrorStateView
+              title="Error Loading Products"
+              description={error}
+              onRetry={fetchFilteredProducts}
+            />
           ) : products.length === 0 ? (
-            <div className="premium-panel p-16 rounded-3xl text-center space-y-4">
-              <h3 className="text-lg font-bold text-white">
-                No products match your criteria
-              </h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Try widening your price range or clearing some filters to
-                explore more items.
-              </p>
-              <button
-                onClick={handleClearFilters}
-                className="gold-gradient-btn px-5 py-2.5 rounded-xl text-xs font-bold"
-              >
-                Reset All Filters
-              </button>
-            </div>
+            <EmptyStateView
+              icon={PackageX}
+              title="No Products Match Filters"
+              description="Try widening your maximum price range or clear category/unit filters to explore more items."
+              actionLabel="Reset All Filters"
+              onActionClick={handleClearFilters}
+            />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

@@ -3,22 +3,23 @@ import { useParams, Link } from "react-router-dom";
 import { AccountNav } from "./AccountNav";
 import {
   orderRepository,
-  ORDER_LIFECYCLE_STATUS,
-  PAYMENT_STATUS,
+  ORDER_STATUS_TIMELINE_STEPS,
 } from "../../services/orderRepository";
-import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { useAuth } from "../../context/AuthContext";
 import {
   ArrowLeft,
+  CheckCircle2,
+  Clock,
   MapPin,
   CreditCard,
   ShieldCheck,
+  Zap,
   AlertCircle,
   RotateCcw,
-  Truck,
+  Lock,
   FileText,
-  Ban,
 } from "lucide-react";
+import { AuthModal } from "../AuthModal";
 
 export const OrderDetails = () => {
   const { id } = useParams();
@@ -27,80 +28,133 @@ export const OrderDetails = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  const fetchOrderDetail = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await orderRepository.getOrderById(user.id, id);
+      setOrder(data);
+    } catch (err) {
+      setError(err.message || "Unable to locate order details.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!authLoading && user) {
-      setLoading(true);
-      orderRepository
-        .getOrderById(user.id, id)
-        .then(setOrder)
-        .catch((err) => setError(err.message))
-        .finally(() => setLoading(false));
+    if (!authLoading) {
+      fetchOrderDetail();
     }
   }, [id, user, authLoading]);
 
   if (!authLoading && !user) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="text-2xl font-black text-white">
-          Authentication Required
-        </h2>
-        <p className="text-xs text-slate-400">
-          You must be logged in to inspect order records.
-        </p>
-        <Link
-          to="/account/orders"
-          className="gold-gradient-btn inline-block px-5 py-2.5 rounded-xl text-xs font-bold"
-        >
-          Go to Sign In
-        </Link>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
+        <div className="premium-panel p-12 rounded-3xl text-center space-y-4 max-w-md mx-auto">
+          <Lock className="w-10 h-10 text-amber-400 mx-auto" />
+          <h2 className="text-lg font-bold text-white">
+            Sign In to View Order
+          </h2>
+          <p className="text-xs text-slate-400">
+            Authentication is required to track site deliveries.
+          </p>
+          <button
+            onClick={() => setAuthModalOpen(true)}
+            className="gold-gradient-btn px-6 py-3 rounded-xl text-xs font-bold"
+          >
+            Sign In
+          </button>
+        </div>
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={() => {
+            setAuthModalOpen(false);
+            fetchOrderDetail();
+          }}
+        />
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <div className="h-6 w-36 bg-white/10 rounded animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-1 h-44 bg-white/10 rounded-3xl animate-pulse" />
-          <div className="md:col-span-3 h-96 bg-white/10 rounded-3xl animate-pulse" />
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="premium-panel p-8 rounded-3xl h-64 animate-pulse bg-white/5" />
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
-        <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
-        <h2 className="text-2xl font-black text-white">
-          Order Record Not Found
-        </h2>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+          <AlertCircle className="w-7 h-7" />
+        </div>
+        <h2 className="text-2xl font-black text-white">Order Not Found</h2>
+        <p className="text-xs text-slate-400 max-w-md mx-auto">
           {error || "Order does not exist."}
         </p>
         <Link
           to="/account/orders"
           className="gold-gradient-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to My Orders</span>
+          <ArrowLeft className="w-4 h-4 text-slate-950" />
+          <span>Return to Order History</span>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Navigation Breadcrumb */}
-      <Link
-        to="/account/orders"
-        className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:underline"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Back to Order History</span>
-      </Link>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+        <div>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/account/orders"
+              className="p-2 rounded-xl bg-[#0c182b] text-slate-400 hover:text-white border border-white/5"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-white">
+                  Order {order.id}
+                </h1>
+                {order.isExpress30Min && (
+                  <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Zap className="w-3 h-3 fill-current" />
+                    30-MIN PRIORITY
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Placed on{" "}
+                {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <span className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#172a4d] text-amber-300 border border-amber-400/30 self-start sm:self-auto">
+          Status: {order.orderStatus.replace(/_/g, " ")}
+        </span>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
         <div className="md:col-span-1">
@@ -108,169 +162,98 @@ export const OrderDetails = () => {
         </div>
 
         <div className="md:col-span-3 space-y-6">
-          {/* Main Order Card */}
-          <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-white/10">
-            {/* Header info */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Order Reference
-                </span>
-                <h1 className="text-xl sm:text-2xl font-black text-amber-400 font-mono mt-0.5">
-                  {order.id}
-                </h1>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Placed on {new Date(order.createdAt).toLocaleString("en-IN")}
-                </p>
-              </div>
+          {/* Timeline */}
+          <div className="premium-panel p-6 rounded-3xl space-y-4 border border-white/10">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400" />
+              <span>Live Site Dispatch Timeline</span>
+            </h3>
 
-              <div className="flex flex-col items-start sm:items-end gap-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">
-                  Fulfillment Status
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  {order.orderStatus.replace(/_/g, " ")}
-                </span>
-              </div>
+            <div className="space-y-4 pt-2">
+              {ORDER_STATUS_TIMELINE_STEPS.map((step, idx) => {
+                const isDelivered = order.orderStatus === "DELIVERED";
+                const isPassed = isDelivered || idx <= 4;
+                return (
+                  <div
+                    key={step.key}
+                    className="flex items-start gap-3 relative"
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                        isPassed
+                          ? "bg-amber-400 text-slate-950"
+                          : "bg-slate-800 text-slate-500"
+                      }`}
+                    >
+                      {isPassed ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        idx + 1
+                      )}
+                    </div>
+                    <div>
+                      <h4
+                        className={`text-xs font-bold ${isPassed ? "text-white" : "text-slate-500"}`}
+                      >
+                        {step.label}
+                      </h4>
+                      <p className="text-[11px] text-slate-400">{step.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            {/* 1. Fulfillment Journey Timeline */}
-            <div className="premium-card p-5 rounded-2xl bg-[#091526]">
-              <OrderStatusTimeline
-                currentStatus={order.orderStatus}
-                isExpress30Min={order.isExpress30Min}
-              />
-            </div>
-
-            {/* 2. Itemized Product Breakdown */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+          {/* Items & Shipping Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Products in this Order */}
+            <div className="premium-panel p-6 rounded-3xl space-y-3 border border-white/10">
+              <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">
                 Ordered Products
               </h3>
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {order.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="premium-card p-4 rounded-2xl flex items-center justify-between gap-4"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <img
-                        src={item.img}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-xl bg-black shrink-0"
-                      />
-                      <div>
-                        <span className="text-[10px] font-bold text-amber-400 uppercase">
-                          {item.brand || "Handcrafted"}
-                        </span>
-                        <h4 className="text-xs font-bold text-white">
-                          {item.name}
-                        </h4>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          SKU: {item.sku || "GM-SKU-001"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-xs font-bold text-white">
-                        Qty: {item.quantity}
-                      </div>
-                      <div className="text-amber-400 font-black font-mono text-sm">
-                        ₹{item.price * item.quantity}
-                      </div>
+                  <div key={item.id} className="flex items-center gap-3">
+                    <img
+                      src={item.img}
+                      alt=""
+                      className="w-12 h-12 rounded-xl object-cover bg-black shrink-0 border border-white/10"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-white truncate">
+                        {item.name}
+                      </h4>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Qty: {item.quantity} × ₹{item.price}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* 3. Delivery & Payment Destination Breakdown */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="premium-card p-4 rounded-2xl space-y-2 text-xs">
-                <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-                  <MapPin className="w-4 h-4" />
-                  <span>Delivery Destination</span>
-                </div>
-                <p className="text-white font-semibold">
-                  {order.shippingAddress?.fullName} (
-                  {order.shippingAddress?.phone})
-                </p>
-                <p className="text-slate-300 leading-relaxed text-[11px]">
-                  {order.shippingAddress?.line1},{" "}
-                  {order.shippingAddress?.locality},{" "}
-                  {order.shippingAddress?.city} -{" "}
-                  {order.shippingAddress?.pincode}
-                </p>
-                {order.isExpress30Min && (
-                  <div className="text-amber-400 font-bold text-[10px] pt-1">
-                    ⚡ Estimated SLA: {order.estimatedDeliveryTime}
-                  </div>
-                )}
-              </div>
-
-              <div className="premium-card p-4 rounded-2xl space-y-2 text-xs">
-                <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                  <CreditCard className="w-4 h-4" />
-                  <span>Payment Reconciliation</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Method:</span>
-                  <span className="text-white font-semibold">
-                    {order.paymentMethod}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Transaction Status:</span>
-                  <span className="font-bold text-amber-400 font-mono">
-                    {order.paymentStatus}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] text-slate-400 pt-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Authoritative server transaction record</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Authoritative Total Breakdown */}
-            <div className="premium-panel p-5 rounded-2xl space-y-2 text-xs border border-white/10">
-              <h3 className="font-bold text-slate-300 uppercase tracking-wider mb-2">
-                Billing Breakdown
+            {/* Site Address & Payment Info */}
+            <div className="premium-panel p-6 rounded-3xl space-y-3 border border-white/10 text-xs">
+              <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                Site Delivery Destination
               </h3>
-              <div className="flex justify-between text-slate-300">
-                <span>Items Subtotal</span>
-                <span className="font-mono text-white font-bold">
-                  ₹{order.totals?.itemSubtotal}
-                </span>
-              </div>
-              <div className="flex justify-between text-slate-300">
-                <span>Delivery Charges</span>
-                <span className="text-emerald-400 font-bold">
-                  {order.totals?.deliveryFee === 0
-                    ? "FREE"
-                    : `₹${order.totals?.deliveryFee}`}
-                </span>
-              </div>
-              <div className="flex justify-between text-slate-300">
-                <span>Honeycomb Box & Platform Fee</span>
-                <span className="font-mono text-white">
-                  ₹{order.totals?.packagingFee}
-                </span>
-              </div>
-              {order.totals?.codConvenienceFee > 0 && (
-                <div className="flex justify-between text-slate-300">
-                  <span>Pay on Delivery Handling Fee</span>
-                  <span className="font-mono text-amber-400">
-                    +₹{order.totals?.codConvenienceFee}
-                  </span>
+              <p className="text-white font-bold">
+                {order.shippingAddress?.fullName} (
+                {order.shippingAddress?.phone})
+              </p>
+              <p className="text-slate-300 leading-relaxed">
+                {order.shippingAddress?.line1},{" "}
+                {order.shippingAddress?.locality}, {order.shippingAddress?.city}{" "}
+                - {order.shippingAddress?.pincode}
+              </p>
+
+              <div className="pt-3 border-t border-white/5 space-y-1">
+                <span className="text-slate-400">Payment: </span>
+                <strong className="text-white">{order.paymentMethod}</strong>
+                <div className="text-amber-400 font-bold">
+                  Total: ₹{order.totals?.grandTotal}
                 </div>
-              )}
-              <div className="flex justify-between text-sm font-black text-white pt-2 border-t border-white/10">
-                <span>Authoritative Grand Total</span>
-                <span className="font-mono text-amber-400 text-lg">
-                  ₹{order.totals?.grandTotal}
-                </span>
               </div>
             </div>
           </div>

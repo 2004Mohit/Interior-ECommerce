@@ -1,14 +1,11 @@
 /**
- * GateMate B2B Architectural & Contractor Quotation Service
+ * GateMate B2B Contractor & Project Quotation Service
  * Pune & Pimpri-Chinchwad Commercial Procurement Engine
  */
 
 const B2B_STORAGE_KEY = "gatemate_b2b_rfqs_";
 
 export const b2bService = {
-  /**
-   * Validates Indian GSTIN Format (e.g. 27AAAAA0000A1Z5 for Maharashtra)
-   */
   validateGSTIN(gstin) {
     const cleanGst = (gstin || "").trim().toUpperCase();
     const gstRegex =
@@ -35,11 +32,8 @@ export const b2bService = {
     };
   },
 
-  /**
-   * Retrieves all B2B Quotations submitted by the user
-   */
   async getQuotations(userId) {
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     const stored = localStorage.getItem(`${B2B_STORAGE_KEY}${userId}`);
     if (stored) {
       try {
@@ -49,33 +43,30 @@ export const b2bService = {
       }
     }
 
-    // Default mock RFQ for initial testing
     return [
       {
         id: "RFQ-PN-2026-089",
-        projectName: "Balewadi High Street Commercial Gateways",
-        productName: "Heavy Duty Sheesham Automatic Gate Latch",
-        quantity: 16,
+        projectName: "Balewadi Commercial Plaza Foundation",
+        productName: "Tata Tiscon 550D High Ductility TMT Rebar (16mm)",
+        quantity: 50,
         status: "QUOTATION_READY",
-        estimatedTotal: 38400,
-        gstBreakdown: "₹5,856 (18% ITC Eligible)",
+        estimatedTotal: 74000,
+        gstBreakdown: "₹11,288 (18% ITC Eligible)",
         createdAt: "2026-09-02",
-        siteLocation: "Balewadi, Pune",
-        notes: "Includes through-bolts & automated motor link brackets.",
+        siteLocation: "Balewadi High Street, Pune",
+        notes:
+          "Requires manufacturer mill test certificate and 40-ton trailer direct unloading.",
       },
     ];
   },
 
-  /**
-   * Submits a new Bulk Quotation RFQ
-   */
   async submitQuotation(userId, rfqData) {
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     const newRfq = {
       id: `RFQ-PN-${Date.now().toString().slice(-6)}`,
       createdAt: new Date().toISOString().split("T")[0],
-      status: "UNDER_VENDOR_REVIEW",
+      status: "UNDER_DEPOT_REVIEW",
       ...rfqData,
     };
 
@@ -90,7 +81,7 @@ export const b2bService = {
       success: true,
       data: newRfq,
       message:
-        "Bulk quotation request submitted. Regional manufacturers in Pune/PCMC will provide tiered pricing.",
+        "Project quotation submitted. Regional stockists in Pune/PCMC will provide tiered volume pricing.",
     };
   },
 };
