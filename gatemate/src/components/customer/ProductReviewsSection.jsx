@@ -1,15 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  Star,
-  ShieldCheck,
-  ThumbsUp,
-  MessageSquare,
-  Sparkles,
-  CheckCircle2,
-  AlertCircle,
-  Image as ImageIcon,
-  Plus,
-} from "lucide-react";
+import { Star, ShieldCheck, MessageSquare, Plus } from "lucide-react";
 import { reviewService } from "../../services/reviewService";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../AuthModal";
@@ -42,7 +32,7 @@ export const ProductReviewsSection = ({ product }) => {
       const data = await reviewService.getProductReviews(product.id);
       setReviewsData(data);
     } catch (err) {
-      setError("Unable to load customer reviews.");
+      setError("Unable to load Customer Reviews for this Product.");
     } finally {
       setLoading(false);
     }
@@ -74,26 +64,26 @@ export const ProductReviewsSection = ({ product }) => {
     }
   };
 
-  const handleReviewSubmitted = (newReview) => {
+  const handleReviewSubmitted = () => {
     fetchReviews();
     setEligibilityNotice(
-      "Review published successfully! Thank you for sharing your feedback.",
+      "Customer Review published successfully. Thank you for sharing your feedback.",
     );
   };
 
   return (
     <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-white/10">
-      {/* Top Header & Rating Overview */}
+      {/* Top Header & Customer Rating Overview */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/10 pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <MessageSquare className="w-5 h-5 text-amber-400" />
             <h2 className="text-xl font-black text-white">
-              Customer Reviews & Ratings
+              Customer Reviews & Customer Ratings
             </h2>
           </div>
           <p className="text-xs text-slate-400">
-            Authentic feedback from verified customers across Pune and
+            Verified Customer Reviews and Product Ratings across Pune and
             Pimpri-Chinchwad.
           </p>
         </div>
@@ -104,11 +94,9 @@ export const ProductReviewsSection = ({ product }) => {
             disabled={eligibilityChecking}
             className="gold-gradient-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition disabled:opacity-50"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-slate-950" />
             <span>
-              {eligibilityChecking
-                ? "Checking Eligibility..."
-                : "Write a Review"}
+              {eligibilityChecking ? "Verifying..." : "Write a Customer Review"}
             </span>
           </button>
         </div>
@@ -122,7 +110,7 @@ export const ProductReviewsSection = ({ product }) => {
         </div>
       )}
 
-      {/* Ratings Breakdown Grid */}
+      {/* Customer Ratings Breakdown Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-2xl bg-[#091526] border border-white/5 items-center">
         <div className="text-center md:border-r border-white/10 md:pr-4">
           <div className="text-4xl font-black text-white font-mono">
@@ -130,11 +118,14 @@ export const ProductReviewsSection = ({ product }) => {
           </div>
           <div className="flex justify-center text-amber-400 my-1">
             {[1, 2, 3, 4, 5].map((star) => (
-              <Star key={star} className="w-4 h-4 fill-current" />
+              <Star
+                key={star}
+                className="w-4 h-4 fill-current text-amber-400"
+              />
             ))}
           </div>
           <p className="text-[11px] text-slate-400">
-            Based on {reviewsData.totalCount} verified review(s)
+            Overall Customer Rating ({reviewsData.totalCount} reviews)
           </p>
         </div>
 
@@ -169,7 +160,7 @@ export const ProductReviewsSection = ({ product }) => {
         </div>
       </div>
 
-      {/* Review List */}
+      {/* Customer Reviews List */}
       <div className="space-y-4 pt-2">
         {loading ? (
           <div className="space-y-3">
@@ -185,10 +176,11 @@ export const ProductReviewsSection = ({ product }) => {
         ) : reviewsData.reviews.length === 0 ? (
           <div className="p-10 text-center space-y-2">
             <p className="text-xs text-slate-300">
-              No customer reviews published yet for this item.
+              No Customer Reviews submitted yet for this Product.
             </p>
             <p className="text-[11px] text-slate-500">
-              Be the first verified customer in Pune or PCMC to submit a review!
+              Be the first verified customer in Pune or PCMC to write a Customer
+              Review.
             </p>
           </div>
         ) : (
@@ -207,7 +199,7 @@ export const ProductReviewsSection = ({ product }) => {
                       <span>{rev.userName}</span>
                       {rev.isVerifiedPurchase && (
                         <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 rounded-full flex items-center gap-1 font-semibold">
-                          <ShieldCheck className="w-3 h-3" /> Verified Buyer
+                          <ShieldCheck className="w-3 h-3" /> Verified Purchase
                         </span>
                       )}
                     </h4>
@@ -232,7 +224,10 @@ export const ProductReviewsSection = ({ product }) => {
                   {Array(rev.rating)
                     .fill(0)
                     .map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-current" />
+                      <Star
+                        key={i}
+                        className="w-3.5 h-3.5 fill-current text-amber-400"
+                      />
                     ))}
                 </div>
                 {rev.headline && (
@@ -267,7 +262,7 @@ export const ProductReviewsSection = ({ product }) => {
         )}
       </div>
 
-      {/* Form and Auth Modals */}
+      {/* Review Form Modal */}
       <ReviewFormModal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}

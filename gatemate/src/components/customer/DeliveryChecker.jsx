@@ -1,171 +1,118 @@
 import React, { useState } from "react";
-import {
-  MapPin,
-  Zap,
-  ShieldCheck,
-  Truck,
-  Clock,
-  AlertCircle,
-  CheckCircle2,
-  Info,
-  ArrowRight,
-} from "lucide-react";
-import { deliveryService } from "../../services/deliveryService";
+import { MapPin, Zap, Truck, Check, AlertCircle, Clock } from "lucide-react";
+import { addressService } from "../../services/addressService";
 
 export const DeliveryChecker = ({
   initialPincode = "",
-  productWeightKg = 2.0,
+  productWeightKg = 50,
   deliveryClass = "STANDARD_PARCEL",
-  onServiceabilityResolved = null,
   compact = false,
 }) => {
   const [pincode, setPincode] = useState(initialPincode);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState(
+    initialPincode
+      ? addressService.evaluateDeliveryEligibility(initialPincode)
+      : null,
+  );
+  const [error, setError] = useState(null);
 
-  const handleCheck = async (e) => {
-    e?.preventDefault();
-    if (!pincode.trim()) return;
+  const handleCheck = (e) => {
+    e.preventDefault();
+    setError(null);
 
-    setLoading(true);
-    try {
-      const evaluation = await deliveryService.evaluateServiceability({
-        pincode,
-        productWeightKg,
-        deliveryClass,
-      });
-      setResult(evaluation);
-      onServiceabilityResolved?.(evaluation);
-    } catch (err) {
-      setResult({
-        isValid: false,
-        isServiceable: false,
-        error: "Unable to evaluate serviceability. Please try again.",
-      });
-    } finally {
-      setLoading(false);
+    const cleanPin = pincode.trim();
+    if (!/^\d{6}$/.test(cleanPin)) {
+      setError("Please enter a valid 6-digit PIN code.");
+      setResult(null);
+      return;
     }
+
+    const evaluation = addressService.evaluateDeliveryEligibility(cleanPin);
+    setResult(evaluation);
   };
 
   return (
     <div
-      className={`premium-panel rounded-3xl border border-white/10 ${compact ? "p-4 space-y-3" : "p-6 sm:p-7 space-y-4"}`}
+      className={`premium-panel rounded-2xl border border-white/10 ${compact ? "p-3.5" : "p-5"} space-y-3`}
     >
-      {/* Title & Hub info */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400 shrink-0">
-            <MapPin className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-bold text-white">
-              Check Delivery & Serviceability
-            </h3>
-            <p className="text-[10px] text-slate-400">
-              Pune, Pimpri-Chinchwad Zones
-            </p>
-          </div>
-        </div>
+        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+          <MapPin className="w-4 h-4 text-amber-400" />
+          <span>Construction Site Delivery Estimate</span>
+        </span>
+        <span className="text-[10px] text-slate-400 font-mono">
+          Pune & PCMC Zones
+        </span>
       </div>
 
-      {/* Input Form */}
       <form onSubmit={handleCheck} className="flex gap-2">
         <input
           type="text"
-          placeholder="Enter 6-digit PIN code (e.g. 411006, 411061)"
+          inputMode="numeric"
+          placeholder="Enter 6-digit site PIN code"
           maxLength={6}
           value={pincode}
           onChange={(e) => setPincode(e.target.value.replace(/\D/g, ""))}
-          className="flex-1 premium-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider placeholder-slate-500"
+          className="flex-1 premium-input px-3 py-2 rounded-xl text-xs font-mono font-bold"
+          aria-label="Enter PIN code for delivery estimation"
         />
         <button
           type="submit"
-          disabled={loading || pincode.length < 6}
-          className="gold-gradient-btn px-4 py-2.5 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-50"
+          className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold shrink-0 text-slate-950"
         >
-          {loading ? "Checking..." : "Verify"}
+          Verify
         </button>
       </form>
 
-      {/* Result Card: Serviceable */}
-      {result && result.isValid && result.isServiceable && (
-        <div className="space-y-3 pt-1">
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="font-semibold">{result.message}</span>
-          </div>
+      {error && (
+        <div className="text-[11px] text-rose-400 flex items-center gap-1">
+          <AlertCircle className="w-3.5 h-3.5" />
+          <span>{error}</span>
+        </div>
+      )}
 
-          {/* Delivery Method Options List */}
-          <div className="space-y-2">
-            {result.deliveryOptions.map((opt) => (
-              <div
-                key={opt.id}
-                className="premium-card p-3 rounded-2xl flex items-center justify-between border border-white/5"
-              >
-                <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
-                    {opt.id.includes("express") ? (
-                      <Zap className="w-3.5 h-3.5 fill-current" />
-                    ) : (
-                      <Truck className="w-3.5 h-3.5" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-white">
-                        {opt.name}
-                      </span>
-                      <span className="text-[9px] font-black bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded">
-                        {opt.badge}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400">
-                      {opt.description}
-                    </p>
-                    <div className="text-[10px] text-emerald-400 font-semibold mt-0.5">
-                      SLA: {opt.sla} • {opt.cutoff}
-                    </div>
-                  </div>
-                </div>
-
-                <span className="text-xs font-black text-amber-400 font-mono">
-                  {opt.feeLabel}
+      {result && (
+        <div className="pt-2 border-t border-white/5 space-y-2 text-xs">
+          {result.isExpress30Min ? (
+            <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 flex items-start gap-2">
+              <Zap className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-white">
+                  30-Minute Priority Dispatch Available
                 </span>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Direct flatbed delivery to {result.area} on eligible
+                  Products/orders.
+                </p>
               </div>
-            ))}
-          </div>
-
-          {/* Mandatory Customer-Facing Limitation */}
-          <div className="p-3 rounded-2xl bg-[#091526] border border-white/5 flex items-start gap-2 text-[11px] text-slate-300">
-            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <span>
-              <strong className="text-amber-300 font-semibold">
-                Handling Policy:{" "}
-              </strong>
-              {result.unloadingPolicy}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Result Card: Unserviceable */}
-      {result && result.isValid && !result.isServiceable && (
-        <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs space-y-1">
-          <div className="flex items-center gap-1.5 font-bold">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>Outside Direct Launch Corridor</span>
-          </div>
-          <p className="text-[11px] text-slate-300 leading-relaxed">
-            {result.message}
-          </p>
-        </div>
-      )}
-
-      {/* Result Card: Invalid PIN */}
-      {result && !result.isValid && (
-        <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-          <span>{result.error}</span>
+            </div>
+          ) : result.isStandardPune ? (
+            <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-300 flex items-start gap-2">
+              <Truck className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-white">
+                  Standard Site Scheduled Delivery
+                </span>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Delivering to {result.area} within 2 to 4 business hours from
+                  regional stockist depots.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-white">
+                  Outside Immediate Fast Zone
+                </span>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Location {pincode} requires custom truckload booking via our
+                  commercial B2B desk.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

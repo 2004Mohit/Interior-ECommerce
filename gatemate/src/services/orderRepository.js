@@ -1,10 +1,6 @@
 /**
  * GateMate Order Lifecycle & Repository Architecture
- *
- * Separation of Concerns:
- * 1. Order Fulfillment Status (Logistics Lifecycle)
- * 2. Payment Transaction Status (Financial Lifecycle)
- * 3. Guest Protection (Customers can only query their own user-scoped records)
+ * Clean construction supply order records.
  */
 
 export const ORDER_LIFECYCLE_STATUS = {
@@ -28,32 +24,32 @@ export const ORDER_STATUS_TIMELINE_STEPS = [
   {
     key: ORDER_LIFECYCLE_STATUS.PLACED,
     label: "Order Placed",
-    desc: "Received & logged in GateMate Core",
+    desc: "Received & logged at GateMate Logistics Hub",
   },
   {
     key: ORDER_LIFECYCLE_STATUS.CONFIRMED,
     label: "Confirmed",
-    desc: "Artisan / Vendor accepted order",
+    desc: "Stockist / Depot accepted batch order",
   },
   {
     key: ORDER_LIFECYCLE_STATUS.PROCESSING,
     label: "Processing",
-    desc: "Packaging in honeycomb boxes & quality check",
+    desc: "Loaded on flatbed dispatch vehicle",
   },
   {
     key: ORDER_LIFECYCLE_STATUS.READY_FOR_DELIVERY,
     label: "Ready for Delivery",
-    desc: "Handed to express logistics hub",
+    desc: "Departed from regional construction depot",
   },
   {
     key: ORDER_LIFECYCLE_STATUS.OUT_FOR_DELIVERY,
     label: "Out for Delivery",
-    desc: "Rider en route with priority dispatch",
+    desc: "Driver en route with priority site dispatch",
   },
   {
     key: ORDER_LIFECYCLE_STATUS.DELIVERED,
     label: "Delivered",
-    desc: "Doorstep verification & handover complete",
+    desc: "Site unloading & delivery challan handover complete",
   },
 ];
 
@@ -101,32 +97,32 @@ const SEED_CUSTOMER_ORDERS = [
     ],
     items: [
       {
-        id: "1",
-        name: "Handcrafted Blue Pottery Royal Urn",
-        price: 1899,
-        quantity: 1,
-        img: "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=400&q=80",
-        sku: "GM-POT-URN-001",
-        brand: "Marwar Heritage Crafts",
+        id: "prod-cem-001",
+        name: "UltraTech Super Weather-Shield PPC Cement (50 kg Bag)",
+        price: 385,
+        quantity: 10,
+        img: "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=600&q=80",
+        sku: "ULT-PPC-50KG",
+        brand: "UltraTech",
       },
     ],
     shippingAddress: {
       fullName: "Aditya Rathore",
       phone: "9829012345",
-      line1: "Flat 402, Royal Palms, Lane 7",
+      line1: "Site 402, Royal Palms, Lane 7",
       locality: "Koregaon Park",
       city: "Pune",
       state: "Maharashtra",
       pincode: "411006",
     },
     totals: {
-      itemSubtotal: 1899,
+      itemSubtotal: 3850,
       deliveryFee: 0,
-      packagingFee: 29,
+      packagingFee: 49,
       codConvenienceFee: 49,
-      grandTotal: 1977,
+      grandTotal: 3948,
     },
-    cancellationEligible: false, // In transit, cannot cancel directly
+    cancellationEligible: false,
   },
   {
     id: "GM-ORD-20260901-0844",
@@ -171,30 +167,30 @@ const SEED_CUSTOMER_ORDERS = [
     ],
     items: [
       {
-        id: "2",
-        name: "Heavy Duty Sheesham Automatic Gate Latch",
-        price: 2999,
-        quantity: 1,
-        img: "https://images.unsplash.com/photo-1509644851169-2acc08aa25b5?auto=format&fit=crop&w=400&q=80",
-        sku: "GM-HDW-LAT-002",
-        brand: "GateMate Forge Works",
+        id: "prod-elec-001",
+        name: "Polycab 1.5 sq mm FR Flame Retardant Copper House Wire (90m Red)",
+        price: 1840,
+        quantity: 2,
+        img: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80",
+        sku: "POL-FR-15-RED",
+        brand: "Polycab",
       },
     ],
     shippingAddress: {
       fullName: "Aditya Rathore",
       phone: "9829012345",
-      line1: "Bungalow 18, Rose Valley Society",
+      line1: "Commercial Wing 18, Rose Valley Infrastructure",
       locality: "Pimple Saudagar",
       city: "Pimpri-Chinchwad",
       state: "Maharashtra",
       pincode: "411061",
     },
     totals: {
-      itemSubtotal: 2999,
+      itemSubtotal: 3680,
       deliveryFee: 0,
       packagingFee: 29,
       codConvenienceFee: 0,
-      grandTotal: 3028,
+      grandTotal: 3709,
     },
     cancellationEligible: false,
     refundStatus: null,
@@ -202,10 +198,6 @@ const SEED_CUSTOMER_ORDERS = [
 ];
 
 export const orderRepository = {
-  /**
-   * Retrieves all orders scoped strictly to the authenticated user ID.
-   * Guests will be rejected with an authentication requirement.
-   */
   async getCustomerOrders(userId) {
     if (!userId) {
       throw new Error(
@@ -213,26 +205,12 @@ export const orderRepository = {
       );
     }
 
-    // Micro delay simulating Supabase database query
-    await new Promise((resolve) => setTimeout(resolve, 180));
-
-    // [TODO: SUPABASE PERSISTENCE]
-    // const { data, error } = await supabase
-    //   .from('orders')
-    //   .select('*, order_items(*)')
-    //   .eq('customer_id', userId)
-    //   .order('created_at', { ascending: false });
-    // if (error) throw error;
-    // return data;
-
+    await new Promise((resolve) => setTimeout(resolve, 150));
     const storedKey = `gatemate_customer_orders_${userId}`;
     const userLocalOrders = JSON.parse(localStorage.getItem(storedKey) || "[]");
     return [...userLocalOrders, ...SEED_CUSTOMER_ORDERS];
   },
 
-  /**
-   * Retrieves full details for a single order, verifying user ownership.
-   */
   async getOrderById(userId, orderId) {
     if (!userId) {
       throw new Error(
@@ -240,18 +218,7 @@ export const orderRepository = {
       );
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 150));
-
-    // [TODO: SUPABASE PERSISTENCE]
-    // const { data, error } = await supabase
-    //   .from('orders')
-    //   .select('*, order_items(*)')
-    //   .eq('id', orderId)
-    //   .eq('customer_id', userId)
-    //   .single();
-    // if (error) throw error;
-    // return data;
-
+    await new Promise((resolve) => setTimeout(resolve, 120));
     const all = await this.getCustomerOrders(userId);
     const match = all.find((o) => o.id === orderId);
     if (!match) {
@@ -262,19 +229,9 @@ export const orderRepository = {
     return match;
   },
 
-  /**
-   * Request Order Cancellation (Structured placeholder for backend edge function)
-   */
   async requestCancellation(userId, orderId, reason) {
     if (!userId) throw new Error("AUTH_REQUIRED");
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    // [TODO: SUPABASE EDGE FUNCTION]
-    // const { data, error } = await supabase.functions.invoke('cancel-order', {
-    //   body: { orderId, reason }
-    // });
-    // return data;
-
+    await new Promise((resolve) => setTimeout(resolve, 150));
     return {
       success: false,
       message:

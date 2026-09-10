@@ -5,12 +5,16 @@ import {
   SlidersHorizontal,
   AlertCircle,
   RotateCcw,
+  X,
+  PackageX,
 } from "lucide-react";
 import { productService } from "../../services/productService";
 import { ProductCard } from "./ProductCard";
 import { ProductCardSkeleton } from "../ProductCardSkeleton";
 import { FilterPanel } from "./FilterPanel";
 import { SortSelect } from "./SortSelect";
+import { SeoHead } from "../common/SeoHead";
+import { ErrorStateView, EmptyStateView } from "../common/StateViews";
 
 export const SearchResults = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,7 +22,9 @@ export const SearchResults = () => {
   const query = searchParams.get("q") || "";
   const category = searchParams.get("category") || "all";
   const brand = searchParams.get("brand") || "all";
-  const material = searchParams.get("material") || "all";
+  const unit = searchParams.get("unit") || "all";
+  const grade = searchParams.get("grade") || "all";
+  const inStockOnly = searchParams.get("inStockOnly") === "true";
   const minPrice = searchParams.get("minPrice") || "";
   const maxPrice = searchParams.get("maxPrice") || "";
   const sort = searchParams.get("sort") || "relevance";
@@ -31,7 +37,6 @@ export const SearchResults = () => {
   const [error, setError] = useState(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
-  // Sync debounced search input with URL
   useEffect(() => {
     setInputVal(query);
   }, [query]);
@@ -47,11 +52,10 @@ export const SearchResults = () => {
         }
         setSearchParams(updated);
       }
-    }, 400); // 400ms debounce
+    }, 350);
     return () => clearTimeout(handler);
   }, [inputVal, query, searchParams, setSearchParams]);
 
-  // Fetch results based on query params
   const fetchSearchResults = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -61,7 +65,9 @@ export const SearchResults = () => {
         query,
         category,
         brand,
-        material,
+        unit,
+        grade,
+        inStockOnly,
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         sort,
@@ -77,7 +83,9 @@ export const SearchResults = () => {
     query,
     category,
     brand,
-    material,
+    unit,
+    grade,
+    inStockOnly,
     minPrice,
     maxPrice,
     sort,
@@ -105,10 +113,19 @@ export const SearchResults = () => {
     setSearchParams(updated);
   };
 
+  const handleClearSearch = () => {
+    setInputVal("");
+    const updated = new URLSearchParams(searchParams);
+    updated.delete("q");
+    setSearchParams(updated);
+  };
+
   const currentFilters = {
     category,
     brand,
-    material,
+    unit,
+    grade,
+    inStockOnly,
     minPrice,
     maxPrice,
     expressOnly,
@@ -116,35 +133,53 @@ export const SearchResults = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Search Bar with live debounce */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-24">
+      <SeoHead
+        title={`Search results for "${query || "Construction Products"}" | GateMate`}
+        description={`Browse construction products for "${query}" across cement, steel TMT, bricks, sand, plumbing, electrical, and hardware in Pune & PCMC.`}
+        canonicalUrl={`/search?q=${encodeURIComponent(query)}`}
+      />
+
+      {/* Construction Search Input Bar with Cross Button */}
       <div className="premium-panel p-4 sm:p-6 rounded-3xl border border-white/10 space-y-4">
-        <div className="relative w-full max-w-3xl mx-auto">
-          <Search className="absolute left-4 top-3.5 w-5 h-5 text-amber-400" />
+        <div className="relative w-full max-w-3xl mx-auto flex items-center">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search keywords: 'brass latch', 'cobalt urn', 'wood jharokha', 'curtain'..."
+            placeholder="Search keywords: 'UltraTech cement', '12mm TMT rebar', 'Siporex AAC blocks', 'M-Sand', 'CPVC pipe'..."
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            className="w-full premium-input pl-12 pr-4 py-3 rounded-2xl text-sm placeholder-slate-400 shadow-xl"
+            className="w-full premium-input pl-12 pr-10 py-3 rounded-2xl text-sm placeholder-slate-400 shadow-xl"
+            aria-label="Search construction products"
           />
+          {inputVal && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition"
+              aria-label="Clear search input"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-white/5 text-xs">
           <div>
             <span className="text-slate-400">Search results for: </span>
             <span className="font-bold text-amber-400 text-sm">
-              "{query || "All Items"}"
+              "{query || "All Construction Products"}"
             </span>
             <span className="text-slate-400 ml-2">
-              ({results.length} found)
+              ({results.length} products found)
             </span>
           </div>
 
           <div className="flex items-center gap-3 justify-between sm:justify-end">
             <button
+              type="button"
               onClick={() => setMobileFilterOpen(true)}
-              className="lg:hidden premium-card px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 border border-white/10"
+              className="lg:hidden premium-card px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 border border-white/10 min-h-[38px]"
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
               <span>Filters</span>
@@ -170,7 +205,7 @@ export const SearchResults = () => {
         {/* Mobile Filter Drawer */}
         {mobileFilterOpen && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-end">
-            <div className="w-full max-w-xs bg-[#0a1424] h-full p-5 overflow-y-auto border-l border-white/10 shadow-2xl">
+            <div className="w-full max-w-xs bg-[#0a1424] h-full p-5 overflow-y-auto border-l border-white/10 shadow-2xl flex flex-col justify-between">
               <FilterPanel
                 filters={currentFilters}
                 onFilterChange={handleFilterChange}
@@ -179,19 +214,20 @@ export const SearchResults = () => {
                 onCloseMobileDrawer={() => setMobileFilterOpen(false)}
               />
               <button
+                type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="w-full mt-6 gold-gradient-btn py-3 rounded-xl text-xs font-bold"
+                className="w-full mt-6 gold-gradient-btn min-h-[44px] py-3 rounded-xl text-xs font-bold"
               >
-                Apply Filters
+                Apply Product Filters
               </button>
             </div>
           </div>
         )}
 
-        {/* Search Results Display */}
+        {/* Results Container */}
         <div className="lg:col-span-3 space-y-4">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {Array(6)
                 .fill(0)
                 .map((_, i) => (
@@ -199,39 +235,21 @@ export const SearchResults = () => {
                 ))}
             </div>
           ) : error ? (
-            <div className="premium-panel p-12 rounded-3xl text-center space-y-3">
-              <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
-              <h3 className="text-base font-bold text-white">Search Error</h3>
-              <p className="text-xs text-slate-400">{error}</p>
-              <button
-                onClick={fetchSearchResults}
-                className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Retry Search</span>
-              </button>
-            </div>
+            <ErrorStateView
+              title="Search Error"
+              description={error}
+              onRetry={fetchSearchResults}
+            />
           ) : results.length === 0 ? (
-            <div className="premium-panel p-16 rounded-3xl text-center space-y-4 max-w-lg mx-auto">
-              <Search className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="text-lg font-bold text-white">
-                No products found
-              </h3>
-              <p className="text-xs text-slate-400">
-                We couldn't find matches for{" "}
-                <span className="text-amber-400">"{query}"</span>. Try checking
-                spelling, clearing filters, or searching for terms like "gate",
-                "brass", or "pottery".
-              </p>
-              <button
-                onClick={handleClearFilters}
-                className="gold-gradient-btn px-5 py-2.5 rounded-xl text-xs font-bold"
-              >
-                Clear Search & Filters
-              </button>
-            </div>
+            <EmptyStateView
+              icon={PackageX}
+              title="No Construction Products Found"
+              description={`We couldn't find any construction products matching "${query}". Try adjusting keywords, brand name, or clear applied filters.`}
+              actionLabel="Clear Search & Filters"
+              onActionClick={handleClearFilters}
+            />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               {results.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}

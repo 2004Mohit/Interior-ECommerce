@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AccountNav } from "./AccountNav";
 import { useAuth } from "../../context/AuthContext";
-import { reviewService } from "../../services/reviewService";
-import { PRODUCTS_DATA } from "../../data/mockData";
+import { DEMO_PRODUCTS } from "../../data/demoProducts";
 import { AuthModal } from "../AuthModal";
 import {
   MessageSquare,
@@ -11,8 +10,6 @@ import {
   ShieldCheck,
   ExternalLink,
   Lock,
-  RotateCcw,
-  Package,
 } from "lucide-react";
 
 export const CustomerReviews = () => {
@@ -25,9 +22,8 @@ export const CustomerReviews = () => {
   useEffect(() => {
     if (!authLoading && user) {
       setLoading(true);
-      // Collect user reviews across all products
       const userReviews = [];
-      PRODUCTS_DATA.forEach((product) => {
+      DEMO_PRODUCTS.forEach((product) => {
         const storedKey = `gatemate_product_reviews_${product.id}`;
         const productReviews = JSON.parse(
           localStorage.getItem(storedKey) || "[]",
@@ -44,7 +40,7 @@ export const CustomerReviews = () => {
   if (!authLoading && !user) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
-        <h1 className="text-2xl font-black text-white">My Reviews</h1>
+        <h1 className="text-2xl font-black text-white">My Customer Reviews</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
             <AccountNav />
@@ -53,11 +49,11 @@ export const CustomerReviews = () => {
             <div className="premium-panel p-12 rounded-3xl text-center space-y-4 max-w-md mx-auto">
               <Lock className="w-10 h-10 text-amber-400 mx-auto" />
               <h2 className="text-lg font-bold text-white">
-                Sign In to View Reviews
+                Sign In to View Customer Reviews
               </h2>
               <p className="text-xs text-slate-400">
-                Log in to inspect your verified product reviews and customer
-                ratings.
+                Log in to inspect your verified Product reviews and Customer
+                Ratings.
               </p>
               <button
                 onClick={() => setAuthModalOpen(true)}
@@ -81,10 +77,10 @@ export const CustomerReviews = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
       <div className="border-b border-white/10 pb-5">
-        <h1 className="text-2xl font-black text-white">My Verified Reviews</h1>
+        <h1 className="text-2xl font-black text-white">My Customer Reviews</h1>
         <p className="text-xs text-slate-400">
-          Reviews submitted for your verified purchases in Pune and
-          Pimpri-Chinchwad.
+          Customer Reviews submitted for your verified construction Product
+          purchases in Pune and Pimpri-Chinchwad.
         </p>
       </div>
 
@@ -107,11 +103,11 @@ export const CustomerReviews = () => {
             <div className="premium-panel p-16 rounded-3xl text-center space-y-4 max-w-md mx-auto">
               <MessageSquare className="w-12 h-12 text-slate-600 mx-auto" />
               <h3 className="text-lg font-bold text-white">
-                No reviews submitted yet
+                No Customer Reviews Submitted Yet
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                You can write reviews for any products delivered to your
-                addresses in Pune or PCMC.
+                You can write Customer Reviews for any construction Products
+                delivered to your sites in Pune or PCMC.
               </p>
               <Link
                 to="/account/orders"
@@ -139,7 +135,7 @@ export const CustomerReviews = () => {
                   <Link
                     to={`/products/${rev.product?.slug}`}
                     className="text-amber-400 hover:text-white p-1"
-                    title="View Product Page"
+                    title="View Product Details"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
@@ -149,7 +145,10 @@ export const CustomerReviews = () => {
                   {Array(rev.rating)
                     .fill(0)
                     .map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-current" />
+                      <Star
+                        key={i}
+                        className="w-3.5 h-3.5 fill-current text-amber-400"
+                      />
                     ))}
                 </div>
 

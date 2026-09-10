@@ -5,6 +5,8 @@ import { CartProvider } from "./context/CartContext";
 import { WishlistProvider, useWishlist } from "./context/WishlistContext";
 
 import { Header } from "./components/Header";
+import { Footer } from "./components/Footer";
+import { MobileBottomNav } from "./components/common/MobileBottomNav";
 import { CheckoutDrawer } from "./components/customer/CheckoutDrawer";
 import { AuthModal } from "./components/AuthModal";
 
@@ -32,7 +34,7 @@ function AppContent() {
   const { authModalRequired, closeAuthModal } = useWishlist();
 
   return (
-    <div className="min-h-screen bg-city-pattern bg-cover bg-center bg-fixed text-slate-100 flex flex-col relative">
+    <div className="min-h-screen bg-city-pattern bg-cover bg-center bg-fixed text-slate-100 flex flex-col relative font-sans">
       <div className="absolute inset-0 bg-gradient-to-b from-[#050b14]/90 via-[#0a1424]/92 to-[#050b14]/96 z-0 pointer-events-none" />
 
       <div className="relative z-10 flex flex-col min-h-screen">
@@ -62,17 +64,17 @@ function AppContent() {
             <Route path="/account/reviews" element={<CustomerReviews />} />
             <Route path="/account/preferences" element={<Preferences />} />
 
-            {/* Seller & Admin Placeholders */}
+            {/* Vendor & Admin Placeholders (Preserved without breakage) */}
             <Route
               path="/seller"
               element={
                 <div className="max-w-4xl mx-auto px-4 py-16 text-center">
                   <div className="premium-panel p-8 rounded-3xl">
                     <h2 className="text-2xl font-bold mb-2">
-                      GateMate Seller Hub
+                      GateMate Stockist & Vendor Hub
                     </h2>
                     <p className="text-slate-400 text-sm">
-                      Step 2: Listing workflows & seller metrics coming next.
+                      Listing workflows & depot metrics.
                     </p>
                   </div>
                 </div>
@@ -87,8 +89,7 @@ function AppContent() {
                       GateMate Admin Portal
                     </h2>
                     <p className="text-slate-400 text-sm">
-                      Step 3: Platform oversight, banners, & category controls
-                      coming next.
+                      Platform oversight, dispatch zones, & catalogue controls.
                     </p>
                   </div>
                 </div>
@@ -96,8 +97,17 @@ function AppContent() {
             />
           </Routes>
         </main>
+
+        <Footer />
       </div>
 
+      {/* Global Mobile Bottom Navigation Bar */}
+      <MobileBottomNav
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
+      />
+
+      {/* Drawer & Modal Overlays */}
       <CheckoutDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}

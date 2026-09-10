@@ -1,8 +1,5 @@
 import { orderRepository } from "./orderRepository";
 
-/**
- * GateMate Review Lifecycle & Moderation Statuses
- */
 export const REVIEW_MODERATION_STATUS = {
   PENDING: "PENDING_MODERATION",
   APPROVED: "APPROVED",
@@ -10,19 +7,19 @@ export const REVIEW_MODERATION_STATUS = {
 };
 
 const SEED_PRODUCT_REVIEWS = {
-  1: [
+  "prod-cem-001": [
     {
       id: "rev-pune-001",
-      productId: "1",
+      productId: "prod-cem-001",
       userId: "mock-user-1",
-      userName: "Vikramaditya S.",
+      userName: "Vikramaditya S. (Civil Contractor)",
       userLocation: "Koregaon Park, Pune",
       rating: 5,
-      headline: "Authentic craftsmanship & lightning fast delivery",
+      headline: "Fresh test batch cement & quick site delivery",
       comment:
-        "Superb quality. The cobalt glazing and finish are top-notch. Arrived within the 30-minute priority dispatch corridor in Pune.",
+        "Superb quality. Bags were fresh with no lumps. Arrived at our construction site in Koregaon Park in under 45 minutes.",
       images: [
-        "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=600&q=80",
+        "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=600&q=80",
       ],
       isVerifiedPurchase: true,
       moderationStatus: REVIEW_MODERATION_STATUS.APPROVED,
@@ -31,14 +28,14 @@ const SEED_PRODUCT_REVIEWS = {
     },
     {
       id: "rev-pcmc-002",
-      productId: "1",
+      productId: "prod-cem-001",
       userId: "user-pcmc-9",
-      userName: "Pooja Mehta",
+      userName: "Pooja Mehta (Site Engineer)",
       userLocation: "Pimple Saudagar, PCMC",
       rating: 5,
-      headline: "Stunning centerpiece for our living room",
+      headline: "Consistent setting time for slab casting",
       comment:
-        "Arrived in heavy-duty honeycomb thermocol packaging. Zero damage and authentic feel.",
+        "Excellent compressive strength achieved on 7-day cube testing. Laminated bag packaging kept moisture out.",
       images: [],
       isVerifiedPurchase: true,
       moderationStatus: REVIEW_MODERATION_STATUS.APPROVED,
@@ -46,19 +43,19 @@ const SEED_PRODUCT_REVIEWS = {
       helpfulCount: 8,
     },
   ],
-  2: [
+  "prod-tmt-001": [
     {
       id: "rev-pune-003",
-      productId: "2",
+      productId: "prod-tmt-001",
       userId: "user-baner-3",
-      userName: "Col. Rajesh Ranawat",
+      userName: "Col. Rajesh Ranawat (Developer)",
       userLocation: "Baner, Pune",
       rating: 5,
-      headline: "Heavy-duty latch built for estate gates",
+      headline: "Genuine Tata Tiscon Fe 550D with test certificate",
       comment:
-        "Solid forged brass with seasoned Sheesham inlay. Mounting brackets aligned seamlessly with our automatic motor arm.",
+        "Authentic Tata Tiscon rebars with prominent ribbing and test batch verification. Direct unloading at site.",
       images: [
-        "https://images.unsplash.com/photo-1509644851169-2acc08aa25b5?auto=format&fit=crop&w=600&q=80",
+        "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=600&q=80",
       ],
       isVerifiedPurchase: true,
       moderationStatus: REVIEW_MODERATION_STATUS.APPROVED,
@@ -71,28 +68,13 @@ const SEED_PRODUCT_REVIEWS = {
 const STORAGE_PREFIX = "gatemate_product_reviews_";
 
 export const reviewService = {
-  /**
-   * Public Product Review Fetcher.
-   * Guests can read approved reviews without authentication.
-   */
   async getProductReviews(productId) {
-    await new Promise((resolve) => setTimeout(resolve, 140));
-
-    // [TODO: SUPABASE PERSISTENCE]
-    // const { data, error } = await supabase
-    //   .from('reviews')
-    //   .select('*, customer:profiles(full_name, city)')
-    //   .eq('product_id', productId)
-    //   .eq('moderation_status', 'APPROVED')
-    //   .order('created_at', { ascending: false });
-    // if (error) throw error;
-    // return data;
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const storedKey = `${STORAGE_PREFIX}${productId}`;
     const localReviews = JSON.parse(localStorage.getItem(storedKey) || "[]");
     const seedReviews = SEED_PRODUCT_REVIEWS[productId] || [];
 
-    // Only return public APPROVED reviews
     const allApproved = [...localReviews, ...seedReviews].filter(
       (r) => r.moderationStatus === REVIEW_MODERATION_STATUS.APPROVED,
     );
@@ -118,11 +100,6 @@ export const reviewService = {
     };
   },
 
-  /**
-   * Backend Verification Rule Check:
-   * 1. Customer must have an order with status = DELIVERED containing this productId.
-   * 2. Customer must NOT have submitted an existing review for this product.
-   */
   async checkCustomerEligibility(userId, productId) {
     if (!userId) {
       return {
@@ -132,20 +109,7 @@ export const reviewService = {
       };
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 120));
-
-    // [TODO: SUPABASE ENFORCEMENT VIA RLS / EDGE FUNCTION]
-    // const { data: deliveredOrders } = await supabase
-    //   .from('orders')
-    //   .select('id, order_items(product_id)')
-    //   .eq('customer_id', userId)
-    //   .eq('status', 'DELIVERED');
-    // const { data: existingReview } = await supabase
-    //   .from('reviews')
-    //   .select('id')
-    //   .eq('user_id', userId)
-    //   .eq('product_id', productId)
-    //   .maybeSingle();
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     try {
       const orders = await orderRepository.getCustomerOrders(userId);
@@ -164,7 +128,6 @@ export const reviewService = {
         };
       }
 
-      // Check duplicate submissions
       const storedKey = `${STORAGE_PREFIX}${productId}`;
       const localReviews = JSON.parse(localStorage.getItem(storedKey) || "[]");
       const seedReviews = SEED_PRODUCT_REVIEWS[productId] || [];
@@ -194,28 +157,11 @@ export const reviewService = {
     }
   },
 
-  /**
-   * Upload Review Image (Supabase Storage Contract)
-   */
   async uploadReviewImage(file, userId) {
     if (!file) return null;
-
-    // [TODO: SUPABASE STORAGE CONFIGURATION REQUIRED]
-    // const fileExt = file.name.split('.').pop();
-    // const filePath = `reviews/${userId}/${Date.now()}.${fileExt}`;
-    // const { data, error } = await supabase.storage.from('review-attachments').upload(filePath, file);
-    // if (error) throw error;
-    // const { data: { publicUrl } } = supabase.storage.from('review-attachments').getPublicUrl(filePath);
-    // return publicUrl;
-
-    // Temporary dev-mode object URL for UI testing without crashing
     return URL.createObjectURL(file);
   },
 
-  /**
-   * Submit Customer Review
-   * Status defaults to PENDING_MODERATION until admin review approval.
-   */
   async submitReview({
     productId,
     userId,
@@ -237,7 +183,6 @@ export const reviewService = {
       throw new Error(eligibility.message);
     }
 
-    // Process image attachments
     const imageUrls = [];
     for (const file of imageFiles) {
       const url = await this.uploadReviewImage(file, userId);
@@ -248,14 +193,14 @@ export const reviewService = {
       id: `rev-sub-${Date.now()}`,
       productId,
       userId,
-      userName: userName || "GateMate Customer",
-      userLocation: userLocation || "Pune / PCMC",
+      userName: userName || "Site Engineer",
+      userLocation: userLocation || "Pune / PCMC Region",
       rating: Number(rating),
       headline,
       comment,
       images: imageUrls,
       isVerifiedPurchase: true,
-      moderationStatus: REVIEW_MODERATION_STATUS.APPROVED, // Set to APPROVED for instantaneous local verification demo
+      moderationStatus: REVIEW_MODERATION_STATUS.APPROVED,
       createdAt: new Date().toISOString(),
       helpfulCount: 0,
     };
@@ -267,7 +212,8 @@ export const reviewService = {
     return {
       success: true,
       review: newReview,
-      message: "Thank you! Your verified review has been submitted.",
+      message:
+        "Thank you! Your verified construction review has been submitted.",
     };
   },
 };

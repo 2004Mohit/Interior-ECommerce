@@ -5,12 +5,10 @@ import {
   ShoppingBag,
   Trash2,
   ArrowRight,
-  Sparkles,
   CheckCircle2,
   Lock,
   AlertCircle,
   RotateCcw,
-  Zap,
 } from "lucide-react";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
@@ -30,7 +28,7 @@ export const Wishlist = () => {
   const handleMoveToCart = (product) => {
     addToCart(product);
     removeFromWishlist(product.id);
-    setSuccessNotice(`"${product.name}" moved to your Shopping Bag!`);
+    setSuccessNotice(`"${product.name}" moved to your Shopping Bag.`);
     setTimeout(() => setSuccessNotice(null), 3000);
   };
 
@@ -43,17 +41,17 @@ export const Wishlist = () => {
             <Lock className="w-7 h-7" />
           </div>
           <h2 className="text-2xl font-black text-white">
-            Your Saved Wishlist
+            Saved Products Wishlist
           </h2>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Please sign in to access your saved artisan ceramics, woodcraft, and
-            gate hardware.
+            Please sign in to access your saved construction Products, TMT
+            rebars, and building hardware.
           </p>
           <button
             onClick={() => setAuthModalOpen(true)}
             className="gold-gradient-btn px-6 py-3 rounded-xl text-xs font-bold shadow-lg"
           >
-            Sign In to View Wishlist
+            Sign In to View Saved Products
           </button>
         </div>
 
@@ -79,11 +77,12 @@ export const Wishlist = () => {
           </div>
           <div>
             <h1 className="text-2xl font-black text-white">
-              My Saved Wishlist
+              My Saved Products
             </h1>
             <p className="text-xs text-slate-400">
-              {wishlist.length} item{wishlist.length === 1 ? "" : "s"} saved in
-              your private collection
+              {wishlist.length} construction Product
+              {wishlist.length === 1 ? "" : "s"} saved in your private project
+              collection
             </p>
           </div>
         </div>
@@ -93,7 +92,7 @@ export const Wishlist = () => {
             to="/products"
             className="text-xs font-bold text-amber-400 hover:underline self-start sm:self-auto"
           >
-            + Add More Items
+            + Add More Products
           </Link>
         )}
       </div>
@@ -116,11 +115,10 @@ export const Wishlist = () => {
             ))}
         </div>
       ) : error ? (
-        /* Error State */
         <div className="premium-panel p-12 rounded-3xl text-center space-y-3 max-w-md mx-auto">
           <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
           <h3 className="text-sm font-bold text-white">
-            Error Loading Wishlist
+            Error Loading Saved Products
           </h3>
           <p className="text-xs text-slate-400">{error}</p>
           <button
@@ -132,28 +130,26 @@ export const Wishlist = () => {
           </button>
         </div>
       ) : wishlist.length === 0 ? (
-        /* Empty State */
         <div className="premium-panel p-16 rounded-3xl text-center space-y-4 max-w-md mx-auto">
           <div className="w-16 h-16 rounded-2xl bg-slate-800 text-slate-600 flex items-center justify-center mx-auto border border-white/5">
             <Heart className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-bold text-white">
-            Your wishlist is empty
+            Your Saved Products List is Empty
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Explore authentic Jodhpur handicrafts, blue pottery, and automated
-            gate security to save your favorites.
+            Explore certified Cement, Steel TMT, AAC Blocks, and Plumbing
+            Products to save items for your construction projects.
           </p>
           <Link
             to="/products"
             className="gold-gradient-btn inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold shadow-lg"
           >
-            <span>Explore Catalog</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Explore Construction Catalogue</span>
+            <ArrowRight className="w-4 h-4 text-slate-950" />
           </Link>
         </div>
       ) : (
-        /* Populated Wishlist Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {wishlist.map((product) => (
             <div
@@ -161,7 +157,6 @@ export const Wishlist = () => {
               className="premium-card premium-card-hover rounded-2xl overflow-hidden flex flex-col justify-between group border border-white/10 relative"
             >
               <div>
-                {/* Thumbnail Image Frame */}
                 <div className="relative h-56 w-full overflow-hidden bg-[#060e1a]">
                   <Link to={`/products/${product.slug}`}>
                     <img
@@ -180,13 +175,13 @@ export const Wishlist = () => {
                   <button
                     onClick={() => removeFromWishlist(product.id)}
                     className="absolute top-3 right-3 p-2 rounded-xl bg-[#050b14]/80 text-rose-400 hover:text-white hover:bg-rose-500/30 transition border border-white/10"
-                    title="Remove from wishlist"
+                    title="Remove from saved list"
+                    aria-label="Remove from saved list"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Product Meta */}
                 <div className="p-4 space-y-1">
                   <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
                     {product.category}
@@ -201,6 +196,9 @@ export const Wishlist = () => {
                     <span className="text-base font-black text-white font-mono">
                       ₹{product.price}
                     </span>
+                    <span className="text-[10px] text-slate-400 font-semibold">
+                      / {product.unit || "Unit"}
+                    </span>
                     {product.originalPrice && (
                       <span className="text-xs text-slate-500 line-through font-mono">
                         ₹{product.originalPrice}
@@ -210,11 +208,10 @@ export const Wishlist = () => {
                 </div>
               </div>
 
-              {/* Action: Move to Shopping Bag */}
               <div className="p-4 pt-0">
                 <button
                   onClick={() => handleMoveToCart(product)}
-                  className="w-full gold-gradient-btn py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md"
+                  className="w-full gold-gradient-btn py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Move to Bag</span>

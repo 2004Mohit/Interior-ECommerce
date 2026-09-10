@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   AlertCircle,
   ShieldCheck,
-  Image as ImageIcon,
   Sparkles,
 } from "lucide-react";
 import { reviewService } from "../../services/reviewService";
@@ -33,7 +32,7 @@ export const ReviewFormModal = ({
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length + selectedFiles.length > 3) {
-      setFormError("You can upload a maximum of 3 product photos.");
+      setFormError("You can upload a maximum of 3 Product Images.");
       return;
     }
 
@@ -51,11 +50,11 @@ export const ReviewFormModal = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!rating) {
-      setFormError("Please select a star rating.");
+      setFormError("Please select a Customer Rating.");
       return;
     }
     if (!comment.trim() || comment.trim().length < 10) {
-      setFormError("Please write a review of at least 10 characters.");
+      setFormError("Please write a Customer Review of at least 10 characters.");
       return;
     }
 
@@ -79,7 +78,7 @@ export const ReviewFormModal = ({
         onClose();
       }
     } catch (err) {
-      setFormError(err.message || "Unable to submit review.");
+      setFormError(err.message || "Unable to submit Customer Review.");
     } finally {
       setIsSubmitting(false);
     }
@@ -92,6 +91,7 @@ export const ReviewFormModal = ({
           onClick={onClose}
           disabled={isSubmitting}
           className="absolute top-5 right-5 text-slate-400 hover:text-white transition"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
@@ -99,11 +99,11 @@ export const ReviewFormModal = ({
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="w-5 h-5 text-amber-400" />
           <h3 className="text-xl font-black text-white">
-            Write a Verified Review
+            Write a Customer Review
           </h3>
         </div>
         <p className="text-xs text-slate-400 mb-4 truncate">
-          Reviewing:{" "}
+          Reviewing Product:{" "}
           <span className="text-white font-semibold">{product.name}</span>
         </p>
 
@@ -115,10 +115,10 @@ export const ReviewFormModal = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Rating Stars Input */}
+          {/* Customer Rating Stars Input */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300 block">
-              Overall Rating *
+              Overall Customer Rating *
             </label>
             <div className="flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -129,6 +129,7 @@ export const ReviewFormModal = ({
                   onMouseLeave={() => setHoverRating(0)}
                   onClick={() => setRating(star)}
                   className="p-1 text-slate-600 hover:scale-110 transition"
+                  aria-label={`Rate ${star} star`}
                 >
                   <Star
                     className={`w-7 h-7 ${
@@ -156,11 +157,11 @@ export const ReviewFormModal = ({
           {/* Headline */}
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-1">
-              Headline (Optional)
+              Review Headline (Optional)
             </label>
             <input
               type="text"
-              placeholder="e.g. Authentic finish, arrived fast in PCMC"
+              placeholder="e.g. Fresh batch cement, fast site delivery in PCMC"
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
               className="w-full premium-input px-3.5 py-2.5 rounded-xl text-xs"
@@ -170,22 +171,22 @@ export const ReviewFormModal = ({
           {/* Written Comment */}
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-1">
-              Detailed Review *
+              Detailed Customer Review *
             </label>
             <textarea
               rows={4}
               required
-              placeholder="Share details about material quality, craftsmanship, gate installation, or delivery speed..."
+              placeholder="Share details about test batch quality, compressive strength, rebar ductility, or site unloading speed..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="w-full premium-input p-3 rounded-xl text-xs leading-relaxed"
             />
           </div>
 
-          {/* Photo Attachment (Supabase Storage ready) */}
+          {/* Product Images Attachment */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-300 block">
-              Add Product Photos (Max 3)
+              Attach Product Images (Max 3)
             </label>
             <div className="flex flex-wrap items-center gap-3">
               {previews.map((src, i) => (
@@ -202,6 +203,7 @@ export const ReviewFormModal = ({
                     type="button"
                     onClick={() => removeFile(i)}
                     className="absolute top-1 right-1 bg-black/70 p-0.5 rounded text-white hover:text-rose-400"
+                    aria-label="Remove image"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -223,7 +225,7 @@ export const ReviewFormModal = ({
             </div>
             <p className="text-[10px] text-slate-500">
               [Note: Image upload is prepared for Supabase Storage bucket
-              `review-attachments`].
+              `review-images`].
             </p>
           </div>
 
@@ -249,9 +251,11 @@ export const ReviewFormModal = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold transition disabled:opacity-50"
+              className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold transition disabled:opacity-50 text-slate-950"
             >
-              {isSubmitting ? "Verifying & Posting..." : "Submit Review"}
+              {isSubmitting
+                ? "Verifying & Submitting..."
+                : "Submit Customer Review"}
             </button>
           </div>
         </form>

@@ -1,96 +1,94 @@
 import React from "react";
-import { Shield } from "lucide-react";
+import { Crown, MapPin, Phone, Mail, ShieldCheck, Zap } from "lucide-react";
 
 export const Footer = () => {
   return (
-    <footer className="w-full bg-[#082858] dark:bg-[#081828] border-t border-[#081838] dark:border-[#184858] text-[#B8E8F8] dark:text-[#98C8D0] text-xs mt-auto font-ui">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-          {/* Section 1: About */}
-          <div className="space-y-3 sm:col-span-2 md:col-span-1">
+    <footer className="w-full bg-[#050b14] border-t border-white/10 text-slate-400 text-xs py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* Main Informational Columns */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand & Platform Identity */}
+          <div className="space-y-3">
             <div className="flex items-center gap-2 select-none">
-              <div className="w-7 h-7 rounded-lg bg-[#2888E8] dark:bg-[#48B8C8] flex items-center justify-center text-white dark:text-[#081818]">
-                <Shield className="w-4 h-4 stroke-[2.5]" />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md">
+                <Crown className="text-slate-950 w-4 h-4 fill-slate-950" />
               </div>
-              <span className="font-display text-2xl tracking-wide text-white dark:text-[#D8F8F8]">
-                GATEMATE
+              <span className="text-lg font-black tracking-tight text-white">
+                GATE<span className="text-amber-400">MATE</span>
               </span>
             </div>
-            <p className="text-xs text-[#B8E8F8] dark:text-[#98C8D0] leading-relaxed max-w-xs">
-              GateMate is a residential architectural hardware and community
-              access marketplace operating across Pune & PCMC.
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Hyperlocal construction products and building hardware marketplace
+              supplying certified Cement, TMT Steel, AAC Blocks, Sand,
+              Aggregates, Plumbing, and Electrical supplies directly to job
+              sites across Pune & PCMC.
             </p>
           </div>
 
-          {/* Section 2: Information & Policies */}
+          {/* Core Construction Supply Domains */}
           <div className="space-y-2.5">
-            <h4 className="font-display text-base text-white dark:text-[#D8F8F8] tracking-wider">
-              INFORMATION
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              Product Categories
             </h4>
-            <ul className="space-y-1.5 text-xs text-[#B8E8F8] dark:text-[#98C8D0]">
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                About Us
-              </li>
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                Delivery Policy
-              </li>
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                Return & Refund Policy
-              </li>
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                Privacy Policy
-              </li>
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                Terms & Conditions
-              </li>
-            </ul>
-          </div>
-
-          {/* Section 3: Business */}
-          <div className="space-y-2.5">
-            <h4 className="font-display text-base text-white dark:text-[#D8F8F8] tracking-wider">
-              BUSINESS
-            </h4>
-            <ul className="space-y-1.5 text-xs text-[#B8E8F8] dark:text-[#98C8D0]">
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                Vendor Partnership
-              </li>
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                Business Enquiries
-              </li>
-              <li className="hover:text-white dark:hover:text-[#58C8D8] cursor-default">
-                Commercial Procurement (B2B)
-              </li>
-            </ul>
-          </div>
-
-          {/* Section 4: Support */}
-          <div className="space-y-2.5">
-            <h4 className="font-display text-base text-white dark:text-[#D8F8F8] tracking-wider">
-              SUPPORT
-            </h4>
-            <p className="text-xs text-[#B8E8F8] dark:text-[#98C8D0] leading-relaxed">
-              Need assistance with gate specifications or delivery? Contact our
-              facility team.
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Cement (OPC 53 & PPC), Fe 550D TMT Steel Rebars, AAC Lightweight
+              Blocks, Red Clay Bricks, Manufactured M-Sand, 20mm Basalt
+              Aggregates, CPVC Plumbing Systems, FR Copper Cables, and
+              Industrial Waterproofing Compounds.
             </p>
-            <div className="pt-1">
-              <span className="inline-block px-2.5 py-1 rounded bg-[#081838] dark:bg-[#183848] border border-[#2888E8]/30 dark:border-[#48B8C8]/30 text-[11px] font-semibold text-[#F8C828] dark:text-[#48B8C8]">
-                Pune & PCMC Support Line
-              </span>
+          </div>
+
+          {/* Commercial B2B & Supply Terms */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              Commercial Procurement
+            </h4>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Direct wholesale depot pricing for builders, structural engineers,
+              and contractors. Full truckload bookings, batch mill test
+              certificates, and complete GST input tax credit (ITC) invoicing on
+              all commercial orders.
+            </p>
+          </div>
+
+          {/* Regional Logistics Depot */}
+          <div className="space-y-2.5">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              Pune & PCMC Logistics Hub
+            </h4>
+            <div className="space-y-2 text-xs text-slate-400">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  Central Logistics Hub, Hadapsar Industrial Area, Pune 411028
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>+91-9829012345 (Contractor Desk)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>support@gatemate.in</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Row */}
-        <div className="mt-8 pt-6 border-t border-[#081838] dark:border-[#184858] flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#7898A8] dark:text-[#6898A0]">
-          <p>© 2026 GateMate Systems. All rights reserved.</p>
-          <div className="flex items-center gap-4 text-[#B8E8F8] dark:text-[#98C8D0]">
-            <span className="cursor-default hover:text-white">
-              Privacy Policy
+        {/* Bottom Compliance & Policy Bar */}
+        <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+          <p>
+            © 2026 GateMate Marketplace Private Limited. All rights reserved.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 text-slate-400">
+            <span className="flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              100% Certified Test Batches
             </span>
             <span>•</span>
-            <span className="cursor-default hover:text-white">
-              Terms of Service
+            <span className="flex items-center gap-1">
+              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              30-Minute Delivery on Eligible Products/Orders
             </span>
           </div>
         </div>

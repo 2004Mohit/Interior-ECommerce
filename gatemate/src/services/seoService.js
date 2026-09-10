@@ -1,8 +1,8 @@
 /**
  * GateMate SEO & Schema.org Structured Data Service
  *
- * Supports:
- * - Unique Dynamic Page Titles & Descriptions
+ * Construction Products Marketplace Focus:
+ * - Dynamic Construction Product Titles & Descriptions
  * - Canonical URLs & OpenGraph Metadata
  * - Schema.org 'Product' Structured Data
  * - Schema.org 'BreadcrumbList' Structured Data
@@ -13,10 +13,10 @@ export const SITE_CONFIG = {
   siteName: "GateMate",
   siteUrl: "https://gatemate.in",
   defaultTitle:
-    "GateMate | Pune & PCMC Architectural Gates, Hardware & Artisan Crafts",
+    "GateMate | Hyperlocal Construction Products & Supplies Marketplace in Pune & PCMC",
   defaultDescription:
-    "Authentic handcrafted home decor, blue pottery, and heavy-duty gate automation delivered in 30 minutes across Pune & Pimpri-Chinchwad.",
-  defaultImage: "https://gatemate.in/og-gatemate.jpg",
+    "Buy certified cement, TMT steel, AAC blocks, sand, aggregates, plumbing, electrical, and building hardware with 30-minute delivery on eligible Products/orders across Pune & PCMC.",
+  defaultImage: "https://gatemate.in/og-construction-marketplace.jpg",
   twitterHandle: "@gatemate_in",
   region: "IN-MH",
   city: "Pune",
@@ -38,11 +38,12 @@ export const seoService = {
           ? product.gallery
           : [product.img],
       description: product.description,
-      sku: product.sku || `GM-SKU-${product.id}`,
+      sku: product.sku || `GM-PROD-${product.id}`,
       brand: {
         "@type": "Brand",
-        name: product.brand || "GateMate Heritage",
+        name: product.brand || "GateMate Certified Brand",
       },
+      category: product.category,
       offers: {
         "@type": "Offer",
         url: `${SITE_CONFIG.siteUrl}/products/${product.slug}`,
@@ -56,7 +57,7 @@ export const seoService = {
             : "https://schema.org/OutOfStock",
         seller: {
           "@type": "Organization",
-          name: product.seller?.name || "GateMate Verified Vendor Hub",
+          name: product.seller?.name || "GateMate Construction Depot Hub",
         },
       },
       aggregateRating:
@@ -101,10 +102,10 @@ export const seoService = {
     return {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: `${categoryName} | GateMate Pune & PCMC`,
+      name: `${categoryName} Products | GateMate Construction Marketplace`,
       description:
         categoryDescription ||
-        `Explore ${categoryName} on GateMate with 30-minute delivery in Pune & PCMC.`,
+        `Explore certified ${categoryName} construction supplies with 30-minute delivery on eligible Products/orders across Pune & PCMC.`,
       url: `${SITE_CONFIG.siteUrl}/products?category=${categoryName.toLowerCase().replace(/\s+/g, "-")}`,
       mainEntity: {
         "@type": "ItemList",
