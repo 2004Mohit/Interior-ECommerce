@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
+<<<<<<< HEAD
 import { Star, ShieldCheck, MessageSquare, Plus, Info } from "lucide-react";
+=======
+import { Star, ShieldCheck, MessageSquare, Plus } from "lucide-react";
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
 import { reviewService } from "../../services/reviewService";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../AuthModal";
@@ -71,6 +75,7 @@ export const ProductReviewsSection = ({ product }) => {
   };
 
   return (
+<<<<<<< HEAD
     <div className="gm-panel p-6 sm:p-8 rounded-3xl space-y-6">
       {/* Top Header & Customer Rating Overview */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[#D9E2EA] pb-6">
@@ -82,6 +87,19 @@ export const ProductReviewsSection = ({ product }) => {
             </h2>
           </div>
           <p className="text-xs text-[#606460]">
+=======
+    <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-white/10">
+      {/* Top Header & Customer Rating Overview */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/10 pb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <MessageSquare className="w-5 h-5 text-amber-400" />
+            <h2 className="text-xl font-black text-white">
+              Customer Reviews & Customer Ratings
+            </h2>
+          </div>
+          <p className="text-xs text-slate-400">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Verified Customer Reviews and Product Ratings across Pune and
             Pimpri-Chinchwad.
           </p>
@@ -93,7 +111,11 @@ export const ProductReviewsSection = ({ product }) => {
             disabled={eligibilityChecking}
             className="btn-gm-primary px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition disabled:opacity-50"
           >
+<<<<<<< HEAD
             <Plus className="w-4 h-4 text-[#FEFEFE]" />
+=======
+            <Plus className="w-4 h-4 text-slate-950" />
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             <span>
               {eligibilityChecking ? "Verifying..." : "Write a Customer Review"}
             </span>
@@ -110,20 +132,34 @@ export const ProductReviewsSection = ({ product }) => {
       )}
 
       {/* Customer Ratings Breakdown Grid */}
+<<<<<<< HEAD
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 rounded-2xl bg-[#F4F6FA] border border-[#D9E2EA] items-center">
         <div className="text-center md:border-r border-[#D9E2EA] md:pr-4">
           <div className="text-4xl font-black text-[#173885] font-mono">
+=======
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-2xl bg-[#091526] border border-white/5 items-center">
+        <div className="text-center md:border-r border-white/10 md:pr-4">
+          <div className="text-4xl font-black text-white font-mono">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             {reviewsData.averageRating || product.rating}
           </div>
           <div className="flex justify-center text-[#3C7DDA] my-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
+<<<<<<< HEAD
                 className="w-4 h-4 fill-current text-[#3C7DDA]"
               />
             ))}
           </div>
           <p className="text-[11px] text-[#606460] font-semibold">
+=======
+                className="w-4 h-4 fill-current text-amber-400"
+              />
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-400">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Overall Customer Rating ({reviewsData.totalCount} reviews)
           </p>
         </div>
@@ -174,10 +210,17 @@ export const ProductReviewsSection = ({ product }) => {
           <div className="p-8 text-center text-xs text-[#B43D20]">{error}</div>
         ) : reviewsData.reviews.length === 0 ? (
           <div className="p-10 text-center space-y-2">
+<<<<<<< HEAD
             <p className="text-xs font-bold text-[#282926]">
               No Customer Reviews submitted yet for this Product.
             </p>
             <p className="text-[11px] text-[#606460]">
+=======
+            <p className="text-xs text-slate-300">
+              No Customer Reviews submitted yet for this Product.
+            </p>
+            <p className="text-[11px] text-slate-500">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               Be the first verified customer in Pune or PCMC to write a Customer
               Review.
             </p>
@@ -194,7 +237,11 @@ export const ProductReviewsSection = ({ product }) => {
                     <h4 className="text-xs font-bold text-[#282926] flex items-center gap-2">
                       <span>{rev.userName}</span>
                       {rev.isVerifiedPurchase && (
+<<<<<<< HEAD
                         <span className="text-[10px] text-[#3F7D20] bg-[#E1F2D9] border border-[#3F7D20]/30 px-2 py-0.2 rounded-full flex items-center gap-1 font-semibold">
+=======
+                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 rounded-full flex items-center gap-1 font-semibold">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                           <ShieldCheck className="w-3 h-3" /> Verified Purchase
                         </span>
                       )}
@@ -222,7 +269,11 @@ export const ProductReviewsSection = ({ product }) => {
                     .map((_, i) => (
                       <Star
                         key={i}
+<<<<<<< HEAD
                         className="w-3.5 h-3.5 fill-current text-[#3C7DDA]"
+=======
+                        className="w-3.5 h-3.5 fill-current text-amber-400"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                       />
                     ))}
                 </div>

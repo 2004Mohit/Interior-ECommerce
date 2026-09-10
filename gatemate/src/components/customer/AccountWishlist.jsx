@@ -36,7 +36,11 @@ export const AccountWishlist = () => {
   if (!authLoading && !user) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
+<<<<<<< HEAD
         <h1 className="text-2xl font-black text-dark">
+=======
+        <h1 className="text-2xl font-black text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           Saved Products Wishlist
         </h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -82,7 +86,11 @@ export const AccountWishlist = () => {
       {/* Header */}
       <div className="border-b border-white/10 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
+<<<<<<< HEAD
           <h1 className="text-2xl font-black text-dark">
+=======
+          <h1 className="text-2xl font-black text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Saved Products Wishlist
           </h1>
           <p className="text-xs text-slate-400">
@@ -129,7 +137,11 @@ export const AccountWishlist = () => {
           ) : error ? (
             <div className="premium-panel p-12 rounded-3xl text-center space-y-3 max-w-md mx-auto">
               <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+<<<<<<< HEAD
               <h3 className="text-sm font-bold text-dark">
+=======
+              <h3 className="text-sm font-bold text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                 Error Loading Saved Products
               </h3>
               <p className="text-xs text-slate-400">{error}</p>
@@ -146,7 +158,11 @@ export const AccountWishlist = () => {
               <div className="w-16 h-16 rounded-2xl bg-slate-800 text-slate-600 flex items-center justify-center mx-auto border border-white/5">
                 <Heart className="w-8 h-8" />
               </div>
+<<<<<<< HEAD
               <h3 className="text-lg font-bold text-dark">
+=======
+              <h3 className="text-lg font-bold text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                 Your Saved Products List is Empty
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -186,7 +202,11 @@ export const AccountWishlist = () => {
 
                       <button
                         onClick={() => removeFromWishlist(product.id)}
+<<<<<<< HEAD
                         className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-[#050b14]/80 text-rose-400 hover:text-dark hover:bg-rose-500/30 transition border border-white/10"
+=======
+                        className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-[#050b14]/80 text-rose-400 hover:text-white hover:bg-rose-500/30 transition border border-white/10"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                         title="Remove from saved products"
                         aria-label="Remove from saved products"
                       >
@@ -223,7 +243,11 @@ export const AccountWishlist = () => {
                   <div className="p-4 pt-0">
                     <button
                       onClick={() => handleMoveToCart(product)}
+<<<<<<< HEAD
                       className="w-full dark-gradient-btn py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
+=======
+                      className="w-full gold-gradient-btn py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
                       <span>Move to Bag</span>

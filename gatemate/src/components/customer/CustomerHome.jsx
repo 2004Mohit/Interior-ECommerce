@@ -94,6 +94,8 @@ export const CustomerHome = () => {
     name: SITE_CONFIG.siteName,
     url: SITE_CONFIG.siteUrl,
     logo: `${SITE_CONFIG.siteUrl}/logo.png`,
+    description:
+      "Hyperlocal construction products and building materials marketplace in Pune and Pimpri-Chinchwad.",
     contactPoint: {
       "@type": "ContactPoint",
       telephone: "+91-9829012345",
@@ -105,14 +107,20 @@ export const CustomerHome = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 pb-24">
-      {/* SEO Meta */}
+      {/* Dynamic SEO Meta */}
       <SeoHead
+<<<<<<< HEAD
         title="GateMate | Hyperlocal Construction Products Marketplace in Pune & PCMC"
         description="Find construction Products from nearby verified vendors with 30-minute delivery on eligible Products/orders across Pune and Pimpri-Chinchwad."
+=======
+        title="GateMate | Construction Products & Supplies Marketplace | Pune & PCMC"
+        description="Source verified Cement, TMT Steel, AAC Blocks, Sand, Aggregates, Plumbing, and Electrical supplies with 30-minute delivery on eligible Products/orders in Pune & PCMC."
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
         canonicalUrl="/"
         structuredData={organizationSchema}
       />
 
+<<<<<<< HEAD
       {/* 1. PRIORITY 1: SEARCH & HERO CORE PROMISE */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#E4EEF3] border border-[#9AAED4]/40 text-[#173885] text-xs font-bold tracking-wide">
@@ -125,6 +133,20 @@ export const CustomerHome = () => {
         </h1>
 
         <p className="text-sm sm:text-base text-[#606460] font-normal max-w-2xl mx-auto">
+=======
+      {/* 1. SEARCH & HERO CORE PROMISE */}
+      <div className="text-center space-y-4 max-w-3xl mx-auto">
+        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide">
+          <Sparkles className="w-3.5 h-3.5" />
+          Pune & PCMC Verified Hyperlocal Construction Marketplace
+        </span>
+
+        <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+          Find Construction Products from Nearby Verified Vendors
+        </h1>
+
+        <p className="text-sm sm:text-base text-slate-300 font-normal max-w-2xl mx-auto">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           Source certified Cement, TMT Steel, AAC Blocks, M-Sand, Plumbing,
           Electrical, and Waterproofing supplies with 30-minute delivery on
           eligible Products/orders.
@@ -141,8 +163,13 @@ export const CustomerHome = () => {
                 <div className="w-6 h-6 rounded-lg bg-[#3C7DDA] text-[#FEFEFE] flex items-center justify-center shrink-0 font-bold">
                   <Bell className="w-3.5 h-3.5" />
                 </div>
+<<<<<<< HEAD
                 <span className="truncate text-[#282926]">
                   <strong className="text-[#173885]">
+=======
+                <span className="truncate text-slate-200">
+                  <strong className="text-amber-400">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                     {unreadAlerts.length} New Dispatch Alert
                     {unreadAlerts.length > 1 ? "s" : ""}:{" "}
                   </strong>
@@ -159,7 +186,11 @@ export const CustomerHome = () => {
           onSubmit={handleHomeSearch}
           className="relative w-full max-w-2xl mx-auto pt-2 flex items-center"
         >
+<<<<<<< HEAD
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#6F8A92] pointer-events-none" />
+=======
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400 pointer-events-none" />
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           <input
             type="text"
             placeholder="Search UltraTech cement, 12mm TMT rebar, Siporex AAC blocks, M-Sand, Astral CPVC..."
@@ -169,7 +200,11 @@ export const CustomerHome = () => {
           />
           <button
             type="submit"
+<<<<<<< HEAD
             className="absolute right-2 top-1/2 -translate-y-1/2 btn-gm-primary px-5 py-2 rounded-xl text-xs font-bold"
+=======
+            className="absolute right-2 top-1/2 -translate-y-1/2 gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           >
             Search
           </button>
@@ -190,7 +225,11 @@ export const CustomerHome = () => {
         </div>
       )}
 
+<<<<<<< HEAD
       {/* PROMOTIONAL PROJECT HIGHLIGHTS */}
+=======
+      {/* PROMOTIONAL BANNERS */}
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
       {banners.length > 0 && (
         <div className="relative overflow-hidden rounded-3xl bg-[#173885] text-[#FEFEFE] p-6 sm:p-10 shadow-lg border border-[#173885]">
           <AnimatePresence mode="wait">
@@ -246,12 +285,21 @@ export const CustomerHome = () => {
         </div>
       )}
 
+<<<<<<< HEAD
       {/* 2. PRIORITY 2: CONSTRUCTION PRODUCT CATEGORIES */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-[#173885]" />
             <h2 className="text-xl font-bold text-[#173885] tracking-wide">
+=======
+      {/* 2. CONSTRUCTION PRODUCT CATEGORIES */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-amber-400" />
+            <h2 className="text-xl font-bold text-white tracking-wide">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               Construction Product Categories
             </h2>
           </div>
@@ -283,6 +331,7 @@ export const CustomerHome = () => {
         )}
       </div>
 
+<<<<<<< HEAD
       {/* 3. PRIORITY 3: FEATURED CONSTRUCTION PRODUCTS */}
       <div>
         <div className="flex items-center justify-between mb-6">
@@ -291,6 +340,16 @@ export const CustomerHome = () => {
               Featured Construction Products
             </h2>
             <p className="text-xs text-[#606460]">
+=======
+      {/* 3. FEATURED CONSTRUCTION PRODUCTS */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-black text-white">
+              Featured Construction Products
+            </h2>
+            <p className="text-xs text-slate-400">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               Directly available from regional stockists in Pune &
               Pimpri-Chinchwad
             </p>
@@ -322,12 +381,21 @@ export const CustomerHome = () => {
 
       {/* 4. NEARBY / FAST DELIVERY & TRUSTED VENDOR BADGES */}
       <div className="space-y-6 pt-2">
+<<<<<<< HEAD
         <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
           <div>
             <h3 className="text-lg font-bold text-[#173885]">
               Hyperlocal Delivery & Verified Depot Standards
             </h3>
             <p className="text-xs text-[#606460]">
+=======
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div>
+            <h3 className="text-lg font-bold text-white">
+              Hyperlocal Delivery & Verified Depot Standards
+            </h3>
+            <p className="text-xs text-slate-400">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               Guaranteed quality metrics for building contractors and site
               engineers in Pune & PCMC
             </p>
@@ -335,6 +403,7 @@ export const CustomerHome = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<<<<<<< HEAD
           <div className="gm-card p-5 rounded-2xl space-y-2">
             <div className="w-10 h-10 rounded-xl bg-[#E4EEF3] border border-[#9AAED4]/30 flex items-center justify-center text-[#173885]">
               <Zap className="w-5 h-5 fill-[#3C7DDA] text-[#3C7DDA]" />
@@ -343,11 +412,22 @@ export const CustomerHome = () => {
               30-Minute Priority Dispatch
             </h4>
             <p className="text-[11px] text-[#606460] leading-relaxed">
+=======
+          <div className="premium-card p-5 rounded-2xl space-y-2 border border-white/10">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
+              <Zap className="w-5 h-5 fill-current" />
+            </div>
+            <h4 className="text-xs font-bold text-white">
+              30-Minute Priority Dispatch
+            </h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               30-minute delivery on eligible Products/orders dispatched from
               local stockist hubs.
             </p>
           </div>
 
+<<<<<<< HEAD
           <div className="gm-card p-5 rounded-2xl space-y-2">
             <div className="w-10 h-10 rounded-xl bg-[#E1F2D9] border border-[#3F7D20]/20 flex items-center justify-center text-[#3F7D20]">
               <ShieldCheck className="w-5 h-5" />
@@ -356,11 +436,22 @@ export const CustomerHome = () => {
               Certified Primary Quality
             </h4>
             <p className="text-[11px] text-[#606460] leading-relaxed">
+=======
+          <div className="premium-card p-5 rounded-2xl space-y-2 border border-white/10">
+            <div className="w-10 h-10 rounded-xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center text-emerald-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <h4 className="text-xs font-bold text-white">
+              Certified Primary Quality
+            </h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               100% genuine ISI/Fe 550D test batches with verifiable manufacturer
               mill test certificates.
             </p>
           </div>
 
+<<<<<<< HEAD
           <div className="gm-card p-5 rounded-2xl space-y-2">
             <div className="w-10 h-10 rounded-xl bg-[#E4EEF3] border border-[#9AAED4]/30 flex items-center justify-center text-[#173885]">
               <ThumbsUp className="w-5 h-5" />
@@ -369,11 +460,22 @@ export const CustomerHome = () => {
               Wholesale Depot Pricing
             </h4>
             <p className="text-[11px] text-[#606460] leading-relaxed">
+=======
+          <div className="premium-card p-5 rounded-2xl space-y-2 border border-white/10">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
+              <ThumbsUp className="w-5 h-5" />
+            </div>
+            <h4 className="text-xs font-bold text-white">
+              Wholesale Depot Pricing
+            </h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               Direct-from-source wholesale prices on cement bags, rebar bundles,
               and aggregates.
             </p>
           </div>
 
+<<<<<<< HEAD
           <div className="gm-card p-5 rounded-2xl space-y-2">
             <div className="w-10 h-10 rounded-xl bg-[#E3EBFA] border border-[#2E4D94]/20 flex items-center justify-center text-[#2E4D94]">
               <Clock className="w-5 h-5" />
@@ -382,6 +484,16 @@ export const CustomerHome = () => {
               Contractor Desk Support
             </h4>
             <p className="text-[11px] text-[#606460] leading-relaxed">
+=======
+          <div className="premium-card p-5 rounded-2xl space-y-2 border border-white/10">
+            <div className="w-10 h-10 rounded-xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center text-sky-400">
+              <Clock className="w-5 h-5" />
+            </div>
+            <h4 className="text-xs font-bold text-white">
+              Contractor Desk Support
+            </h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               Dedicated technical help for material takeoffs, structural
               estimates, and scheduled site drops.
             </p>
@@ -390,6 +502,7 @@ export const CustomerHome = () => {
       </div>
 
       {/* 6. BULK ORDERS & PROJECT RFQ */}
+<<<<<<< HEAD
       <div className="gm-panel p-8 rounded-3xl border border-[#D9E2EA] flex flex-col md:flex-row items-center justify-between gap-6 bg-[#E4EEF3]/60">
         <div className="space-y-2 text-center md:text-left">
           <span className="badge-gm-info px-3 py-1 rounded-full text-xs uppercase tracking-wider">
@@ -399,6 +512,17 @@ export const CustomerHome = () => {
             Need full truckloads of Cement, TMT Steel or AAC Blocks?
           </h3>
           <p className="text-xs text-[#606460] max-w-2xl">
+=======
+      <div className="premium-panel p-8 rounded-3xl border border-amber-400/20 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-r from-[#091526] to-[#0e213d]">
+        <div className="space-y-2 text-center md:text-left">
+          <span className="text-xs font-bold text-amber-400 tracking-wider uppercase">
+            Commercial Bulk Orders & Project Estimates
+          </span>
+          <h3 className="text-2xl font-black text-white">
+            Need full truckloads of Cement, TMT Steel or AAC Blocks?
+          </h3>
+          <p className="text-xs text-slate-300 max-w-2xl">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Submit your project Bill of Quantities (BOQ) for volume depot
             quotes, test certificates, and GST input tax credit across Pune &
             PCMC construction sites.
@@ -406,10 +530,17 @@ export const CustomerHome = () => {
         </div>
         <Link
           to="/account/b2b"
+<<<<<<< HEAD
           className="btn-gm-primary px-6 py-3.5 rounded-xl text-sm flex items-center gap-2 shrink-0 transition shadow-md"
         >
           <span>Request Bulk Project RFQ</span>
           <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
+=======
+          className="gold-gradient-btn px-6 py-3.5 rounded-xl text-sm flex items-center gap-2 shrink-0 transition shadow-lg"
+        >
+          <span>Request Bulk Project RFQ</span>
+          <ArrowRight className="w-4 h-4 text-slate-950" />
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
         </Link>
       </div>
     </div>

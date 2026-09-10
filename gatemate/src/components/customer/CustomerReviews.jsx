@@ -40,15 +40,24 @@ export const CustomerReviews = () => {
   if (!authLoading && !user) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
+<<<<<<< HEAD
         <h1 className="text-2xl font-black text-dark">My Customer Reviews</h1>
+=======
+        <h1 className="text-2xl font-black text-white">My Customer Reviews</h1>
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
             <AccountNav />
           </div>
           <div className="md:col-span-3">
             <div className="premium-panel p-12 rounded-3xl text-center space-y-4 max-w-md mx-auto">
+<<<<<<< HEAD
               <Lock className="w-10 h-10 text-dark-400 mx-auto" />
               <h2 className="text-lg font-bold text-dark">
+=======
+              <Lock className="w-10 h-10 text-amber-400 mx-auto" />
+              <h2 className="text-lg font-bold text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                 Sign In to View Customer Reviews
               </h2>
               <p className="text-xs text-slate-400">
@@ -77,7 +86,11 @@ export const CustomerReviews = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
       <div className="border-b border-white/10 pb-5">
+<<<<<<< HEAD
         <h1 className="text-2xl font-black text-dark">My Customer Reviews</h1>
+=======
+        <h1 className="text-2xl font-black text-white">My Customer Reviews</h1>
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
         <p className="text-xs text-slate-400">
           Customer Reviews submitted for your verified construction Product
           purchases in Pune and Pimpri-Chinchwad.
@@ -102,7 +115,11 @@ export const CustomerReviews = () => {
           ) : reviews.length === 0 ? (
             <div className="premium-panel p-16 rounded-3xl text-center space-y-4 max-w-md mx-auto">
               <MessageSquare className="w-12 h-12 text-slate-600 mx-auto" />
+<<<<<<< HEAD
               <h3 className="text-lg font-bold text-dark">
+=======
+              <h3 className="text-lg font-bold text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                 No Customer Reviews Submitted Yet
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -134,7 +151,11 @@ export const CustomerReviews = () => {
 
                   <Link
                     to={`/products/${rev.product?.slug}`}
+<<<<<<< HEAD
                     className="text-dark-400 hover:text-dark p-1"
+=======
+                    className="text-amber-400 hover:text-white p-1"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                     title="View Product Details"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -147,7 +168,11 @@ export const CustomerReviews = () => {
                     .map((_, i) => (
                       <Star
                         key={i}
+<<<<<<< HEAD
                         className="w-3.5 h-3.5 fill-current text-dark-400"
+=======
+                        className="w-3.5 h-3.5 fill-current text-amber-400"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                       />
                     ))}
                 </div>

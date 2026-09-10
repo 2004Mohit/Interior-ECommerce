@@ -6,6 +6,13 @@ import {
   RotateCcw,
   MapPin,
   Check,
+<<<<<<< HEAD
+=======
+  Layers,
+  Tag,
+  Package,
+  Wrench,
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
   ShieldCheck,
 } from "lucide-react";
 import { productService } from "../../services/productService";
@@ -48,8 +55,13 @@ export const FilterPanel = ({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
         <div className="flex items-center gap-2">
+<<<<<<< HEAD
           <Filter className="w-4 h-4 text-[#173885]" />
           <h3 className="text-sm font-bold text-[#173885]">Filter Products</h3>
+=======
+          <Filter className="w-4 h-4 text-amber-400" />
+          <h3 className="text-sm font-bold text-white">Filter Products</h3>
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
@@ -77,11 +89,19 @@ export const FilterPanel = ({
       </div>
 
       {/* 1. 30-Min Site Priority Express Toggle */}
+<<<<<<< HEAD
       <div className="p-3.5 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40">
         <label className="flex items-center justify-between cursor-pointer select-none min-h-[32px]">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-[#3C7DDA] fill-[#3C7DDA]" />
             <span className="text-xs font-bold text-[#173885]">
+=======
+      <div className="p-3.5 rounded-2xl bg-[#091526] border border-amber-400/20">
+        <label className="flex items-center justify-between cursor-pointer select-none min-h-[32px]">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+            <span className="text-xs font-bold text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
               30-Min Site Priority Dispatch
             </span>
           </div>
@@ -91,7 +111,11 @@ export const FilterPanel = ({
             onChange={(e) =>
               onFilterChange("expressOnly", e.target.checked ? "true" : "")
             }
+<<<<<<< HEAD
             className="w-5 h-5 rounded accent-[#3C7DDA] cursor-pointer"
+=======
+            className="w-5 h-5 rounded accent-amber-400 cursor-pointer"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             aria-label="Filter 30-minute priority site delivery only"
           />
         </label>
@@ -103,7 +127,11 @@ export const FilterPanel = ({
           htmlFor="filter-pincode-input"
           className="flex items-center gap-1.5 text-xs font-bold text-[#282926]"
         >
+<<<<<<< HEAD
           <MapPin className="w-3.5 h-3.5 text-[#3C7DDA]" />
+=======
+          <MapPin className="w-3.5 h-3.5 text-amber-400" />
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           <span>Construction Site PIN Code</span>
         </label>
         <div className="flex gap-2">
@@ -133,9 +161,15 @@ export const FilterPanel = ({
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* 3. Categories Facet */}
       <div className="space-y-2">
         <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
+=======
+      {/* 3. Categories Facet with Photography */}
+      <div className="space-y-2">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           Product Category
         </span>
         <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
@@ -183,7 +217,11 @@ export const FilterPanel = ({
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* 4. Brand / Manufacturer Facet */}
+=======
+      {/* 4. Construction Brand / Manufacturer Facet */}
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
       {facets.brands.length > 0 && (
         <div className="space-y-2">
           <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
@@ -229,6 +267,7 @@ export const FilterPanel = ({
         </div>
       )}
 
+<<<<<<< HEAD
       {/* 5. In-Stock Availability Toggle */}
       <div className="p-3 rounded-2xl bg-[#E4EEF3]/60 border border-[#D9E2EA]">
         <label className="flex items-center justify-between cursor-pointer select-none min-h-[28px]">
@@ -237,6 +276,98 @@ export const FilterPanel = ({
             <span className="text-xs font-bold text-[#282926]">
               In-Stock Only
             </span>
+=======
+      {/* 5. Unit of Measurement Facet (Bag, Piece, Brass, Can, Sheet, Coil) */}
+      {facets.units && facets.units.length > 0 && (
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            Unit of Supply
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => onFilterChange("unit", "all")}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                !filters.unit || filters.unit === "all"
+                  ? "bg-[#172a4d] text-amber-300 border-amber-400/40 font-bold"
+                  : "premium-card text-slate-400 hover:text-white border-white/5"
+              }`}
+            >
+              All Units
+            </button>
+            {facets.units.map((u) => {
+              const isSelected = filters.unit === u;
+              return (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => onFilterChange("unit", u)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+                    isSelected
+                      ? "bg-[#172a4d] text-amber-300 border-amber-400/40 font-bold"
+                      : "premium-card text-slate-400 hover:text-white border-white/5"
+                  }`}
+                >
+                  {u}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Material Grade / Specification Facet */}
+      {facets.grades && facets.grades.length > 0 && (
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+            Grade & Specification
+          </span>
+          <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+            <button
+              type="button"
+              onClick={() => onFilterChange("grade", "all")}
+              className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center justify-between min-h-[34px] ${
+                !filters.grade || filters.grade === "all"
+                  ? "bg-[#172a4d] text-amber-300 font-bold"
+                  : "text-slate-300 hover:bg-white/5"
+              }`}
+            >
+              <span>All Grades</span>
+              {(!filters.grade || filters.grade === "all") && (
+                <Check className="w-3.5 h-3.5 text-amber-400" />
+              )}
+            </button>
+            {facets.grades.map((grd) => {
+              const isSelected = filters.grade === grd;
+              return (
+                <button
+                  key={grd}
+                  type="button"
+                  onClick={() => onFilterChange("grade", grd)}
+                  className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center justify-between min-h-[34px] ${
+                    isSelected
+                      ? "bg-[#172a4d] text-amber-300 font-bold"
+                      : "text-slate-300 hover:bg-white/5"
+                  }`}
+                >
+                  <span className="truncate">{grd}</span>
+                  {isSelected && (
+                    <Check className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 7. In-Stock Availability Toggle */}
+      <div className="p-3 rounded-2xl bg-[#091526] border border-white/10">
+        <label className="flex items-center justify-between cursor-pointer select-none min-h-[28px]">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-bold text-white">In-Stock Only</span>
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           </div>
           <input
             type="checkbox"
@@ -244,16 +375,27 @@ export const FilterPanel = ({
             onChange={(e) =>
               onFilterChange("inStockOnly", e.target.checked ? "true" : "")
             }
+<<<<<<< HEAD
             className="w-4 h-4 rounded accent-[#3C7DDA] cursor-pointer"
+=======
+            className="w-4 h-4 rounded accent-amber-400 cursor-pointer"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             aria-label="Filter in-stock construction products only"
           />
         </label>
       </div>
 
+<<<<<<< HEAD
       {/* 6. Price Slider */}
       <div className="space-y-2.5">
         <div className="flex justify-between items-center text-xs">
           <span className="font-bold text-[#606460] uppercase tracking-wider text-[11px]">
+=======
+      {/* 8. Price Slider */}
+      <div className="space-y-2.5">
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-bold text-slate-400 uppercase tracking-wider text-[11px]">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Max Price per Unit
           </span>
           <span className="font-black text-[#173885] font-mono">
@@ -267,7 +409,11 @@ export const FilterPanel = ({
           step={50}
           value={filters.maxPrice || facets.maxPrice}
           onChange={(e) => onFilterChange("maxPrice", e.target.value)}
+<<<<<<< HEAD
           className="w-full accent-[#3C7DDA] cursor-pointer"
+=======
+          className="w-full accent-amber-400 cursor-pointer"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           aria-label="Maximum unit price filter"
         />
         <div className="flex justify-between text-[10px] text-[#6F8A92] font-mono">

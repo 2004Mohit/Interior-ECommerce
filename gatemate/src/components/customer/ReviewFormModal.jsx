@@ -90,21 +90,34 @@ export const ReviewFormModal = ({
         <button
           onClick={onClose}
           disabled={isSubmitting}
+<<<<<<< HEAD
           className="absolute top-5 right-5 text-slate-400 hover:text-dark transition"
+=======
+          className="absolute top-5 right-5 text-slate-400 hover:text-white transition"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-2 mb-1">
+<<<<<<< HEAD
           <Sparkles className="w-5 h-5 text-dark-400" />
           <h3 className="text-xl font-black text-dark">
+=======
+          <Sparkles className="w-5 h-5 text-amber-400" />
+          <h3 className="text-xl font-black text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Write a Customer Review
           </h3>
         </div>
         <p className="text-xs text-slate-400 mb-4 truncate">
           Reviewing Product:{" "}
+<<<<<<< HEAD
           <span className="text-dark font-semibold">{product.name}</span>
+=======
+          <span className="text-white font-semibold">{product.name}</span>
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
         </p>
 
         {formError && (
@@ -202,7 +215,11 @@ export const ReviewFormModal = ({
                   <button
                     type="button"
                     onClick={() => removeFile(i)}
+<<<<<<< HEAD
                     className="absolute top-1 right-1 bg-black/70 p-0.5 rounded text-dark hover:text-rose-400"
+=======
+                    className="absolute top-1 right-1 bg-black/70 p-0.5 rounded text-white hover:text-rose-400"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                     aria-label="Remove image"
                   >
                     <X className="w-3 h-3" />
@@ -251,7 +268,11 @@ export const ReviewFormModal = ({
             <button
               type="submit"
               disabled={isSubmitting}
+<<<<<<< HEAD
               className="flex-1 dark-gradient-btn py-3 rounded-xl text-xs font-bold transition disabled:opacity-50 text-slate-950"
+=======
+              className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold transition disabled:opacity-50 text-slate-950"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             >
               {isSubmitting
                 ? "Verifying & Submitting..."

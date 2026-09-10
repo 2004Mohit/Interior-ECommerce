@@ -40,7 +40,11 @@ export const Wishlist = () => {
           <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7" />
           </div>
+<<<<<<< HEAD
           <h2 className="text-2xl font-black text-dark">
+=======
+          <h2 className="text-2xl font-black text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Saved Products Wishlist
           </h2>
           <p className="text-xs text-slate-400 leading-relaxed">
@@ -76,7 +80,13 @@ export const Wishlist = () => {
             <Heart className="w-6 h-6 fill-current" />
           </div>
           <div>
+<<<<<<< HEAD
             <h1 className="text-2xl font-black text-dark">My Saved Products</h1>
+=======
+            <h1 className="text-2xl font-black text-white">
+              My Saved Products
+            </h1>
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             <p className="text-xs text-slate-400">
               {wishlist.length} construction Product
               {wishlist.length === 1 ? "" : "s"} saved in your private project
@@ -115,7 +125,11 @@ export const Wishlist = () => {
       ) : error ? (
         <div className="premium-panel p-12 rounded-3xl text-center space-y-3 max-w-md mx-auto">
           <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+<<<<<<< HEAD
           <h3 className="text-sm font-bold text-dark">
+=======
+          <h3 className="text-sm font-bold text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Error Loading Saved Products
           </h3>
           <p className="text-xs text-slate-400">{error}</p>
@@ -132,7 +146,11 @@ export const Wishlist = () => {
           <div className="w-16 h-16 rounded-2xl bg-slate-800 text-slate-600 flex items-center justify-center mx-auto border border-white/5">
             <Heart className="w-8 h-8" />
           </div>
+<<<<<<< HEAD
           <h3 className="text-lg font-bold text-dark">
+=======
+          <h3 className="text-lg font-bold text-white">
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
             Your Saved Products List is Empty
           </h3>
           <p className="text-xs text-slate-400 leading-relaxed">
@@ -172,7 +190,11 @@ export const Wishlist = () => {
 
                   <button
                     onClick={() => removeFromWishlist(product.id)}
+<<<<<<< HEAD
                     className="absolute top-3 right-3 p-2 rounded-xl bg-[#050b14]/80 text-rose-400 hover:text-dark hover:bg-rose-500/30 transition border border-white/10"
+=======
+                    className="absolute top-3 right-3 p-2 rounded-xl bg-[#050b14]/80 text-rose-400 hover:text-white hover:bg-rose-500/30 transition border border-white/10"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                     title="Remove from saved list"
                     aria-label="Remove from saved list"
                   >
@@ -209,7 +231,11 @@ export const Wishlist = () => {
               <div className="p-4 pt-0">
                 <button
                   onClick={() => handleMoveToCart(product)}
+<<<<<<< HEAD
                   className="w-full dark-gradient-btn py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
+=======
+                  className="w-full gold-gradient-btn py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
+>>>>>>> 1d02419 (feat(customer): complete construction marketplace overhaul, terminology audit, SEO, and text-only footer)
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Move to Bag</span>
