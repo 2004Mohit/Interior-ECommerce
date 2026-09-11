@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider, useWishlist } from "./context/WishlistContext";
 
+// Customer Components
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { MobileBottomNav } from "./components/common/MobileBottomNav";
@@ -28,7 +29,29 @@ import { Preferences } from "./components/customer/Preferences";
 import { AccountWishlist } from "./components/customer/AccountWishlist";
 import { B2BQuotations } from "./components/customer/B2BQuotations";
 
-function AppContent() {
+// Vendor Views & Architecture
+import { VendorLayout } from "./components/vendor/VendorLayout";
+import { VendorProtectedRoute } from "./components/vendor/VendorProtectedRoute";
+import { VendorLanding } from "./components/vendor/VendorLanding";
+import { VendorGuidelines } from "./components/vendor/VendorGuidelines";
+import { VendorBenefits } from "./components/vendor/VendorBenefits";
+import { VendorOnboarding } from "./components/vendor/VendorOnboarding";
+import { VendorDashboard } from "./components/vendor/VendorDashboard";
+import { VendorProducts } from "./components/vendor/VendorProducts";
+import { VendorProductForm } from "./components/vendor/VendorProductForm";
+import { VendorInventory } from "./components/vendor/VendorInventory";
+import { VendorOrders } from "./components/vendor/VendorOrders";
+import { VendorOrderDetail } from "./components/vendor/VendorOrderDetail";
+import { VendorRfqs } from "./components/vendor/VendorRfqs";
+import { VendorRfqDetail } from "./components/vendor/VendorRfqDetail";
+import { VendorQuotations } from "./components/vendor/VendorQuotations";
+import { VendorPayments } from "./components/vendor/VendorPayments";
+import { VendorSettlements } from "./components/vendor/VendorSettlements";
+import { VendorReviews } from "./components/vendor/VendorReviews";
+import { VendorNotifications } from "./components/vendor/VendorNotifications";
+import { VendorProfile } from "./components/vendor/VendorProfile";
+
+function CustomerAppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const { authModalRequired, closeAuthModal } = useWishlist();
@@ -61,37 +84,8 @@ function AppContent() {
           <Route path="/account/reviews" element={<CustomerReviews />} />
           <Route path="/account/preferences" element={<Preferences />} />
 
-          {/* Vendor & Admin Portals */}
-          <Route
-            path="/seller"
-            element={
-              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                <div className="gm-panel p-8 rounded-3xl">
-                  <h2 className="text-2xl font-bold text-[#173885] mb-2">
-                    GateMate Stockist & Vendor Hub
-                  </h2>
-                  <p className="text-[#606460] text-sm">
-                    Listing workflows & depot metrics.
-                  </p>
-                </div>
-              </div>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                <div className="gm-panel p-8 rounded-3xl">
-                  <h2 className="text-2xl font-bold text-[#173885] mb-2">
-                    GateMate Admin Portal
-                  </h2>
-                  <p className="text-[#606460] text-sm">
-                    Platform oversight, dispatch zones, & catalogue controls.
-                  </p>
-                </div>
-              </div>
-            }
-          />
+          {/* Legacy seller alias redirect to /sell */}
+          <Route path="/seller" element={<Navigate to="/sell" replace />} />
         </Routes>
       </main>
 
@@ -131,7 +125,43 @@ export default function App() {
       <AuthProvider>
         <WishlistProvider>
           <CartProvider>
-            <AppContent />
+            <Routes>
+              {/* Public Vendor Entry Pages */}
+              <Route path="/sell" element={<VendorLanding />} />
+              <Route path="/vendor" element={<VendorLanding />} />
+              <Route path="/vendor/guidelines" element={<VendorGuidelines />} />
+              <Route path="/vendor/benefits" element={<VendorBenefits />} />
+
+              {/* Vendor Onboarding & Protected Terminal Sub-Routes */}
+              <Route
+                path="/vendor"
+                element={
+                  <VendorProtectedRoute>
+                    <VendorLayout />
+                  </VendorProtectedRoute>
+                }
+              >
+                <Route path="onboarding" element={<VendorOnboarding />} />
+                <Route path="dashboard" element={<VendorDashboard />} />
+                <Route path="products" element={<VendorProducts />} />
+                <Route path="products/new" element={<VendorProductForm />} />
+                <Route path="products/:id" element={<VendorProductForm />} />
+                <Route path="inventory" element={<VendorInventory />} />
+                <Route path="orders" element={<VendorOrders />} />
+                <Route path="orders/:id" element={<VendorOrderDetail />} />
+                <Route path="rfqs" element={<VendorRfqs />} />
+                <Route path="rfqs/:id" element={<VendorRfqDetail />} />
+                <Route path="quotations" element={<VendorQuotations />} />
+                <Route path="payments" element={<VendorPayments />} />
+                <Route path="settlements" element={<VendorSettlements />} />
+                <Route path="reviews" element={<VendorReviews />} />
+                <Route path="notifications" element={<VendorNotifications />} />
+                <Route path="profile" element={<VendorProfile />} />
+              </Route>
+
+              {/* All other routes render customer experience */}
+              <Route path="/*" element={<CustomerAppContent />} />
+            </Routes>
           </CartProvider>
         </WishlistProvider>
       </AuthProvider>
