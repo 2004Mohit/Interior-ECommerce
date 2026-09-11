@@ -9,7 +9,9 @@ import {
   Send,
   Save,
   Info,
-  Package,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
@@ -17,11 +19,14 @@ import {
   vendorProductService,
   PRODUCT_APPROVAL_STATUS,
 } from "../../services/vendorProductService";
-import { CATALOGUE_CATEGORIES } from "../../data/categories";
 import {
-  CONSTRUCTION_UNITS,
-  getRecommendedUnitsForCategory,
-} from "../../data/constructionUnits";
+  productAttributeService,
+  ATTRIBUTE_TYPES,
+} from "../../services/productAttributeService";
+import { productMediaService } from "../../services/productMediaService";
+import { CATALOGUE_CATEGORIES } from "../../data/categories";
+import { getRecommendedUnitsForCategory } from "../../data/constructionUnits";
+import { SuggestAttributeModal } from "./SuggestAttributeModal";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorProductForm = () => {
@@ -43,15 +48,25 @@ export const VendorProductForm = () => {
     moq: "1",
     description: "",
     features: "",
+    dynamicAttributes: {},
     images: [],
     status: PRODUCT_APPROVAL_STATUS.DRAFT,
   });
 
+  const [categoryAttributes, setCategoryAttributes] = useState([]);
   const [loading, setLoading] = useState(isEditing);
   const [savingAction, setSavingAction] = useState(null); // 'draft' | 'submit'
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [formError, setFormError] = useState(null);
   const [successNotice, setSuccessNotice] = useState(null);
   const [imageUploadError, setImageUploadError] = useState(null);
+  const [isSuggestModalOpen, setIsSuggestModalOpen] = useState(false);
+
+  useEffect(() => {
+    productAttributeService
+      .getCategoryAttributes(formData.categorySlug)
+      .then(setCategoryAttributes);
+  }, [formData.categorySlug]);
 
   useEffect(() => {
     if (isEditing) {
@@ -59,6 +74,13 @@ export const VendorProductForm = () => {
         .getVendorProductById(vendorUser?.id || "vnd-pune-001", id)
         .then((prod) => {
           if (prod) {
+            const attrMap = {};
+            if (Array.isArray(prod.dynamicAttributes)) {
+              prod.dynamicAttributes.forEach((a) => {
+                attrMap[a.key] = a.value;
+              });
+            }
+
             setFormData({
               ...prod,
               price: String(prod.price || ""),
@@ -68,6 +90,7 @@ export const VendorProductForm = () => {
               features: Array.isArray(prod.features)
                 ? prod.features.join("\n")
                 : prod.features || "",
+              dynamicAttributes: attrMap,
               images: prod.images || (prod.img ? [prod.img] : []),
             });
           }
@@ -88,35 +111,47 @@ export const VendorProductForm = () => {
       categorySlug: slug,
       category: match?.name || slug,
       unit: recommended[0]?.value || prev.unit,
+      dynamicAttributes: {},
     }));
   };
 
-  const handleImageFileAdd = (e) => {
+  const handleDynamicAttributeChange = (attrName, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      dynamicAttributes: {
+        ...prev.dynamicAttributes,
+        [attrName]: value,
+      },
+    }));
+  };
+
+  // Upload image to Supabase Storage and add to product image gallery
+  const handleImageUpload = async (e) => {
     setImageUploadError(null);
     const files = Array.from(e.target.files || []);
     if (files.length + formData.images.length > 5) {
-      setImageUploadError("Maximum 5 product images allowed per listing.");
+      setImageUploadError("Maximum 5 product photographs allowed per listing.");
       return;
     }
 
-    files.forEach((file) => {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-        setImageUploadError(
-          "Only PNG, JPG, or WebP product images are supported.",
+    setIsUploadingImage(true);
+    try {
+      const vendorId = vendorUser?.id || "vnd-pune-001";
+      for (const file of files) {
+        const uploaded = await productMediaService.uploadProductImage(
+          vendorId,
+          file,
         );
-        return;
+        setFormData((prev) => ({
+          ...prev,
+          images: [...prev.images, uploaded.url],
+        }));
       }
-      if (file.size > 5 * 1024 * 1024) {
-        setImageUploadError("Image size exceeds 5MB limit.");
-        return;
-      }
-
-      const localUrl = URL.createObjectURL(file);
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, localUrl],
-      }));
-    });
+    } catch (err) {
+      setImageUploadError(err.message || "Image upload failed.");
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleRemoveImage = (indexToRemove) => {
@@ -124,6 +159,16 @@ export const VendorProductForm = () => {
       ...prev,
       images: prev.images.filter((_, idx) => idx !== indexToRemove),
     }));
+  };
+
+  const handleMoveImage = (fromIdx, toIdx) => {
+    if (toIdx < 0 || toIdx >= formData.images.length) return;
+    setFormData((prev) => {
+      const updated = [...prev.images];
+      const item = updated.splice(fromIdx, 1)[0];
+      updated.splice(toIdx, 0, item);
+      return { ...prev, images: updated };
+    });
   };
 
   const validateProductPayload = (isSubmittingForReview = false) => {
@@ -150,13 +195,6 @@ export const VendorProductForm = () => {
       return "Please enter a valid positive unit selling price (₹).";
     }
 
-    if (formData.originalPrice) {
-      const numOriginal = Number(formData.originalPrice);
-      if (isNaN(numOriginal) || numOriginal < numPrice) {
-        return "MRP / Strikethrough price cannot be lower than the selling price.";
-      }
-    }
-
     const numStock = Number(formData.stock);
     if (isNaN(numStock) || numStock < 0 || !Number.isInteger(numStock)) {
       return "Please enter a valid available stock quantity (0 or positive whole number).";
@@ -174,9 +212,16 @@ export const VendorProductForm = () => {
       return "Please enter a product description (at least 15 characters).";
     }
 
-    // Required images rule when submitting for review
-    if (isSubmittingForReview && formData.images.length === 0) {
-      return "At least 1 product photograph is required to submit for Admin Review.";
+    if (isSubmittingForReview) {
+      for (const attr of categoryAttributes) {
+        if (attr.required && !formData.dynamicAttributes[attr.name]?.trim()) {
+          return `Please fill in the required category field: "${attr.name}".`;
+        }
+      }
+
+      if (formData.images.length === 0) {
+        return "At least 1 product photograph is required to submit for Admin Review.";
+      }
     }
 
     return null;
@@ -198,6 +243,13 @@ export const VendorProductForm = () => {
       .map((f) => f.trim())
       .filter(Boolean);
 
+    const structuredAttributes = Object.entries(formData.dynamicAttributes).map(
+      ([k, v]) => ({
+        key: k,
+        value: v,
+      }),
+    );
+
     const payload = {
       ...formData,
       price: Number(formData.price),
@@ -207,6 +259,7 @@ export const VendorProductForm = () => {
       stock: Number(formData.stock),
       moq: Number(formData.moq),
       features: featureList,
+      dynamicAttributes: structuredAttributes,
       img:
         formData.images[0] ||
         "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=800&q=80",
@@ -224,13 +277,15 @@ export const VendorProductForm = () => {
       if (isSubmitAction) {
         await vendorProductService.submitProductForReview(vendorId, payload);
         setSuccessNotice(
-          "Product submitted successfully for Admin Review. Direct publishing is disabled.",
+          isEditing &&
+            (formData.status === PRODUCT_APPROVAL_STATUS.PUBLISHED ||
+              formData.status === PRODUCT_APPROVAL_STATUS.APPROVED)
+            ? "Product updates submitted for Admin Review. Changes will reflect once verified."
+            : "Product submitted successfully for Admin Review. Direct publishing is disabled.",
         );
       } else {
         await vendorProductService.saveProductDraft(vendorId, payload);
-        setSuccessNotice(
-          "Product saved as Draft. You can edit and submit it for review whenever ready.",
-        );
+        setSuccessNotice("Product saved as Draft.");
       }
 
       setTimeout(() => {
@@ -258,7 +313,7 @@ export const VendorProductForm = () => {
     <div className="max-w-4xl mx-auto py-6 space-y-6 pb-24">
       <SeoHead
         title={`${isEditing ? "Edit Product" : "Add New Product"} | GateMate Vendor Portal`}
-        description="Add construction products with technical attributes, units of supply, MOQ, and batch imagery."
+        description="Add and edit construction products with technical attributes, units of supply, MOQ, and batch imagery."
         canonicalUrl="/vendor/products/new"
         noIndex={true}
       />
@@ -275,7 +330,7 @@ export const VendorProductForm = () => {
           </Link>
           <div>
             <span className="badge-gm-info px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
-              Product Workflow
+              Product Management
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-[#173885] mt-0.5">
               {isEditing
@@ -305,21 +360,27 @@ export const VendorProductForm = () => {
         </div>
       )}
 
-      {/* Approval Notice */}
-      <div className="p-4 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40 text-xs text-[#173885] flex items-start gap-2.5">
-        <Info className="w-4 h-4 text-[#3C7DDA] shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <strong className="font-bold">Admin Review Policy:</strong>
-          <p className="text-[11px] text-[#606460] leading-relaxed">
-            All newly submitted products and price revisions are verified by the
-            GateMate reviewer team to confirm primary grade compliance before
-            going live to customers.
-          </p>
-        </div>
-      </div>
+      {/* Moderation Workflow Policy */}
+      {isEditing &&
+        (formData.status === PRODUCT_APPROVAL_STATUS.PUBLISHED ||
+          formData.status === PRODUCT_APPROVAL_STATUS.APPROVED) && (
+          <div className="p-4 rounded-2xl bg-[#FFF0D5] border border-[#A66A08]/30 text-xs text-[#A66A08] flex items-start gap-2.5">
+            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <strong className="font-bold">
+                Moderation Notice for Live Products:
+              </strong>
+              <p className="text-[11px] text-[#606460] mt-0.5 leading-relaxed">
+                Editing price, title, category attributes, or photographs on an
+                approved product requires review by GateMate inspectors before
+                updating on the live customer storefront.
+              </p>
+            </div>
+          </div>
+        )}
 
-      {/* Main Form */}
-      <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-6">
+      {/* Form Container */}
+      <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-6 shadow-xs">
         {/* 1. Identification & Category */}
         <div className="space-y-4">
           <h2 className="text-sm font-bold text-[#173885] border-b border-[#D9E2EA] pb-2">
@@ -414,16 +475,86 @@ export const VendorProductForm = () => {
           </div>
         </div>
 
-        {/* 2. Pricing, Stock & Minimum Order Quantity */}
+        {/* 2. Category Attributes & Suggestion */}
+        <div className="space-y-4 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D9E2EA] pb-2">
+            <div>
+              <h2 className="text-sm font-bold text-[#173885]">
+                2. Category Technical Specifications ({formData.category})
+              </h2>
+              <p className="text-[11px] text-[#606460]">
+                System attributes configured for this construction category.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsSuggestModalOpen(true)}
+              className="text-xs font-bold text-[#3C7DDA] hover:underline flex items-center gap-1 self-start sm:self-auto"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Suggest Additional Field</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {categoryAttributes.map((attr) => (
+              <div key={attr.id}>
+                <label className="text-xs font-bold text-[#282926] flex items-center justify-between mb-1">
+                  <span>
+                    {attr.name}{" "}
+                    {attr.required && <span className="text-[#B43D20]">*</span>}
+                  </span>
+                  {attr.isCommunityApproved && (
+                    <span className="text-[9px] text-[#3C7DDA] bg-[#E4EEF3] px-1.5 py-0.2 rounded">
+                      Vendor Approved Field
+                    </span>
+                  )}
+                </label>
+
+                {attr.type === ATTRIBUTE_TYPES.SELECT ? (
+                  <select
+                    value={formData.dynamicAttributes[attr.name] || ""}
+                    onChange={(e) =>
+                      handleDynamicAttributeChange(attr.name, e.target.value)
+                    }
+                    className="w-full gm-input px-3 py-2 rounded-xl text-xs font-semibold"
+                  >
+                    <option value="">Select {attr.name}...</option>
+                    {attr.allowedValues?.map((val) => (
+                      <option key={val} value={val}>
+                        {val}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={
+                      attr.type === ATTRIBUTE_TYPES.NUMBER ? "number" : "text"
+                    }
+                    placeholder={attr.placeholder || `Enter ${attr.name}...`}
+                    value={formData.dynamicAttributes[attr.name] || ""}
+                    onChange={(e) =>
+                      handleDynamicAttributeChange(attr.name, e.target.value)
+                    }
+                    className="w-full gm-input px-3 py-2 rounded-xl text-xs"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. Pricing, Stock & MOQ */}
         <div className="space-y-4 pt-2">
           <h2 className="text-sm font-bold text-[#173885] border-b border-[#D9E2EA] pb-2">
-            2. Pricing, Inventory & Minimum Order Quantity (MOQ)
+            3. Pricing, Inventory & MOQ
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div>
               <label className="text-xs font-bold text-[#282926] block mb-1">
-                Selling Price per Unit (₹) *
+                Selling Price (₹) *
               </label>
               <input
                 type="number"
@@ -441,7 +572,7 @@ export const VendorProductForm = () => {
 
             <div>
               <label className="text-xs font-bold text-[#282926] block mb-1">
-                MRP / Original (₹)
+                MRP / Strikethrough
               </label>
               <input
                 type="number"
@@ -491,9 +622,8 @@ export const VendorProductForm = () => {
             </div>
           </div>
 
-          {/* Computed Stock Status Pill */}
           <div className="flex items-center justify-between text-xs p-3 rounded-xl bg-[#F4F6FA] border border-[#D9E2EA]">
-            <span className="text-[#606460]">Stock Status Indicator:</span>
+            <span className="text-[#606460]">Stock Status:</span>
             <span
               className={`px-3 py-0.5 rounded-full font-bold text-[10px] ${
                 isOutOfStock
@@ -503,15 +633,15 @@ export const VendorProductForm = () => {
             >
               {isOutOfStock
                 ? "Out of Stock (Zero Quantity)"
-                : "In Stock & Available for Checkout"}
+                : "In Stock & Ready for Site Dispatch"}
             </span>
           </div>
         </div>
 
-        {/* 3. Description & Key Specifications */}
+        {/* 4. Description */}
         <div className="space-y-4 pt-2">
           <h2 className="text-sm font-bold text-[#173885] border-b border-[#D9E2EA] pb-2">
-            3. Product Description & Specifications
+            4. Product Description
           </h2>
 
           <div>
@@ -521,7 +651,7 @@ export const VendorProductForm = () => {
             <textarea
               rows={3}
               required
-              placeholder="Provide technical details, grade, standard compliance (e.g. IS 1489 Part 1), setting times, and application notes..."
+              placeholder="Provide technical overview, concrete mix performance, chemical resistance, or site offloading terms..."
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
@@ -532,7 +662,7 @@ export const VendorProductForm = () => {
 
           <div>
             <label className="text-xs font-bold text-[#282926] block mb-1">
-              Key Features (One specification per line)
+              Key Features (One per line)
             </label>
             <textarea
               rows={3}
@@ -546,12 +676,17 @@ export const VendorProductForm = () => {
           </div>
         </div>
 
-        {/* 4. Product Images */}
+        {/* 5. Product Image Management (Upload, Preview, Ordering, Remove) */}
         <div className="space-y-4 pt-2">
           <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-2">
-            <h2 className="text-sm font-bold text-[#173885]">
-              4. Product Photographs
-            </h2>
+            <div>
+              <h2 className="text-sm font-bold text-[#173885]">
+                5. Product Photographs (Supabase Storage)
+              </h2>
+              <p className="text-[11px] text-[#606460]">
+                First image serves as the primary catalogue cover.
+              </p>
+            </div>
             <span className="text-[11px] text-[#6F8A92]">
               {formData.images.length} / 5 uploaded
             </span>
@@ -567,38 +702,71 @@ export const VendorProductForm = () => {
             {formData.images.map((imgUrl, idx) => (
               <div
                 key={idx}
-                className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#D9E2EA] bg-[#F4F6FA]"
+                className="relative w-28 h-28 rounded-2xl overflow-hidden border border-[#D9E2EA] bg-[#F4F6FA] group"
               >
                 <img
                   src={imgUrl}
                   alt=""
                   className="w-full h-full object-cover"
                 />
+
+                {/* Remove button */}
                 <button
                   type="button"
                   onClick={() => handleRemoveImage(idx)}
-                  className="absolute top-1 right-1 p-1 rounded-lg bg-[#173885]/80 text-[#FEFEFE] hover:bg-[#B43D20] transition"
-                  aria-label="Remove image"
+                  className="absolute top-1 right-1 p-1 rounded-lg bg-[#173885]/80 text-[#FEFEFE] hover:bg-[#B43D20] transition z-10"
+                  title="Remove image"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
+
+                {/* Re-ordering Controls */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#173885]/90 to-transparent p-1.5 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => handleMoveImage(idx, idx - 1)}
+                    className="p-1 rounded bg-[#FEFEFE]/20 text-[#FEFEFE] disabled:opacity-30 hover:bg-[#FEFEFE]/40"
+                    title="Move left (Make cover)"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </button>
+
+                  <span className="text-[9px] text-[#FEFEFE] font-bold">
+                    {idx === 0 ? "Cover" : `#${idx + 1}`}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={idx === formData.images.length - 1}
+                    onClick={() => handleMoveImage(idx, idx + 1)}
+                    className="p-1 rounded bg-[#FEFEFE]/20 text-[#FEFEFE] disabled:opacity-30 hover:bg-[#FEFEFE]/40"
+                    title="Move right"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+
                 {idx === 0 && (
-                  <span className="absolute bottom-1 left-1 right-1 text-center bg-[#173885]/90 text-[#FEFEFE] text-[8px] font-bold py-0.5 rounded">
-                    Primary Cover
+                  <span className="absolute bottom-1 left-1 bg-[#173885] text-[#FEFEFE] text-[8px] font-bold px-1.5 py-0.5 rounded group-hover:opacity-0 transition-opacity">
+                    Cover
                   </span>
                 )}
               </div>
             ))}
 
             {formData.images.length < 5 && (
-              <label className="w-24 h-24 rounded-2xl border-2 border-dashed border-[#D9E2EA] hover:border-[#3C7DDA] flex flex-col items-center justify-center text-[#6F8A92] hover:text-[#3C7DDA] cursor-pointer transition bg-[#F4F6FA]">
+              <label className="w-28 h-28 rounded-2xl border-2 border-dashed border-[#D9E2EA] hover:border-[#3C7DDA] flex flex-col items-center justify-center text-[#6F8A92] hover:text-[#3C7DDA] cursor-pointer transition bg-[#F4F6FA]">
                 <Upload className="w-5 h-5 mb-1" />
-                <span className="text-[10px] font-bold">Add Photo</span>
+                <span className="text-[10px] font-bold">
+                  {isUploadingImage ? "Uploading..." : "Upload Image"}
+                </span>
                 <input
                   type="file"
                   multiple
                   accept="image/png,image/jpeg,image/webp"
-                  onChange={handleImageFileAdd}
+                  disabled={isUploadingImage}
+                  onChange={handleImageUpload}
                   className="hidden"
                 />
               </label>
@@ -606,7 +774,7 @@ export const VendorProductForm = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action CTAs */}
         <div className="pt-6 border-t border-[#D9E2EA] flex flex-col sm:flex-row items-center justify-between gap-3">
           <Link
             to="/vendor/products"
@@ -618,7 +786,7 @@ export const VendorProductForm = () => {
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <button
               type="button"
-              disabled={Boolean(savingAction)}
+              disabled={Boolean(savingAction) || isUploadingImage}
               onClick={() => handleSave(false)}
               className="w-full sm:w-auto btn-gm-secondary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
@@ -630,7 +798,7 @@ export const VendorProductForm = () => {
 
             <button
               type="button"
-              disabled={Boolean(savingAction)}
+              disabled={Boolean(savingAction) || isUploadingImage}
               onClick={() => handleSave(true)}
               className="w-full sm:w-auto btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
             >
@@ -644,6 +812,21 @@ export const VendorProductForm = () => {
           </div>
         </div>
       </div>
+
+      {/* Suggest Dynamic Attribute Modal */}
+      <SuggestAttributeModal
+        isOpen={isSuggestModalOpen}
+        onClose={() => setIsSuggestModalOpen(false)}
+        categorySlug={formData.categorySlug}
+        categoryName={formData.category}
+        vendorId={vendorUser?.id}
+        vendorBusinessName={vendorUser?.businessName}
+        onSuggestionSubmitted={() => {
+          productAttributeService
+            .getCategoryAttributes(formData.categorySlug)
+            .then(setCategoryAttributes);
+        }}
+      />
     </div>
   );
 };

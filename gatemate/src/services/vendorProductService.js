@@ -1,8 +1,11 @@
 /**
- * GateMate Vendor Products & Approval Workflow Service
- * Supports lifecycle stages:
+ * GateMate Vendor Products & Approval Workflow Architecture
+ *
+ * Strict moderation workflow:
  * DRAFT -> SUBMITTED -> UNDER_REVIEW -> (CHANGES_REQUESTED / REJECTED / APPROVED -> PUBLISHED)
  */
+
+import { supabase } from "../lib/supabaseClient";
 
 export const PRODUCT_APPROVAL_STATUS = {
   DRAFT: "DRAFT",
@@ -25,15 +28,33 @@ const INITIAL_VENDOR_PRODUCTS = [
     brand: "UltraTech",
     category: "Cement",
     categorySlug: "cement",
-    unit: "Bag",
+    unit: "bag",
     sku: "ULT-PPC-50KG",
     price: 385,
     originalPrice: 420,
     stock: 500,
     moq: 10,
     status: PRODUCT_APPROVAL_STATUS.PUBLISHED,
-    reviewerNotes: "Approved batch test verification.",
+    reviewerNotes:
+      "Approved batch test verification (IS 1489 Part 1 compliant).",
+    reviewedAt: "2026-08-01T12:00:00Z",
     img: "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=800&q=80",
+    ],
+    dynamicAttributes: [
+      { key: "Grade", value: "PPC (Portland Pozzolana Cement)" },
+      { key: "Bag Weight", value: "50 kg" },
+      { key: "Standard Compliance", value: "IS 1489 (Part 1)" },
+    ],
+    features: [
+      "IS 1489 Part 1 Certified",
+      "Micro-fine particle grade",
+      "50 kg tamper-proof packing",
+    ],
+    description:
+      "Engineered Portland Pozzolana Cement providing high compressive strength, anti-crack density, and protection against chemical leaching.",
     createdAt: "2026-08-01T10:00:00Z",
     updatedAt: "2026-08-01T12:00:00Z",
   },
@@ -45,7 +66,7 @@ const INITIAL_VENDOR_PRODUCTS = [
     brand: "Tata Tiscon",
     category: "Steel & TMT",
     categorySlug: "steel-tmt",
-    unit: "Piece",
+    unit: "piece",
     sku: "TAT-TMT-12MM-550D",
     price: 840,
     originalPrice: 960,
@@ -53,7 +74,23 @@ const INITIAL_VENDOR_PRODUCTS = [
     moq: 5,
     status: PRODUCT_APPROVAL_STATUS.PUBLISHED,
     reviewerNotes: "Approved primary steel distributor compliance.",
+    reviewedAt: "2026-08-04T15:30:00Z",
     img: "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?auto=format&fit=crop&w=800&q=80",
+    ],
+    dynamicAttributes: [
+      { key: "Steel Grade", value: "Fe 550D (High Ductility)" },
+      { key: "Bar Diameter", value: "12 mm" },
+      { key: "Standard Length", value: "12 Metres (40 Feet)" },
+    ],
+    features: [
+      "Pure virgin steel core",
+      "Fe 550D high elongation",
+      "Uniform prominent rib pattern",
+    ],
+    description:
+      "Primary steel virgin billet TMT bar with superior bendability, higher yield strength, and certified resistance against seismic loads.",
     createdAt: "2026-08-04T11:00:00Z",
     updatedAt: "2026-08-04T15:30:00Z",
   },
@@ -65,15 +102,22 @@ const INITIAL_VENDOR_PRODUCTS = [
     brand: "Siporex",
     category: "Bricks & Blocks",
     categorySlug: "bricks-blocks",
-    unit: "Piece",
+    unit: "piece",
     sku: "SIP-AAC-150MM",
     price: 72,
     originalPrice: 88,
     stock: 1200,
     moq: 50,
     status: PRODUCT_APPROVAL_STATUS.UNDER_REVIEW,
-    reviewerNotes: "Inspection in progress by technical reviewer.",
+    reviewerNotes:
+      "Under review by Pune & PCMC construction verification desk.",
     img: "https://images.unsplash.com/photo-1584463623578-301147571343?auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1584463623578-301147571343?auto=format&fit=crop&w=800&q=80",
+    ],
+    dynamicAttributes: [{ key: "Block Type", value: "AAC Lightweight Block" }],
+    description:
+      "Precision dimension lightweight masonry AAC blocks reducing dead load by 50%.",
     createdAt: "2026-09-08T09:00:00Z",
     updatedAt: "2026-09-08T09:30:00Z",
   },
@@ -85,7 +129,7 @@ const INITIAL_VENDOR_PRODUCTS = [
     brand: "Sahyadri Aggregates",
     category: "Sand & Aggregates",
     categorySlug: "sand-aggregates",
-    unit: "Brass (100 Cu Ft)",
+    unit: "ton",
     sku: "SAH-MSAND-1BRS",
     price: 3600,
     originalPrice: 4200,
@@ -93,30 +137,18 @@ const INITIAL_VENDOR_PRODUCTS = [
     moq: 1,
     status: PRODUCT_APPROVAL_STATUS.CHANGES_REQUESTED,
     reviewerNotes:
-      "Please clarify sieve gradation report (IS 383 Zone II certificate).",
+      "Please clarify sieve gradation report (IS 383 Zone II certificate) and upload a clearer photo of aggregate screening yard.",
     img: "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+    images: [
+      "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80",
+    ],
+    dynamicAttributes: [
+      { key: "Material Type", value: "Manufactured Sand (M-Sand)" },
+    ],
+    description:
+      "Double-washed cubical granite manufactured sand, free of organic silt and clay contaminants.",
     createdAt: "2026-09-09T14:00:00Z",
     updatedAt: "2026-09-09T16:00:00Z",
-  },
-  {
-    id: "vp-005",
-    vendorId: "vnd-pune-001",
-    slug: "corrugated-galvanised-steel-roofing-sheet",
-    name: "Heavy Galvanized Corrugated Steel Roofing Profile Sheet (10x3.5 ft)",
-    brand: "JSW Colouron",
-    category: "Roofing",
-    categorySlug: "roofing",
-    unit: "Sheet",
-    sku: "JSW-ROOF-10FT",
-    price: 980,
-    originalPrice: 1200,
-    stock: 0,
-    moq: 10,
-    status: PRODUCT_APPROVAL_STATUS.DRAFT,
-    reviewerNotes: "",
-    img: "https://images.unsplash.com/photo-1632759145351-1d592919f522?auto=format&fit=crop&w=800&q=80",
-    createdAt: "2026-09-10T11:00:00Z",
-    updatedAt: "2026-09-10T11:00:00Z",
   },
 ];
 
@@ -135,6 +167,12 @@ export const vendorProductService = {
       `${VENDOR_PRODUCTS_KEY}${vendorId}`,
       JSON.stringify(INITIAL_VENDOR_PRODUCTS),
     );
+    return INITIAL_VENDOR_PRODUCTS;
+  },
+
+  async getAllProductsForAdminReview() {
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    // Aggregate all vendor products for admin inspection
     return INITIAL_VENDOR_PRODUCTS;
   },
 
@@ -170,6 +208,7 @@ export const vendorProductService = {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, ""),
         status: PRODUCT_APPROVAL_STATUS.DRAFT,
+        reviewerNotes: "",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -186,6 +225,8 @@ export const vendorProductService = {
     await new Promise((resolve) => setTimeout(resolve, 150));
     const products = await this.getVendorProducts(vendorId);
     let updated;
+
+    // Resubmissions / New submissions move to SUBMITTED
     if (productData.id) {
       updated = products.map((p) =>
         p.id === productData.id
@@ -194,6 +235,7 @@ export const vendorProductService = {
               ...productData,
               status: PRODUCT_APPROVAL_STATUS.SUBMITTED,
               reviewerNotes: "",
+              submittedAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }
           : p,
@@ -209,6 +251,7 @@ export const vendorProductService = {
           .replace(/(^-|-$)/g, ""),
         status: PRODUCT_APPROVAL_STATUS.SUBMITTED,
         reviewerNotes: "",
+        submittedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -219,5 +262,36 @@ export const vendorProductService = {
       JSON.stringify(updated),
     );
     return updated;
+  },
+
+  /**
+   * Admin Moderation: Transitions product to APPROVED (-> PUBLISHED), CHANGES_REQUESTED, or REJECTED.
+   */
+  async updateAdminProductModeration(
+    productId,
+    { status, reviewerNotes = "" },
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    const vendorId = "vnd-pune-001";
+    const products = await this.getVendorProducts(vendorId);
+
+    const updated = products.map((p) => {
+      if (p.id === productId) {
+        return {
+          ...p,
+          status,
+          reviewerNotes,
+          reviewedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return p;
+    });
+
+    localStorage.setItem(
+      `${VENDOR_PRODUCTS_KEY}${vendorId}`,
+      JSON.stringify(updated),
+    );
+    return updated.find((p) => p.id === productId);
   },
 };

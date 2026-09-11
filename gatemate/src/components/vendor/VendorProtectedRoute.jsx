@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 import {
   vendorOnboardingService,
   VENDOR_APPLICATION_STATUS,
@@ -9,27 +9,27 @@ import {
   Lock,
   Clock,
   AlertCircle,
-  ShieldCheck,
   ArrowRight,
-  RotateCcw,
   FileText,
+  UserPlus,
+  LogIn,
 } from "lucide-react";
 
 export const VendorProtectedRoute = ({ children }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { vendorUser, loading: authLoading } = useVendorAuth();
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && user) {
-      vendorOnboardingService.getApplication(user.id).then((app) => {
+    if (!authLoading && vendorUser) {
+      vendorOnboardingService.getApplication(vendorUser.id).then((app) => {
         setApplication(app);
         setLoading(false);
       });
-    } else if (!authLoading && !user) {
+    } else if (!authLoading && !vendorUser) {
       setLoading(false);
     }
-  }, [user, authLoading]);
+  }, [vendorUser, authLoading]);
 
   if (authLoading || loading) {
     return (
@@ -39,27 +39,40 @@ export const VendorProtectedRoute = ({ children }) => {
     );
   }
 
-  // 1. Unauthenticated Guard
-  if (!user) {
+  // 1. Unauthenticated Vendor Guard -> Prompts Vendor Sign In / Onboarding
+  if (!vendorUser) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
+      <div className="max-w-2xl mx-auto my-16 px-4 text-center space-y-5">
         <div className="w-14 h-14 rounded-2xl bg-[#E4EEF3] text-[#173885] flex items-center justify-center mx-auto border border-[#D9E2EA]">
           <Lock className="w-7 h-7" />
         </div>
-        <h2 className="text-2xl font-black text-[#173885]">
-          Sign In to Vendor Terminal
-        </h2>
-        <p className="text-xs text-[#606460] max-w-md mx-auto leading-relaxed">
-          Access to product cataloging, inventory stock management, and site
-          order dispatches is restricted to verified vendor partners.
-        </p>
-        <Link
-          to="/sell"
-          className="btn-gm-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold shadow-sm"
-        >
-          <span>Sell on GateMate</span>
-          <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
-        </Link>
+        <div>
+          <h2 className="text-2xl font-black text-[#173885]">
+            Vendor Terminal Authentication Required
+          </h2>
+          <p className="text-xs text-[#606460] max-w-md mx-auto mt-1 leading-relaxed">
+            Please sign in to your vendor account or register your depot to
+            access the stockist terminal.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <Link
+            to="/vendor/login"
+            className="w-full sm:w-auto btn-gm-primary px-6 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm"
+          >
+            <LogIn className="w-4 h-4 text-[#FEFEFE]" />
+            <span>Sign In to Vendor Terminal</span>
+          </Link>
+
+          <Link
+            to="/vendor/onboarding"
+            className="w-full sm:w-auto btn-gm-secondary px-6 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+          >
+            <UserPlus className="w-4 h-4 text-[#173885]" />
+            <span>Register as Vendor</span>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -67,7 +80,7 @@ export const VendorProtectedRoute = ({ children }) => {
   // 2. Draft / Unsubmitted Application Guard
   if (!application || application.status === VENDOR_APPLICATION_STATUS.DRAFT) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
+      <div className="max-w-3xl mx-auto my-16 px-4 text-center space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-[#E4EEF3] text-[#173885] flex items-center justify-center mx-auto border border-[#D9E2EA]">
           <FileText className="w-7 h-7" />
         </div>
@@ -95,7 +108,7 @@ export const VendorProtectedRoute = ({ children }) => {
     application.status === VENDOR_APPLICATION_STATUS.UNDER_REVIEW
   ) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
+      <div className="max-w-3xl mx-auto my-16 px-4 text-center space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-[#E3EBFA] text-[#173885] flex items-center justify-center mx-auto border border-[#2E4D94]/30">
           <Clock className="w-7 h-7 text-[#3C7DDA]" />
         </div>
@@ -108,7 +121,7 @@ export const VendorProtectedRoute = ({ children }) => {
           upon approval.
         </p>
         <Link
-          to="/vendor/onboarding"
+          to="/vendor/verification"
           className="btn-gm-secondary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold"
         >
           <span>Inspect Application Status</span>
@@ -120,7 +133,7 @@ export const VendorProtectedRoute = ({ children }) => {
   // 4. Changes Requested Guard
   if (application.status === VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
+      <div className="max-w-3xl mx-auto my-16 px-4 text-center space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-[#FFF0D5] text-[#A66A08] flex items-center justify-center mx-auto border border-[#A66A08]/30">
           <AlertCircle className="w-7 h-7" />
         </div>
@@ -132,40 +145,16 @@ export const VendorProtectedRoute = ({ children }) => {
             "Please update your uploaded documents or business details to proceed with vendor approval."}
         </p>
         <Link
-          to="/vendor/onboarding"
+          to="/vendor/verification"
           className="btn-gm-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold"
         >
-          <span>Update Application</span>
+          <span>Review Feedback & Update</span>
           <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
         </Link>
       </div>
     );
   }
 
-  // 5. Rejected Guard
-  if (application.status === VENDOR_APPLICATION_STATUS.REJECTED) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
-        <div className="w-14 h-14 rounded-2xl bg-[#FBE3DE] text-[#B43D20] flex items-center justify-center mx-auto border border-[#B43D20]/30">
-          <AlertCircle className="w-7 h-7" />
-        </div>
-        <h2 className="text-2xl font-black text-[#173885]">
-          Application Not Approved
-        </h2>
-        <p className="text-xs text-[#606460] max-w-md mx-auto leading-relaxed">
-          {application.reviewerNotes ||
-            "Your registration does not meet our certified primary construction distributor requirements."}
-        </p>
-        <Link
-          to="/vendor/onboarding"
-          className="btn-gm-secondary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold"
-        >
-          <span>Review Submitted Information</span>
-        </Link>
-      </div>
-    );
-  }
-
-  // 6. Approved Vendor Access
+  // 5. Approved Vendor Allowed
   return children;
 };

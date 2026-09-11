@@ -10,7 +10,7 @@ import {
   ShieldAlert,
   Clock,
 } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 import { vendorService } from "../../services/vendorService";
 import {
   vendorOnboardingService,
@@ -18,18 +18,18 @@ import {
 } from "../../services/vendorOnboardingService";
 
 export const VendorHeader = ({ onOpenMobileNav }) => {
-  const { user, logout } = useAuth();
+  const { vendorUser, logoutVendor } = useVendorAuth();
   const [profile, setProfile] = useState(null);
   const [appStatus, setAppStatus] = useState(null);
 
   useEffect(() => {
-    if (user?.id) {
-      vendorService.getProfile(user.id).then(setProfile);
-      vendorOnboardingService.getApplication(user.id).then((app) => {
+    if (vendorUser?.id) {
+      vendorService.getProfile(vendorUser.id).then(setProfile);
+      vendorOnboardingService.getApplication(vendorUser.id).then((app) => {
         setAppStatus(app?.status);
       });
     }
-  }, [user]);
+  }, [vendorUser]);
 
   const getStatusBadge = () => {
     if (appStatus === VENDOR_APPLICATION_STATUS.APPROVED) {
@@ -82,7 +82,9 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-bold text-[#173885]">
-                {profile?.businessName || "GateMate Vendor Portal"}
+                {profile?.businessName ||
+                  vendorUser?.businessName ||
+                  "GateMate Vendor Portal"}
               </h1>
               {getStatusBadge()}
             </div>
@@ -122,11 +124,12 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
             </span>
           </Link>
 
-          {user && (
+          {vendorUser && (
             <button
-              onClick={logout}
+              onClick={logoutVendor}
               className="p-2 rounded-xl bg-[#FEFEFE] border border-[#D9E2EA] text-[#606460] hover:text-[#B43D20] hover:border-[#FBE3DE] transition text-xs"
-              title="Sign Out"
+              title="Sign Out of Vendor Terminal"
+              aria-label="Sign Out of Vendor Terminal"
             >
               <LogOut className="w-4 h-4" />
             </button>

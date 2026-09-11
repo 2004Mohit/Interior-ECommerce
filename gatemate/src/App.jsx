@@ -54,8 +54,10 @@ import { VendorReviews } from "./components/vendor/VendorReviews";
 import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
 
-// Admin Review Console
+// Admin Consoles
 import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
+import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
+import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPanel";
 
 function CustomerAppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -130,7 +132,7 @@ export default function App() {
           <WishlistProvider>
             <CartProvider>
               <Routes>
-                {/* Public Vendor Entry Pages */}
+                {/* 1. Public Vendor Portal Routes (No Customer Dependency) */}
                 <Route path="/sell" element={<VendorLanding />} />
                 <Route path="/vendor" element={<VendorLanding />} />
                 <Route path="/vendor/login" element={<VendorLogin />} />
@@ -148,7 +150,7 @@ export default function App() {
                   element={<VendorVerificationStatus />}
                 />
 
-                {/* Protected Vendor Operations Terminal */}
+                {/* 2. Protected Vendor Operations Terminal */}
                 <Route
                   path="/vendor"
                   element={
@@ -177,14 +179,22 @@ export default function App() {
                   <Route path="profile" element={<VendorProfile />} />
                 </Route>
 
-                {/* Admin Console */}
+                {/* 3. Admin Review Workspaces */}
                 <Route path="/admin" element={<AdminVendorReviewPanel />} />
                 <Route
                   path="/admin/vendor-reviews"
                   element={<AdminVendorReviewPanel />}
                 />
+                <Route
+                  path="/admin/attributes"
+                  element={<AdminAttributeReviewPanel />}
+                />
+                <Route
+                  path="/admin/product-reviews"
+                  element={<AdminProductReviewPanel />}
+                />
 
-                {/* Fallback to Customer Experience */}
+                {/* 4. Customer Storefront App */}
                 <Route path="/*" element={<CustomerAppContent />} />
               </Routes>
             </CartProvider>
