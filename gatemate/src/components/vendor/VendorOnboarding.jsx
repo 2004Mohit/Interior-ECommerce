@@ -19,7 +19,7 @@ import {
   RotateCcw,
   Lock,
 } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 import {
   vendorOnboardingService,
   VENDOR_APPLICATION_STATUS,
@@ -28,7 +28,7 @@ import { CATALOGUE_CATEGORIES } from "../../data/categories";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorOnboarding = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { vendorUser, loading: authLoading } = useVendorAuth();
   const navigate = useNavigate();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -39,7 +39,6 @@ export const VendorOnboarding = () => {
   const [formError, setFormError] = useState(null);
   const [successNotice, setSuccessNotice] = useState(null);
 
-  // Form State
   const [formData, setFormData] = useState({
     businessDetails: {
       legalBusinessName: "",
@@ -92,14 +91,24 @@ export const VendorOnboarding = () => {
   });
 
   useEffect(() => {
-    if (!authLoading && user) {
-      vendorOnboardingService.getApplication(user.id).then((app) => {
+    if (!authLoading && vendorUser) {
+      vendorOnboardingService.getApplication(vendorUser.id).then((app) => {
         setApplication(app);
         setFormData({
-          businessDetails: app.businessDetails,
+          businessDetails: {
+            ...app.businessDetails,
+            legalBusinessName:
+              app.businessDetails.legalBusinessName ||
+              vendorUser.businessName ||
+              "",
+          },
           ownerDetails: {
             ...app.ownerDetails,
-            email: app.ownerDetails.email || user.email || "",
+            primaryContactName:
+              app.ownerDetails.primaryContactName ||
+              vendorUser.contactPerson ||
+              "",
+            email: app.ownerDetails.email || vendorUser.email || "",
           },
           businessAddress: app.businessAddress,
           productCategories: app.productCategories,
@@ -109,10 +118,10 @@ export const VendorOnboarding = () => {
         setCurrentStep(app.currentStep || 1);
         setLoading(false);
       });
-    } else if (!authLoading && !user) {
+    } else if (!authLoading && !vendorUser) {
       setLoading(false);
     }
-  }, [user, authLoading]);
+  }, [vendorUser, authLoading]);
 
   if (loading || authLoading) {
     return (
@@ -123,27 +132,34 @@ export const VendorOnboarding = () => {
     );
   }
 
-  // Intercept unauthenticated users
-  if (!user) {
+  // Intercept unauthenticated vendors
+  if (!vendorUser) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4">
         <div className="w-14 h-14 rounded-2xl bg-[#E4EEF3] text-[#173885] flex items-center justify-center mx-auto border border-[#D9E2EA]">
           <Lock className="w-7 h-7" />
         </div>
         <h2 className="text-2xl font-black text-[#173885]">
-          Sign In to Register as Vendor
+          Vendor Account Required
         </h2>
         <p className="text-xs text-[#606460] max-w-md mx-auto leading-relaxed">
-          Create or log into your GateMate account to complete depot
-          registration and submit verification documents.
+          Please create a vendor account to submit your depot onboarding
+          credentials and verification documents.
         </p>
-        <Link
-          to="/sell"
-          className="btn-gm-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold"
-        >
-          <span>Go to Sell on GateMate</span>
-          <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
-        </Link>
+        <div className="flex justify-center gap-3 pt-2">
+          <Link
+            to="/vendor/register"
+            className="btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold"
+          >
+            Register as Vendor
+          </Link>
+          <Link
+            to="/vendor/login"
+            className="btn-gm-secondary px-6 py-2.5 rounded-xl text-xs font-bold"
+          >
+            Sign In
+          </Link>
+        </div>
       </div>
     );
   }
@@ -157,7 +173,6 @@ export const VendorOnboarding = () => {
     { num: 6, label: "Bank & Review", icon: CreditCard },
   ];
 
-  // Validation per step
   const validateStep = (stepNum) => {
     setFormError(null);
     if (stepNum === 1) {
@@ -182,7 +197,7 @@ export const VendorOnboarding = () => {
         return "Please enter a valid 6-digit PIN code.";
     } else if (stepNum === 4) {
       if (formData.productCategories.length === 0)
-        return "Please select at least 1 construction product category that your depot supplies.";
+        return "Please select at least 1 construction product category.";
     } else if (stepNum === 5) {
       const { gstCertificateName, panCardName } =
         formData.verificationDocuments;
@@ -214,7 +229,7 @@ export const VendorOnboarding = () => {
     try {
       const next = Math.min(6, currentStep + 1);
       const updated = await vendorOnboardingService.saveDraft(
-        user.id,
+        vendorUser.id,
         formData,
         next,
       );
@@ -255,7 +270,7 @@ export const VendorOnboarding = () => {
 
     try {
       const result = await vendorOnboardingService.uploadVerificationDocument(
-        user.id,
+        vendorUser.id,
         docType,
         file,
       );
@@ -287,13 +302,16 @@ export const VendorOnboarding = () => {
 
     try {
       const finalized = await vendorOnboardingService.submitApplication(
-        user.id,
+        vendorUser.id,
         formData,
       );
       setApplication(finalized);
       setSuccessNotice(
         "Your vendor application has been submitted for verification.",
       );
+      setTimeout(() => {
+        navigate("/vendor/dashboard");
+      }, 1200);
     } catch (err) {
       setFormError(err.message || "Submission failed. Please try again.");
     } finally {
@@ -301,101 +319,8 @@ export const VendorOnboarding = () => {
     }
   };
 
-  // Status Banner Renderer
-  const renderStatusBanner = () => {
-    if (!application || application.status === VENDOR_APPLICATION_STATUS.DRAFT)
-      return null;
-
-    if (application.status === VENDOR_APPLICATION_STATUS.APPROVED) {
-      return (
-        <div className="p-5 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 space-y-2">
-          <div className="flex items-center gap-2 text-[#3F7D20] font-black text-sm">
-            <CheckCircle2 className="w-5 h-5" />
-            <span>Vendor Application Approved</span>
-          </div>
-          <p className="text-xs text-[#282926] leading-relaxed">
-            Congratulations! Your depot credentials and verification documents
-            have been approved. Your seller capabilities are fully active.
-          </p>
-          <div className="pt-1">
-            <Link
-              to="/vendor/dashboard"
-              className="btn-gm-primary inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold"
-            >
-              <span>Go to Vendor Terminal</span>
-              <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
-            </Link>
-          </div>
-        </div>
-      );
-    }
-
-    if (
-      application.status === VENDOR_APPLICATION_STATUS.SUBMITTED ||
-      application.status === VENDOR_APPLICATION_STATUS.UNDER_REVIEW
-    ) {
-      return (
-        <div className="p-5 rounded-2xl bg-[#E3EBFA] border border-[#2E4D94]/30 space-y-2">
-          <div className="flex items-center gap-2 text-[#173885] font-black text-sm">
-            <Clock className="w-5 h-5 text-[#3C7DDA]" />
-            <span>Application Under Review</span>
-          </div>
-          <p className="text-xs text-[#606460] leading-relaxed">
-            Your verification documents and depot details have been submitted.
-            Our regional Pune & PCMC contractor desk is reviewing your GST and
-            primary supplier certifications.
-          </p>
-          <div className="text-[11px] text-[#6F8A92] font-mono">
-            Submitted on:{" "}
-            {new Date(application.submittedAt || Date.now()).toLocaleDateString(
-              "en-IN",
-              { day: "numeric", month: "long", year: "numeric" },
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (application.status === VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED) {
-      return (
-        <div className="p-5 rounded-2xl bg-[#FFF0D5] border border-[#A66A08]/30 space-y-2">
-          <div className="flex items-center gap-2 text-[#A66A08] font-black text-sm">
-            <AlertCircle className="w-5 h-5" />
-            <span>Changes Requested by Reviewer</span>
-          </div>
-          <p className="text-xs text-[#282926] leading-relaxed">
-            {application.reviewerNotes ||
-              "Please review your uploaded documents and correct any blurred or non-matching GST information."}
-          </p>
-        </div>
-      );
-    }
-
-    if (application.status === VENDOR_APPLICATION_STATUS.REJECTED) {
-      return (
-        <div className="p-5 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 space-y-2">
-          <div className="flex items-center gap-2 text-[#B43D20] font-black text-sm">
-            <ShieldAlert className="w-5 h-5" />
-            <span>Application Declined</span>
-          </div>
-          <p className="text-xs text-[#282926] leading-relaxed">
-            {application.reviewerNotes ||
-              "The submitted credentials could not be verified against primary construction distributor requirements."}
-          </p>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  const isSubmittedOrApproved =
-    application?.status === VENDOR_APPLICATION_STATUS.SUBMITTED ||
-    application?.status === VENDOR_APPLICATION_STATUS.UNDER_REVIEW ||
-    application?.status === VENDOR_APPLICATION_STATUS.APPROVED;
-
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 pb-28">
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 pb-28 font-sans">
       <SeoHead
         title="Vendor Onboarding & Verification | GateMate"
         description="Register your construction depot or stockist dealership. Multi-step credentials, category mappings, and bank settlement setup."
@@ -425,19 +350,16 @@ export const VendorOnboarding = () => {
         </Link>
       </div>
 
-      {/* Status Notice */}
-      {renderStatusBanner()}
-
       {/* Stepper Progress Bar */}
       <div className="gm-panel p-4 sm:p-5 rounded-3xl border border-[#D9E2EA] overflow-x-auto">
         <div className="flex items-center justify-between min-w-[540px] gap-2">
           {steps.map((s) => {
-            const isCompleted = currentStep > s.num || isSubmittedOrApproved;
-            const isCurrent = currentStep === s.num && !isSubmittedOrApproved;
+            const isCompleted = currentStep > s.num;
+            const isCurrent = currentStep === s.num;
             return (
               <div
                 key={s.num}
-                onClick={() => !isSubmittedOrApproved && setCurrentStep(s.num)}
+                onClick={() => setCurrentStep(s.num)}
                 className={`flex items-center gap-2 cursor-pointer transition ${
                   isCurrent ? "opacity-100" : "opacity-70 hover:opacity-100"
                 }`}
@@ -507,7 +429,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   placeholder="e.g. Pune Infrastructure Supplies Pvt Ltd"
                   value={formData.businessDetails.legalBusinessName}
@@ -530,7 +451,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   placeholder="e.g. Pune Mega Depot"
                   value={formData.businessDetails.tradeName}
                   onChange={(e) =>
@@ -553,7 +473,6 @@ export const VendorOnboarding = () => {
                   Business Structure *
                 </label>
                 <select
-                  disabled={isSubmittedOrApproved}
                   value={formData.businessDetails.businessType}
                   onChange={(e) =>
                     setFormData({
@@ -579,7 +498,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   maxLength={15}
                   placeholder="27AAAAA0000A1Z5"
@@ -603,7 +521,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   maxLength={10}
                   placeholder="AAAAA0000A"
@@ -644,7 +561,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   placeholder="e.g. Suresh Patil"
                   value={formData.ownerDetails.primaryContactName}
@@ -667,7 +583,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   value={formData.ownerDetails.designation}
                   onChange={(e) =>
@@ -691,7 +606,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="email"
-                  disabled={isSubmittedOrApproved}
                   required
                   value={formData.ownerDetails.email}
                   onChange={(e) =>
@@ -709,11 +623,10 @@ export const VendorOnboarding = () => {
 
               <div>
                 <label className="text-xs font-semibold text-[#282926] block mb-1">
-                  Primary Mobile Number (OTP & Dispatches) *
+                  Primary Mobile Number *
                 </label>
                 <input
                   type="tel"
-                  disabled={isSubmittedOrApproved}
                   required
                   maxLength={10}
                   placeholder="10-digit number"
@@ -753,9 +666,8 @@ export const VendorOnboarding = () => {
               </label>
               <input
                 type="text"
-                disabled={isSubmittedOrApproved}
                 required
-                placeholder="e.g. Plot #48, Hadapsar Industrial Estate, Near Railway Overbridge"
+                placeholder="e.g. Plot #48, Hadapsar Industrial Estate"
                 value={formData.businessAddress.depotAddressLine1}
                 onChange={(e) =>
                   setFormData({
@@ -777,7 +689,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   placeholder="e.g. Hadapsar / Bhosari"
                   value={formData.businessAddress.locality}
@@ -812,7 +723,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   maxLength={6}
                   value={formData.businessAddress.pincode}
@@ -834,7 +744,6 @@ export const VendorOnboarding = () => {
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  disabled={isSubmittedOrApproved}
                   checked={formData.businessAddress.hasHeavyTrailerAccess}
                   onChange={(e) =>
                     setFormData({
@@ -848,15 +757,14 @@ export const VendorOnboarding = () => {
                   className="w-4 h-4 rounded accent-[#3C7DDA]"
                 />
                 <span className="text-xs text-[#282926]">
-                  Depot has wide road access for 40-ton trailer trucks and
-                  multi-axle tippers
+                  Depot has wide road access for 40-ton trailer trucks
                 </span>
               </label>
             </div>
           </div>
         )}
 
-        {/* STEP 4: CONSTRUCTION PRODUCT CATEGORIES */}
+        {/* STEP 4: CATEGORIES */}
         {currentStep === 4 && (
           <div className="space-y-4">
             <div className="border-b border-[#D9E2EA] pb-3">
@@ -876,9 +784,7 @@ export const VendorOnboarding = () => {
                 return (
                   <div
                     key={cat.id}
-                    onClick={() =>
-                      !isSubmittedOrApproved && handleCategoryToggle(cat.slug)
-                    }
+                    onClick={() => handleCategoryToggle(cat.slug)}
                     className={`p-3.5 rounded-2xl border transition flex items-center justify-between cursor-pointer ${
                       isSelected
                         ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
@@ -948,22 +854,20 @@ export const VendorOnboarding = () => {
                   </p>
                 )}
 
-                {!isSubmittedOrApproved && (
-                  <label className="btn-gm-secondary w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>
-                      {uploadingDoc === "gstCertificate"
-                        ? "Uploading..."
-                        : "Upload PDF/Image"}
-                    </span>
-                    <input
-                      type="file"
-                      accept=".pdf,image/png,image/jpeg"
-                      onChange={(e) => handleFileUpload("gstCertificate", e)}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+                <label className="btn-gm-secondary w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>
+                    {uploadingDoc === "gstCertificate"
+                      ? "Uploading..."
+                      : "Upload PDF/Image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg"
+                    onChange={(e) => handleFileUpload("gstCertificate", e)}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               {/* PAN Card */}
@@ -984,22 +888,20 @@ export const VendorOnboarding = () => {
                   </p>
                 )}
 
-                {!isSubmittedOrApproved && (
-                  <label className="btn-gm-secondary w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>
-                      {uploadingDoc === "panCard"
-                        ? "Uploading..."
-                        : "Upload PDF/Image"}
-                    </span>
-                    <input
-                      type="file"
-                      accept=".pdf,image/png,image/jpeg"
-                      onChange={(e) => handleFileUpload("panCard", e)}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+                <label className="btn-gm-secondary w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>
+                    {uploadingDoc === "panCard"
+                      ? "Uploading..."
+                      : "Upload PDF/Image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg"
+                    onChange={(e) => handleFileUpload("panCard", e)}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               {/* Cancelled Cheque */}
@@ -1020,22 +922,20 @@ export const VendorOnboarding = () => {
                   </p>
                 )}
 
-                {!isSubmittedOrApproved && (
-                  <label className="btn-gm-secondary w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>
-                      {uploadingDoc === "cancelledCheque"
-                        ? "Uploading..."
-                        : "Upload PDF/Image"}
-                    </span>
-                    <input
-                      type="file"
-                      accept=".pdf,image/png,image/jpeg"
-                      onChange={(e) => handleFileUpload("cancelledCheque", e)}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+                <label className="btn-gm-secondary w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>
+                    {uploadingDoc === "cancelledCheque"
+                      ? "Uploading..."
+                      : "Upload PDF/Image"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg"
+                    onChange={(e) => handleFileUpload("cancelledCheque", e)}
+                    className="hidden"
+                  />
+                </label>
               </div>
             </div>
           </div>
@@ -1060,7 +960,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   placeholder="e.g. Pune Infrastructure Supplies Pvt Ltd"
                   value={formData.bankDetails.bankAccountName}
@@ -1083,7 +982,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   placeholder="e.g. HDFC Bank, Hadapsar Branch"
                   value={formData.bankDetails.bankName}
@@ -1108,7 +1006,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="password"
-                  disabled={isSubmittedOrApproved}
                   required
                   value={formData.bankDetails.accountNumber}
                   onChange={(e) =>
@@ -1130,7 +1027,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   value={formData.bankDetails.confirmAccountNumber}
                   onChange={(e) =>
@@ -1152,7 +1048,6 @@ export const VendorOnboarding = () => {
                 </label>
                 <input
                   type="text"
-                  disabled={isSubmittedOrApproved}
                   required
                   maxLength={11}
                   placeholder="HDFC0001234"
@@ -1177,7 +1072,7 @@ export const VendorOnboarding = () => {
         <div className="flex items-center justify-between pt-4 border-t border-[#D9E2EA]">
           <button
             type="button"
-            disabled={currentStep === 1 || saving || isSubmittedOrApproved}
+            disabled={currentStep === 1 || saving}
             onClick={handlePreviousStep}
             className="btn-gm-secondary px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-40"
           >
@@ -1188,14 +1083,14 @@ export const VendorOnboarding = () => {
           {currentStep < 6 ? (
             <button
               type="button"
-              disabled={saving || isSubmittedOrApproved}
+              disabled={saving}
               onClick={handleNextStep}
               className="btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5"
             >
               <span>{saving ? "Saving..." : "Save & Continue"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
-          ) : !isSubmittedOrApproved ? (
+          ) : (
             <button
               type="button"
               disabled={saving}
@@ -1203,18 +1098,12 @@ export const VendorOnboarding = () => {
               className="btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md"
             >
               <span>
-                {saving ? "Submitting..." : "Submit Application for Review"}
+                {saving
+                  ? "Submitting..."
+                  : "Submit Application & Open Dashboard"}
               </span>
               <Check className="w-3.5 h-3.5" />
             </button>
-          ) : (
-            <Link
-              to="/vendor/dashboard"
-              className="btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5"
-            >
-              <span>View Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
           )}
         </div>
       </div>

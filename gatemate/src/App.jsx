@@ -34,6 +34,7 @@ import { B2BQuotations } from "./components/customer/B2BQuotations";
 import { VendorLayout } from "./components/vendor/VendorLayout";
 import { VendorProtectedRoute } from "./components/vendor/VendorProtectedRoute";
 import { VendorLanding } from "./components/vendor/VendorLanding";
+import { VendorRegister } from "./components/vendor/VendorRegister";
 import { VendorLogin } from "./components/vendor/VendorLogin";
 import { VendorGuidelines } from "./components/vendor/VendorGuidelines";
 import { VendorBenefits } from "./components/vendor/VendorBenefits";
@@ -132,9 +133,10 @@ export default function App() {
           <WishlistProvider>
             <CartProvider>
               <Routes>
-                {/* 1. Public Vendor Portal Routes (No Customer Dependency) */}
+                {/* 1. Public Vendor Portal Routes (Independent) */}
                 <Route path="/sell" element={<VendorLanding />} />
                 <Route path="/vendor" element={<VendorLanding />} />
+                <Route path="/vendor/register" element={<VendorRegister />} />
                 <Route path="/vendor/login" element={<VendorLogin />} />
                 <Route
                   path="/vendor/guidelines"
@@ -179,7 +181,7 @@ export default function App() {
                   <Route path="profile" element={<VendorProfile />} />
                 </Route>
 
-                {/* 3. Admin Review Workspaces */}
+                {/* 3. Admin Consoles */}
                 <Route path="/admin" element={<AdminVendorReviewPanel />} />
                 <Route
                   path="/admin/vendor-reviews"
@@ -194,7 +196,7 @@ export default function App() {
                   element={<AdminProductReviewPanel />}
                 />
 
-                {/* 4. Customer Storefront App */}
+                {/* 4. Customer Storefront */}
                 <Route path="/*" element={<CustomerAppContent />} />
               </Routes>
             </CartProvider>
