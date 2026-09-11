@@ -9,7 +9,8 @@
  */
 
 import { supabase } from "../lib/supabaseClient";
-import { vendorOrderService, VENDOR_ORDER_STATUS } from "./vendorOrderService";
+import { vendorOrderService } from "./vendorOrderService";
+import { VENDOR_ORDER_STATUS } from "./vendorOrderStateMachine";
 
 export const QUOTATION_STATUS = {
   SUBMITTED: "SUBMITTED",
