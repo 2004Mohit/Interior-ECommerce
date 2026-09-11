@@ -106,29 +106,37 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0a1424] border border-white/10 w-full max-w-md p-6 sm:p-8 rounded-3xl relative shadow-2xl">
+    <div className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-[#FEFEFE] border border-[#D9E2EA] w-full max-w-md p-6 sm:p-8 rounded-3xl relative shadow-2xl">
         <button
           onClick={() => {
             resetForm();
             onClose();
           }}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white"
+          className="absolute top-5 right-5 text-[#606460] hover:text-[#282926]"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-2xl font-black text-white mb-1">
-          {isSignUp ? "Join GateMate" : "Sign In to GateMate"}
+        {/* Brand Wordmark in Auth Modal */}
+        <div className="mb-2">
+          <span className="text-2xl font-black tracking-tight leading-none">
+            <span className="text-[#173885]">GATE</span>
+            <span className="text-[#3C7DDA]">MATE</span>
+          </span>
+        </div>
+
+        <h3 className="text-xl font-bold text-[#173885] mb-1">
+          {isSignUp ? "Create Customer Account" : "Sign In to Account"}
         </h3>
-        <p className="text-xs text-slate-400 mb-6">
+        <p className="text-xs text-[#606460] mb-6">
           {isSignUp
-            ? "Register to place orders and manage your deliveries."
-            : "Access your account to checkout and track shipments."}
+            ? "Create an account to order construction supplies with priority site delivery."
+            : "Access your account to checkout and track site deliveries."}
         </p>
 
         {/* Tab Selector */}
-        <div className="grid grid-cols-2 gap-1 bg-[#050b14] p-1 rounded-xl mb-5 border border-white/5">
+        <div className="grid grid-cols-2 gap-1 bg-[#F4F6FA] p-1 rounded-xl mb-5 border border-[#D9E2EA]">
           <button
             type="button"
             onClick={() => {
@@ -137,8 +145,8 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             }}
             className={`py-2 rounded-lg text-xs font-bold transition ${
               authMethod === "password"
-                ? "bg-[#172a4d] text-amber-400 border border-amber-400/30"
-                : "text-slate-400 hover:text-white"
+                ? "bg-[#173885] text-[#FEFEFE] shadow-xs"
+                : "text-[#606460] hover:text-[#282926]"
             }`}
           >
             Email & Password
@@ -151,8 +159,8 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             }}
             className={`py-2 rounded-lg text-xs font-bold transition ${
               authMethod === "otp"
-                ? "bg-[#172a4d] text-amber-400 border border-amber-400/30"
-                : "text-slate-400 hover:text-white"
+                ? "bg-[#173885] text-[#FEFEFE] shadow-xs"
+                : "text-[#606460] hover:text-[#282926]"
             }`}
           >
             Mobile & OTP
@@ -160,13 +168,13 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs mb-4">
+          <div className="p-3 rounded-xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs mb-4">
             {error}
           </div>
         )}
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs mb-4 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          <div className="p-3 rounded-xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs mb-4 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#3F7D20]" />
             <span>{successMsg}</span>
           </div>
         )}
@@ -175,32 +183,32 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
           <form onSubmit={handlePasswordSubmit} className="space-y-3.5">
             {isSignUp && (
               <div className="relative">
-                <User className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                <User className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
                 <input
                   type="text"
                   required
                   placeholder="Full Name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full premium-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
+                  className="w-full gm-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
                 />
               </div>
             )}
 
             <div className="relative">
-              <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+              <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
               <input
                 type="email"
                 required
                 placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full premium-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
+                className="w-full gm-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
               />
             </div>
 
             <div className="relative">
-              <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+              <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
               <input
                 type="password"
                 required
@@ -208,19 +216,19 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full premium-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
+                className="w-full gm-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl gold-gradient-btn text-sm mt-2 transition active:scale-95 disabled:opacity-50"
+              className="w-full py-3 rounded-xl btn-gm-primary text-sm mt-2 transition active:scale-95 disabled:opacity-50"
             >
               {loading
                 ? "Please wait..."
                 : isSignUp
-                  ? "Create GateMate Account"
+                  ? "Create Account"
                   : "Sign In"}
             </button>
           </form>
@@ -229,20 +237,20 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             {!otpSent ? (
               <form onSubmit={handleSendOtp} className="space-y-3.5">
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                  <Phone className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
                   <input
                     type="tel"
                     required
                     placeholder="+91 Mobile Number"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full premium-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
+                    className="w-full gm-input pl-10 pr-3.5 py-3 rounded-xl text-sm"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl gold-gradient-btn text-sm transition active:scale-95 disabled:opacity-50"
+                  className="w-full py-3 rounded-xl btn-gm-primary text-sm transition active:scale-95 disabled:opacity-50"
                 >
                   {loading ? "Sending Code..." : "Send Verification OTP"}
                 </button>
@@ -250,20 +258,20 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-3.5">
                 <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                  <KeyRound className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
                   <input
                     type="text"
                     required
                     placeholder="Enter 6-digit OTP"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
-                    className="w-full premium-input pl-10 pr-3.5 py-3 rounded-xl text-sm text-center tracking-widest font-mono text-lg font-bold"
+                    className="w-full gm-input pl-10 pr-3.5 py-3 rounded-xl text-sm text-center tracking-widest font-mono text-lg font-bold"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-sm transition active:scale-95 disabled:opacity-50"
+                  className="w-full py-3 rounded-xl btn-gm-primary text-sm transition active:scale-95 disabled:opacity-50"
                 >
                   {loading ? "Verifying..." : "Verify OTP & Log In"}
                 </button>
@@ -272,8 +280,8 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
         )}
 
-        {/* Toggle Sign Up / Sign In */}
-        <div className="mt-6 pt-4 border-t border-white/10 text-center text-xs text-slate-400">
+        {/* Toggle */}
+        <div className="mt-6 pt-4 border-t border-[#D9E2EA] text-center text-xs text-[#606460]">
           {isSignUp ? (
             <span>
               Already registered?{" "}
@@ -283,7 +291,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                   setIsSignUp(false);
                   resetForm();
                 }}
-                className="text-amber-400 font-bold hover:underline ml-1"
+                className="text-[#3C7DDA] font-bold hover:underline ml-1"
               >
                 Sign In
               </button>
@@ -297,7 +305,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                   setIsSignUp(true);
                   resetForm();
                 }}
-                className="text-amber-400 font-bold hover:underline ml-1"
+                className="text-[#3C7DDA] font-bold hover:underline ml-1"
               >
                 Create Account
               </button>

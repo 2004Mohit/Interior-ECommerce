@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { AccountNav } from "./AccountNav";
 import { addressService } from "../../services/addressService";
 import { useAuth } from "../../context/AuthContext";
-import { AuthModal } from "../AuthModal";
 import { AddressFormModal } from "./AddressFormModal";
+import { AuthModal } from "../AuthModal";
 import {
   MapPin,
   Plus,
@@ -11,272 +11,252 @@ import {
   Trash2,
   CheckCircle2,
   Zap,
+  Lock,
   AlertCircle,
-  ShieldCheck,
-  Phone,
-  Check,
 } from "lucide-react";
 
 export const Addresses = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [statusNotice, setStatusNotice] = useState(null);
-
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
-
-  // Auth enforcement
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const fetchAddresses = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setError(null);
     try {
-      const list = await addressService.getAddresses(user?.id);
-      setAddresses(list);
-    } catch (e) {
-      setError("Failed to retrieve addresses. Please refresh.");
+      const data = await addressService.getAddresses(user.id);
+      setAddresses(data);
+    } catch (err) {
+      console.error("Error loading addresses", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAddresses();
-  }, [user]);
-
-  const handleOpenAddModal = () => {
-    if (!user) {
-      setAuthModalOpen(true);
-      return;
+    if (!authLoading) {
+      fetchAddresses();
     }
-    setEditingAddress(null);
-    setIsModalOpen(true);
-  };
+  }, [user, authLoading]);
 
-  const handleOpenEditModal = (addr) => {
-    if (!user) {
-      setAuthModalOpen(true);
-      return;
-    }
-    setEditingAddress(addr);
-    setIsModalOpen(true);
-  };
-
-  const handleSaveAddress = async (formData) => {
-    if (!user) {
-      setIsModalOpen(false);
-      setAuthModalOpen(true);
-      return;
-    }
-
+  const handleSave = async (formData) => {
     setIsSaving(true);
     try {
-      const updatedList = await addressService.saveAddress(user.id, formData);
-      setAddresses(updatedList);
+      const updated = await addressService.saveAddress(user.id, formData);
+      setAddresses(updated);
       setIsModalOpen(false);
-      setStatusNotice(
-        formData.id ? "Address updated successfully!" : "New address added!",
-      );
-      setTimeout(() => setStatusNotice(null), 3000);
-    } catch (e) {
-      setError("Could not save address. Please try again.");
+    } catch (err) {
+      console.error("Failed to save address", err);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleSetDefault = async (addressId) => {
-    try {
-      const updated = await addressService.setDefaultAddress(
-        user?.id,
-        addressId,
-      );
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to remove this site address?")) {
+      const updated = await addressService.deleteAddress(user.id, id);
       setAddresses(updated);
-      setStatusNotice("Default delivery address updated.");
-      setTimeout(() => setStatusNotice(null), 2500);
-    } catch (e) {
-      setError("Unable to update default address.");
     }
   };
 
-  const handleDelete = async (addressId) => {
-    if (
-      !window.confirm("Are you sure you want to remove this delivery address?")
-    )
-      return;
-    setDeletingId(addressId);
-    try {
-      const updated = await addressService.deleteAddress(user?.id, addressId);
-      setAddresses(updated);
-      setStatusNotice("Address deleted.");
-      setTimeout(() => setStatusNotice(null), 2500);
-    } catch (e) {
-      setError("Unable to delete address.");
-    } finally {
-      setDeletingId(null);
-    }
+  const handleSetDefault = async (id) => {
+    const updated = await addressService.setDefaultAddress(user.id, id);
+    setAddresses(updated);
   };
+
+  if (!authLoading && !user) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
+        <h1 className="text-2xl font-black text-[#173885]">
+          Delivery Addresses
+        </h1>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-1">
+            <AccountNav />
+          </div>
+          <div className="md:col-span-3">
+            <div className="gm-panel p-12 rounded-3xl text-center space-y-4 max-w-md mx-auto">
+              <Lock className="w-10 h-10 text-[#173885] mx-auto" />
+              <h2 className="text-lg font-bold text-[#173885]">
+                Sign In to Manage Addresses
+              </h2>
+              <p className="text-xs text-[#606460]">
+                Manage construction site locations and offloading points.
+              </p>
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="btn-gm-primary px-6 py-3 rounded-xl text-xs font-bold"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={() => setAuthModalOpen(false)}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
         <div>
-          <h1 className="text-2xl font-black text-white">Delivery Addresses</h1>
-          <p className="text-xs text-slate-400">
-            Manage your delivery destinations in Pune, Pimpri-Chinchwad.
+          <h1 className="text-2xl font-black text-[#173885]">
+            Delivery Addresses
+          </h1>
+          <p className="text-xs text-[#606460]">
+            Saved construction site locations, depot drop points, and contractor
+            yards in Pune & PCMC.
           </p>
         </div>
+
         <button
-          onClick={handleOpenAddModal}
-          className="gold-gradient-btn px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 font-bold shadow-lg self-start sm:self-auto active:scale-95 transition"
+          onClick={() => {
+            setEditingAddress(null);
+            setIsModalOpen(true);
+          }}
+          className="btn-gm-primary px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Add New Address</span>
+          <span>Add New Site Address</span>
         </button>
       </div>
 
-      {/* Status Feedback Notice */}
-      {statusNotice && (
-        <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{statusNotice}</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-3 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
-        {/* Account Nav Side Column */}
+        {/* Navigation Sidebar */}
         <div className="md:col-span-1">
           <AccountNav />
         </div>
 
-        {/* Addresses Grid Column */}
-        <div className="md:col-span-3">
+        {/* Addresses Grid */}
+        <div className="md:col-span-3 space-y-4">
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[1, 2].map((i) => (
                 <div
                   key={i}
-                  className="premium-panel p-6 rounded-3xl h-44 animate-pulse bg-white/5"
+                  className="gm-panel p-6 rounded-3xl h-44 animate-pulse bg-[#E4EEF3]"
                 />
               ))}
             </div>
           ) : addresses.length === 0 ? (
-            <div className="premium-panel p-16 rounded-3xl text-center space-y-4 max-w-md mx-auto">
-              <MapPin className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="text-lg font-bold text-white">
-                No addresses saved
+            <div className="gm-panel p-16 rounded-3xl text-center space-y-4 max-w-md mx-auto">
+              <MapPin className="w-12 h-12 text-[#6F8A92] mx-auto" />
+              <h3 className="text-lg font-bold text-[#173885]">
+                No Site Addresses Saved
               </h3>
-              <p className="text-xs text-slate-400">
-                Save an address to unlock fast 30-minute hyper-local checkout.
+              <p className="text-xs text-[#606460] leading-relaxed">
+                Add your active construction sites or warehouse locations to
+                enable fast checkout.
               </p>
               <button
-                onClick={handleOpenAddModal}
-                className="gold-gradient-btn px-5 py-2.5 rounded-xl text-xs font-bold"
+                onClick={() => {
+                  setEditingAddress(null);
+                  setIsModalOpen(true);
+                }}
+                className="btn-gm-primary px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
               >
-                Add Your First Address
+                <Plus className="w-4 h-4" />
+                <span>Add First Address</span>
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {addresses.map((addr) => {
-                const eligibility = addressService.evaluateDeliveryEligibility(
+                const zone = addressService.evaluateDeliveryEligibility(
                   addr.pincode,
                 );
                 return (
                   <div
                     key={addr.id}
-                    className={`premium-panel p-5 rounded-3xl space-y-3.5 border transition relative flex flex-col justify-between ${
+                    className={`gm-card p-5 rounded-3xl space-y-3 flex flex-col justify-between ${
                       addr.isDefault
-                        ? "border-amber-400/40 shadow-lg shadow-amber-950/30 bg-[#0e1d33]"
-                        : "border-white/10 hover:border-white/20"
+                        ? "border-[#3C7DDA] ring-1 ring-[#3C7DDA]/40"
+                        : ""
                     }`}
                   >
-                    <div>
-                      {/* Top Badges */}
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-[#282926]">
+                            {addr.fullName}
+                          </span>
                           {addr.isDefault && (
-                            <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                              <Check className="w-3 h-3" /> DEFAULT
-                            </span>
-                          )}
-                          {eligibility.isExpress30Min && (
-                            <span className="bg-sky-500/20 text-sky-300 border border-sky-400/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                              <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />{" "}
-                              30-Min Zone
+                            <span className="bg-[#173885] text-[#FEFEFE] text-[9px] font-black px-2 py-0.5 rounded-full">
+                              DEFAULT
                             </span>
                           )}
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleOpenEditModal(addr)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition"
-                            title="Edit Address"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(addr.id)}
-                            disabled={deletingId === addr.id}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
-                            title="Delete Address"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <span className="text-[10px] text-[#606460] font-mono">
+                          {addr.phone}
+                        </span>
                       </div>
 
-                      {/* Recipient Details */}
-                      <h3 className="text-sm font-bold text-white">
-                        {addr.fullName}
-                      </h3>
-                      <p className="text-xs text-slate-300 leading-relaxed mt-1">
+                      <p className="text-xs text-[#606460] leading-relaxed">
                         {addr.line1}, {addr.locality}
-                        {addr.landmark ? `, Near ${addr.landmark}` : ""}
-                      </p>
-                      <p className="text-xs font-semibold text-slate-200">
+                        {addr.landmark ? `, Near ${addr.landmark}` : ""},{" "}
                         {addr.city}, {addr.state} -{" "}
-                        <span className="font-mono text-amber-400">
+                        <strong className="text-[#173885] font-mono">
                           {addr.pincode}
-                        </span>
+                        </strong>
                       </p>
-                      <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                        <Phone className="w-3 h-3 text-slate-400" />
-                        <span>+91 {addr.phone}</span>
-                      </p>
+
+                      {zone.isExpress30Min && (
+                        <div className="inline-flex items-center gap-1 text-[10px] font-bold text-[#173885] bg-[#E4EEF3] px-2.5 py-0.5 rounded-full border border-[#9AAED4]/40">
+                          <Zap className="w-3 h-3 fill-[#3C7DDA] text-[#3C7DDA]" />
+                          <span>30-Min Site Priority Zone</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Bottom Default Selector */}
-                    <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs">
+                    <div className="pt-3 border-t border-[#D9E2EA] flex items-center justify-between text-xs">
                       {!addr.isDefault ? (
                         <button
                           onClick={() => handleSetDefault(addr.id)}
-                          className="text-[11px] text-slate-400 hover:text-amber-400 font-semibold"
+                          className="text-[#3C7DDA] hover:underline font-bold text-[11px]"
                         >
                           Set as Default
                         </button>
                       ) : (
-                        <span className="text-[11px] text-emerald-400 font-semibold">
-                          Primary Address
+                        <span className="text-emerald-700 font-bold text-[11px] flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Primary
+                          Address
                         </span>
                       )}
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingAddress(addr);
+                            setIsModalOpen(true);
+                          }}
+                          className="p-1.5 text-[#606460] hover:text-[#173885] hover:bg-[#E4EEF3] rounded-lg transition"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(addr.id)}
+                          className="p-1.5 text-[#606460] hover:text-[#B43D20] hover:bg-[#FBE3DE] rounded-lg transition"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -286,22 +266,12 @@ export const Addresses = () => {
         </div>
       </div>
 
-      {/* Modals */}
       <AddressFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveAddress}
+        onSave={handleSave}
         addressToEdit={editingAddress}
         isSaving={isSaving}
-      />
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        onSuccess={() => {
-          setAuthModalOpen(false);
-          setIsModalOpen(true);
-        }}
       />
     </div>
   );

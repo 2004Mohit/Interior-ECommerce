@@ -11,9 +11,7 @@ import {
   Zap,
   ShieldCheck,
   CreditCard,
-  QrCode,
   Banknote,
-  Building2,
   AlertCircle,
   ShoppingBag,
   Check,
@@ -52,13 +50,10 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
     PAYMENT_METHODS.PAY_ON_DELIVERY,
   );
   const [upiIdInput, setUpiIdInput] = useState("");
-  const [selectedBank, setSelectedBank] = useState("HDFC");
 
-  // Authoritative Calculation State
+  // Calculation & Execution States
   const [calculatedTotals, setCalculatedTotals] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
-
-  // Order Placement & Gateway Execution
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState(null);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
@@ -163,42 +158,49 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
   const isOnlinePaymentSelected =
     paymentMethod !== PAYMENT_METHODS.PAY_ON_DELIVERY;
   const onlinePaymentStatus = paymentService.isPaymentModeReady(paymentMethod);
-
   const stepLabels = [
     "Cart",
     "Address",
     "Delivery",
     "Payment",
     "Review",
-    "Place Order",
+    "Processing",
     "Confirmed",
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex justify-end">
-      <div className="w-full max-w-2xl bg-[#070e1a] border-l border-white/10 h-full p-5 sm:p-7 flex flex-col justify-between overflow-y-auto shadow-2xl">
-        {/* Top Header & Step Indicator */}
+    <div
+      className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-xs flex justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Multi-step Checkout Drawer"
+    >
+      <div className="w-full max-w-xl bg-[#FEFEFE] border-l border-[#D9E2EA] h-full p-4 sm:p-6 flex flex-col justify-between overflow-y-auto shadow-2xl">
+        {/* Top Header */}
         <div>
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <div className="flex items-center justify-between pb-3 border-b border-[#D9E2EA]">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
-                GateMate Multi-Step Checkout
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#3C7DDA]">
+                GateMate Checkout
               </span>
-              <h2 className="text-xl font-black text-white">
+              <h2 className="text-lg sm:text-xl font-black text-[#173885]">
                 Step {currentStep}: {stepLabels[currentStep - 1]}
               </h2>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-[#0c182b] text-slate-400 hover:text-white border border-white/5 transition"
+              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl bg-[#F4F6FA] text-[#606460] hover:text-[#282926] border border-[#D9E2EA] transition"
+              aria-label="Close Checkout"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
+          {/* Stepper Progress */}
           {currentStep < 7 && (
-            <div className="flex items-center justify-between gap-1 py-3 border-b border-white/5 overflow-x-auto">
-              {stepLabels.slice(0, 6).map((label, idx) => {
+            <div className="flex items-center justify-between gap-1 py-3 border-b border-[#D9E2EA] overflow-x-auto scrollbar-none">
+              {stepLabels.slice(0, 5).map((label, idx) => {
                 const stepNum = idx + 1;
                 const isDone = currentStep > stepNum;
                 const isCurrent = currentStep === stepNum;
@@ -207,23 +209,27 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                     <div
                       className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                         isDone
-                          ? "bg-emerald-500 text-slate-950"
+                          ? "bg-[#3F7D20] text-[#FEFEFE]"
                           : isCurrent
-                            ? "bg-amber-400 text-slate-950 font-black"
-                            : "bg-slate-800 text-slate-400"
+                            ? "bg-[#173885] text-[#FEFEFE]"
+                            : "bg-[#E4EEF3] text-[#6F8A92] border border-[#D9E2EA]"
                       }`}
                     >
-                      {isDone ? <Check className="w-3.5 h-3.5" /> : stepNum}
+                      {isDone ? (
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      ) : (
+                        stepNum
+                      )}
                     </div>
                     <span
-                      className={`text-[11px] hidden sm:inline font-semibold ${
-                        isCurrent ? "text-amber-400" : "text-slate-400"
+                      className={`text-[11px] hidden sm:inline font-bold ${
+                        isCurrent ? "text-[#173885]" : "text-[#6F8A92]"
                       }`}
                     >
                       {label}
                     </span>
-                    {idx < 5 && (
-                      <div className="w-3 h-px bg-white/10 mx-1 hidden sm:block" />
+                    {idx < 4 && (
+                      <div className="w-2 sm:w-4 h-px bg-[#D9E2EA] mx-1" />
                     )}
                   </div>
                 );
@@ -232,69 +238,73 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           )}
         </div>
 
-        {/* Step Body Content */}
+        {/* Dynamic Step Body */}
         <div className="flex-1 py-4 overflow-y-auto space-y-4">
           {/* STEP 1: CART */}
           {currentStep === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {cart.length === 0 ? (
                 <div className="text-center py-16 space-y-3">
-                  <ShoppingBag className="w-12 h-12 text-slate-600 mx-auto" />
-                  <p className="text-slate-400 text-xs">
-                    Your shopping cart is currently empty.
+                  <ShoppingBag className="w-12 h-12 text-[#6F8A92] mx-auto" />
+                  <p className="text-[#606460] text-xs">
+                    Your shopping bag is currently empty.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="premium-card p-3.5 rounded-2xl flex items-center gap-3.5"
-                    >
-                      <img
-                        src={item.img}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-xl bg-black shrink-0"
-                      />
-                      <div className="flex-1">
-                        <span className="text-[10px] font-bold text-amber-400 uppercase">
-                          {item.category}
-                        </span>
-                        <h4 className="text-xs font-bold text-white line-clamp-1">
-                          {item.name}
-                        </h4>
-                        <div className="text-amber-400 font-black text-sm mt-0.5">
-                          ₹{item.price}
-                        </div>
+                cart.map((item) => (
+                  <div
+                    key={item.id}
+                    className="gm-card p-3 rounded-2xl flex items-center gap-3"
+                  >
+                    <img
+                      src={item.img}
+                      alt={item.name}
+                      className="w-14 h-14 object-cover rounded-xl bg-[#F4F6FA] shrink-0 border border-[#D9E2EA]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-[#3C7DDA] uppercase">
+                        {item.category}
+                      </span>
+                      <h4 className="text-xs font-bold text-[#282926] truncate">
+                        {item.name}
+                      </h4>
+                      <div className="text-[#173885] font-black text-sm mt-0.5 font-mono">
+                        ₹{item.price}
                       </div>
+                    </div>
 
-                      <div className="flex items-center gap-2 bg-[#050b14] border border-white/10 rounded-lg px-2 py-1">
-                        <button
-                          onClick={() => updateQuantity(item.id, -1)}
-                          className="text-slate-400 hover:text-white"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-bold text-white px-1.5">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.id, 1)}
-                          className="text-slate-400 hover:text-white"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-
+                    <div className="flex items-center gap-1.5 bg-[#F4F6FA] border border-[#D9E2EA] rounded-lg p-1">
                       <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-rose-400 hover:text-rose-300 p-1.5"
+                        type="button"
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="w-6 h-6 flex items-center justify-center text-[#606460] hover:text-[#282926]"
+                        aria-label="Decrease quantity"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="text-xs font-bold text-[#282926] px-1">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="w-6 h-6 flex items-center justify-center text-[#606460] hover:text-[#282926]"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
-                  ))}
-                </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.id)}
+                      className="p-1.5 text-[#B43D20] hover:bg-[#FBE3DE] rounded-lg transition min-h-[36px] min-w-[36px] flex items-center justify-center"
+                      aria-label={`Remove ${item.name} from bag`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
               )}
             </div>
           )}
@@ -303,29 +313,31 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           {currentStep === 2 && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-slate-300">
-                  Deliver To
+                <span className="text-xs font-bold text-[#282926]">
+                  Select Delivery Address
                 </span>
                 <button
+                  type="button"
                   onClick={() => {
                     setEditingAddress(null);
                     setIsAddressModalOpen(true);
                   }}
-                  className="text-xs font-bold text-amber-400 hover:underline"
+                  className="text-xs font-bold text-[#3C7DDA] hover:underline"
                 >
                   + Add New Address
                 </button>
               </div>
 
               {savedAddresses.length === 0 ? (
-                <div className="premium-card p-8 rounded-2xl text-center space-y-3">
-                  <MapPin className="w-8 h-8 text-amber-400 mx-auto" />
-                  <p className="text-xs text-slate-300">
+                <div className="gm-panel p-6 rounded-2xl text-center space-y-3">
+                  <MapPin className="w-8 h-8 text-[#3C7DDA] mx-auto" />
+                  <p className="text-xs text-[#606460]">
                     No saved addresses found.
                   </p>
                   <button
+                    type="button"
                     onClick={() => setIsAddressModalOpen(true)}
-                    className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold"
+                    className="btn-gm-primary px-4 py-2 rounded-xl text-xs font-bold"
                   >
                     Add Delivery Address
                   </button>
@@ -341,55 +353,57 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                       <div
                         key={addr.id}
                         onClick={() => setSelectedAddressId(addr.id)}
-                        className={`p-3.5 rounded-2xl border cursor-pointer transition flex items-start justify-between gap-3 ${
+                        className={`p-3.5 rounded-2xl border cursor-pointer transition flex items-start justify-between gap-2.5 ${
                           isSelected
-                            ? "bg-[#122442] border-amber-400 shadow-md"
-                            : "premium-card"
+                            ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                            : "gm-card hover:border-[#9AAED4]"
                         }`}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2.5">
                           <div
                             className={`w-4 h-4 rounded-full mt-0.5 flex items-center justify-center border ${
                               isSelected
-                                ? "border-amber-400 bg-amber-400"
-                                : "border-slate-500"
+                                ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                                : "border-[#9AAED4]"
                             }`}
                           >
                             {isSelected && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
                             )}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-white">
+                              <span className="text-xs font-bold text-[#282926]">
                                 {addr.fullName}
                               </span>
-                              <span className="text-[10px] text-slate-400">
+                              <span className="text-[10px] text-[#606460]">
                                 ({addr.phone})
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-300 mt-0.5">
+                            <p className="text-[11px] text-[#606460] mt-0.5">
                               {addr.line1}, {addr.locality}, {addr.city} -{" "}
-                              <span className="font-mono text-amber-400">
+                              <span className="font-mono font-bold text-[#173885]">
                                 {addr.pincode}
                               </span>
                             </p>
                             {zone.isExpress30Min && (
-                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-sky-300 bg-sky-500/10 px-2 py-0.2 rounded-full mt-1 border border-sky-400/20">
-                                <Zap className="w-2.5 h-2.5 fill-current text-amber-400" />
-                                30-Min Priority Eligible in {zone.area}
+                              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#173885] bg-[#E4EEF3] px-2 py-0.5 rounded-full mt-1 border border-[#9AAED4]/40">
+                                <Zap className="w-2.5 h-2.5 fill-[#3C7DDA] text-[#3C7DDA]" />{" "}
+                                30-Min Zone
                               </span>
                             )}
                           </div>
                         </div>
 
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditingAddress(addr);
                             setIsAddressModalOpen(true);
                           }}
-                          className="p-1 text-slate-400 hover:text-white"
+                          className="p-1 text-[#606460] hover:text-[#282926]"
+                          aria-label="Edit this address"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
@@ -404,11 +418,11 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           {/* STEP 3: DELIVERY */}
           {currentStep === 3 && (
             <div className="space-y-4">
-              <div className="p-3.5 rounded-2xl bg-[#0a1526] border border-white/10 flex items-center gap-2 text-xs">
-                <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
-                <span className="text-slate-300">
+              <div className="p-3.5 rounded-2xl bg-[#E4EEF3] border border-[#D9E2EA] flex items-center gap-2 text-xs">
+                <MapPin className="w-4 h-4 text-[#3C7DDA] shrink-0" />
+                <span className="text-[#606460]">
                   Delivering to:{" "}
-                  <strong className="text-white">
+                  <strong className="text-[#173885]">
                     {activeAddress?.locality}, {activeAddress?.city} (
                     {activeAddress?.pincode})
                   </strong>
@@ -426,65 +440,49 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                     <div
                       key={opt.id}
                       onClick={() => isAvailable && setDeliveryOptionId(opt.id)}
-                      className={`p-4 rounded-2xl border transition relative ${
+                      className={`p-4 rounded-2xl border transition ${
                         !isAvailable
-                          ? "opacity-40 cursor-not-allowed bg-slate-900/40 border-white/5"
+                          ? "opacity-40 cursor-not-allowed bg-[#F4F6FA] border-[#D9E2EA]"
                           : isSelected
-                            ? "bg-[#122442] border-amber-400 shadow-md cursor-pointer"
-                            : "premium-card hover:border-slate-600 cursor-pointer"
+                            ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs cursor-pointer"
+                            : "gm-card hover:border-[#9AAED4] cursor-pointer"
                       }`}
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2.5">
                           <div
                             className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
                               isSelected
-                                ? "border-amber-400 bg-amber-400"
-                                : "border-slate-500"
+                                ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                                : "border-[#9AAED4]"
                             }`}
                           >
                             {isSelected && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
                             )}
                           </div>
                           <div>
-                            <h4 className="text-xs font-black text-white flex items-center gap-1.5">
+                            <h4 className="text-xs font-bold text-[#282926] flex items-center gap-1.5">
                               {opt.name}
                               {isExpress && isAvailable && (
-                                <span className="bg-amber-400/20 text-amber-300 text-[9px] font-black px-1.5 py-0.2 rounded">
+                                <span className="bg-[#173885] text-[#FEFEFE] text-[9px] font-bold px-1.5 py-0.2 rounded">
                                   FASTEST
                                 </span>
                               )}
                             </h4>
-                            <p className="text-[11px] text-slate-300 mt-0.5">
+                            <p className="text-[11px] text-[#606460] mt-0.5">
                               {opt.description}
                             </p>
-                            <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-2">
-                              <span>
-                                Estimated SLA:{" "}
-                                <strong className="text-emerald-400">
-                                  {opt.sla}
-                                </strong>
-                              </span>
-                              <span>• {opt.cutoffTime}</span>
+                            <div className="text-[10px] text-[#3C7DDA] font-semibold mt-1">
+                              SLA: {opt.sla} • {opt.cutoffTime}
                             </div>
                           </div>
                         </div>
 
-                        <span className="text-xs font-black text-emerald-400">
+                        <span className="text-xs font-black text-[#3F7D20] font-mono">
                           {opt.baseFee === 0 ? "FREE" : `₹${opt.baseFee}`}
                         </span>
                       </div>
-
-                      {!isAvailable && (
-                        <div className="mt-2 text-[10px] text-rose-300 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          <span>
-                            30-minute priority dispatch is restricted to
-                            Pune/PCMC verified zones.
-                          </span>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -492,170 +490,105 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </div>
           )}
 
-          {/* STEP 4: PAYMENT SELECTION */}
+          {/* STEP 4: PAYMENT */}
           {currentStep === 4 && (
             <div className="space-y-4">
-              <span className="text-xs font-bold text-slate-300">
-                Choose Payment Method
+              <span className="text-xs font-bold text-[#282926]">
+                Choose Payment Option
               </span>
 
               <div className="space-y-2.5">
-                {/* Pay on Delivery */}
                 <div
                   onClick={() =>
                     setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY)
                   }
                   className={`p-3.5 rounded-2xl border cursor-pointer transition ${
                     paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
-                      ? "bg-[#122442] border-amber-400 shadow-md"
-                      : "premium-card"
+                      ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                      : "gm-card"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Banknote className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <Banknote className="w-5 h-5 text-[#3F7D20] shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
-                        <span>Pay on Delivery (Cash / UPI at Doorstep)</span>
-                        <span className="text-[10px] text-amber-400 font-bold">
+                      <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
+                        <span>Pay on Delivery (Cash / UPI on Arrival)</span>
+                        <span className="text-[10px] text-[#173885] font-bold">
                           +₹49 Convenience
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-[#606460]">
                         Pay safely after inspecting the delivery package.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Cashfree UPI */}
                 <div
                   onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_COLLECT)}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition ${
                     paymentMethod === PAYMENT_METHODS.UPI_COLLECT
-                      ? "bg-[#122442] border-amber-400 shadow-md"
-                      : "premium-card"
+                      ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                      : "gm-card"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-amber-400 shrink-0" />
+                    <Zap className="w-5 h-5 text-[#3C7DDA] shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs font-bold text-white flex items-center justify-between">
-                        <span>UPI Collect (GPay, PhonePe, Paytm, BHIM)</span>
-                        <span className="text-[9px] text-emerald-400 font-bold">
+                      <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
+                        <span>UPI Collect (GPay, PhonePe, Paytm)</span>
+                        <span className="text-[9px] text-[#3F7D20] font-bold">
                           ZERO FEES
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-[#606460]">
                         Direct instant bank transfer via UPI VPA.
                       </p>
                     </div>
                   </div>
                   {paymentMethod === PAYMENT_METHODS.UPI_COLLECT && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="mt-3 pt-3 border-t border-[#D9E2EA]">
                       <input
                         type="text"
                         placeholder="yourname@upi or yourname@okhdfcbank"
                         value={upiIdInput}
                         onChange={(e) => setUpiIdInput(e.target.value)}
-                        className="w-full premium-input px-3 py-2 rounded-xl text-xs"
+                        className="w-full gm-input px-3 py-2 rounded-xl text-xs"
                       />
                     </div>
                   )}
                 </div>
 
-                {/* Dynamic QR */}
-                <div
-                  onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_QR)}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition ${
-                    paymentMethod === PAYMENT_METHODS.UPI_QR
-                      ? "bg-[#122442] border-amber-400 shadow-md"
-                      : "premium-card"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <QrCode className="w-5 h-5 text-sky-400 shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-white">
-                        Dynamic UPI QR Code
-                      </div>
-                      <p className="text-[10px] text-slate-400">
-                        Scan using any UPI camera scanner.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cards */}
                 <div
                   onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}
                   className={`p-3.5 rounded-2xl border cursor-pointer transition ${
                     paymentMethod === PAYMENT_METHODS.CARD
-                      ? "bg-[#122442] border-amber-400 shadow-md"
-                      : "premium-card"
+                      ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                      : "gm-card"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <CreditCard className="w-5 h-5 text-purple-400 shrink-0" />
+                    <CreditCard className="w-5 h-5 text-[#173885] shrink-0" />
                     <div className="flex-1">
-                      <div className="text-xs font-bold text-white">
+                      <div className="text-xs font-bold text-[#282926]">
                         Credit / Debit Card
                       </div>
-                      <p className="text-[10px] text-slate-400">
+                      <p className="text-[10px] text-[#606460]">
                         Visa, MasterCard, RuPay (256-bit encrypted).
                       </p>
                     </div>
                   </div>
                 </div>
-
-                {/* Net Banking */}
-                <div
-                  onClick={() => setPaymentMethod(PAYMENT_METHODS.NET_BANKING)}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition ${
-                    paymentMethod === PAYMENT_METHODS.NET_BANKING
-                      ? "bg-[#122442] border-amber-400 shadow-md"
-                      : "premium-card"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Building2 className="w-5 h-5 text-amber-400 shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-white">
-                        Net Banking
-                      </div>
-                      <p className="text-[10px] text-slate-400">
-                        All major Indian scheduled banks.
-                      </p>
-                    </div>
-                  </div>
-                  {paymentMethod === PAYMENT_METHODS.NET_BANKING && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      <select
-                        value={selectedBank}
-                        onChange={(e) => setSelectedBank(e.target.value)}
-                        className="w-full premium-input px-3 py-2 rounded-xl text-xs font-semibold"
-                      >
-                        <option value="HDFC">HDFC Bank</option>
-                        <option value="ICICI">ICICI Bank</option>
-                        <option value="SBI">State Bank of India</option>
-                        <option value="AXIS">Axis Bank</option>
-                        <option value="KOTAK">Kotak Mahindra Bank</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
               </div>
 
-              {/* Informational notice when digital gateway mode is chosen */}
               {isOnlinePaymentSelected && !onlinePaymentStatus.ready && (
-                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-start gap-2">
-                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                <div className="p-3.5 rounded-2xl bg-[#FFF0D5] border border-[#A66A08]/20 text-[#A66A08] text-xs flex items-start gap-2">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-[#A66A08]" />
                   <div className="space-y-0.5">
-                    <span className="font-bold">
-                      Gateway Integration Notice:
-                    </span>
-                    <p className="text-[11px] text-slate-300">
-                      Online payments are not configured yet. Pay on Delivery is
-                      available for immediate checkout testing.
+                    <span className="font-bold">Gateway Notice:</span>
+                    <p className="text-[11px] text-[#606460]">
+                      Online payments are not configured yet. Select "Pay on
+                      Delivery" to complete testing.
                     </p>
                   </div>
                 </div>
@@ -666,40 +599,41 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           {/* STEP 5: REVIEW */}
           {currentStep === 5 && (
             <div className="space-y-4">
-              <div className="premium-panel p-4 rounded-2xl space-y-2 text-xs">
-                <div className="flex justify-between items-start border-b border-white/5 pb-2">
+              <div className="gm-panel p-4 rounded-2xl space-y-2 text-xs">
+                <div className="flex justify-between items-start border-b border-[#D9E2EA] pb-2">
                   <div>
-                    <span className="text-[10px] font-bold text-amber-400 uppercase">
-                      Shipping Destination
+                    <span className="text-[10px] font-bold text-[#3C7DDA] uppercase">
+                      Shipping Address
                     </span>
-                    <h5 className="font-bold text-white mt-0.5">
+                    <h5 className="font-bold text-[#282926] mt-0.5">
                       {activeAddress?.fullName} ({activeAddress?.phone})
                     </h5>
-                    <p className="text-slate-300 text-[11px]">
+                    <p className="text-[#606460] text-[11px]">
                       {activeAddress?.line1}, {activeAddress?.locality},{" "}
                       {activeAddress?.city} - {activeAddress?.pincode}
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setCurrentStep(2)}
-                    className="text-amber-400 hover:underline font-bold text-[11px]"
+                    className="text-[#3C7DDA] hover:underline font-bold text-[11px]"
                   >
                     Edit
                   </button>
                 </div>
 
                 <div className="flex justify-between items-center pt-1 text-[11px]">
-                  <span className="text-slate-400">Dispatch Service:</span>
-                  <span className="font-semibold text-white">
+                  <span className="text-[#606460]">Delivery:</span>
+                  <span className="font-bold text-[#282926]">
                     {deliveryOptionId === "express_30min"
-                      ? "⚡ 30-Minute Priority Express"
-                      : "Standard 24-48h Delivery"}
+                      ? "30-Minute Priority Express"
+                      : "Standard Delivery"}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center text-[11px]">
-                  <span className="text-slate-400">Payment Selection:</span>
-                  <span className="font-semibold text-amber-300">
+                  <span className="text-[#606460]">Payment:</span>
+                  <span className="font-bold text-[#173885]">
                     {paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
                       ? "Pay on Delivery"
                       : "Online Gateway"}
@@ -707,64 +641,38 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-300">
-                  Items ({cart.length})
-                </span>
-                <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
-                  {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="premium-card p-2.5 rounded-xl flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-2 truncate max-w-xs">
-                        <img
-                          src={item.img}
-                          alt=""
-                          className="w-8 h-8 rounded object-cover"
-                        />
-                        <span className="text-white truncate">{item.name}</span>
-                      </div>
-                      <span className="text-amber-300 font-bold font-mono">
-                        Qty {item.quantity} × ₹{item.price}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="premium-panel p-4 rounded-2xl space-y-2 text-xs">
-                <div className="flex justify-between text-slate-300">
-                  <span>Cart Subtotal:</span>
-                  <span className="font-bold text-white font-mono">
+              <div className="gm-panel p-4 rounded-2xl space-y-2 text-xs">
+                <div className="flex justify-between text-[#606460]">
+                  <span>Items Subtotal:</span>
+                  <span className="font-bold text-[#282926] font-mono">
                     ₹{calculatedTotals?.itemSubtotal}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-[#606460]">
                   <span>Delivery Charges:</span>
-                  <span className="text-emerald-400 font-bold">
+                  <span className="text-[#3F7D20] font-bold">
                     {calculatedTotals?.deliveryFee === 0
                       ? "FREE"
                       : `₹${calculatedTotals?.deliveryFee}`}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-[#606460]">
                   <span>Packaging & Platform Fee:</span>
-                  <span className="font-mono text-white">
+                  <span className="font-mono text-[#282926]">
                     ₹{calculatedTotals?.packagingFee}
                   </span>
                 </div>
                 {calculatedTotals?.codConvenienceFee > 0 && (
-                  <div className="flex justify-between text-slate-300">
+                  <div className="flex justify-between text-[#606460]">
                     <span>Pay on Delivery Handling Fee:</span>
-                    <span className="font-mono text-amber-400">
+                    <span className="font-mono text-[#173885]">
                       +₹{calculatedTotals?.codConvenienceFee}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between text-sm font-black text-white pt-2 border-t border-white/10">
+                <div className="flex justify-between text-sm font-black text-[#282926] pt-2 border-t border-[#D9E2EA]">
                   <span>Authoritative Total:</span>
-                  <span className="text-amber-400 text-base font-mono">
+                  <span className="text-[#173885] text-base font-mono">
                     ₹{calculatedTotals?.grandTotal}
                   </span>
                 </div>
@@ -772,32 +680,33 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
             </div>
           )}
 
-          {/* STEP 6: PLACE ORDER */}
+          {/* STEP 6: PROCESSING */}
           {currentStep === 6 && (
             <div className="py-8 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-400/10 border border-amber-400/20 text-amber-400 flex items-center justify-center mx-auto animate-spin">
+              <div className="w-14 h-14 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40 text-[#173885] flex items-center justify-center mx-auto animate-spin">
                 <Zap className="w-7 h-7 fill-current" />
               </div>
-              <h3 className="text-lg font-bold text-white">
-                Processing Order Request...
+              <h3 className="text-base font-bold text-[#173885]">
+                Processing Order...
               </h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              <p className="text-xs text-[#606460] max-w-sm mx-auto">
                 Authorizing inventory reservation with backend order dispatcher.
               </p>
 
               {submissionError && (
-                <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs text-left max-w-md mx-auto space-y-2">
-                  <div className="flex items-center gap-2 font-bold text-rose-200">
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                    <span>Gateway Integration Notice</span>
+                <div className="p-4 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs text-left max-w-md mx-auto space-y-2">
+                  <div className="flex items-center gap-2 font-bold">
+                    <AlertCircle className="w-4 h-4 text-[#B43D20] shrink-0" />
+                    <span>Order Notice</span>
                   </div>
                   <p className="leading-relaxed">{submissionError}</p>
                   <button
+                    type="button"
                     onClick={() => {
                       setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY);
                       setCurrentStep(5);
                     }}
-                    className="mt-2 w-full gold-gradient-btn py-2 rounded-xl text-xs font-bold"
+                    className="mt-2 w-full btn-gm-primary py-2 rounded-xl text-xs font-bold"
                   >
                     Switch to "Pay on Delivery" & Complete Order
                   </button>
@@ -808,59 +717,61 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
           {/* STEP 7: CONFIRMATION */}
           {currentStep === 7 && confirmedOrder && (
-            <div className="py-8 text-center space-y-5">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
-                <CheckCircle2 className="w-10 h-10" />
+            <div className="py-6 text-center space-y-4">
+              <div className="w-14 h-14 rounded-full bg-[#E1F2D9] text-[#3F7D20] flex items-center justify-center mx-auto border border-[#3F7D20]/30">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-white">
+                <h3 className="text-xl font-black text-[#173885]">
                   Order Confirmed!
                 </h3>
-                <p className="text-xs text-slate-300 mt-1">
+                <p className="text-xs text-[#606460] mt-0.5">
                   Order Reference:{" "}
-                  <span className="font-mono text-amber-400 font-bold">
+                  <span className="font-mono text-[#3C7DDA] font-bold">
                     {confirmedOrder.orderId}
                   </span>
                 </p>
               </div>
 
-              <div className="premium-panel p-4 rounded-2xl text-left text-xs space-y-2 border border-white/10 max-w-md mx-auto">
+              <div className="gm-panel p-4 rounded-2xl text-left text-xs space-y-2 max-w-md mx-auto bg-[#F4F6FA]">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Payment Status:</span>
-                  <span className="text-amber-400 font-bold font-mono">
+                  <span className="text-[#606460]">Payment Status:</span>
+                  <span className="text-[#A66A08] font-bold font-mono">
                     {confirmedOrder.paymentStatus}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Order Fulfillment:</span>
-                  <span className="text-emerald-400 font-bold">
+                  <span className="text-[#606460]">Fulfillment Status:</span>
+                  <span className="text-[#3F7D20] font-bold">
                     {confirmedOrder.orderStatus}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Payable at Delivery:</span>
-                  <span className="text-white font-black font-mono">
+                  <span className="text-[#606460]">Payable at Arrival:</span>
+                  <span className="text-[#282926] font-black font-mono">
                     ₹{confirmedOrder.record?.totals?.grandTotal}
                   </span>
                 </div>
               </div>
 
-              <div className="pt-3 flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+              <div className="pt-2 flex flex-col sm:flex-row gap-2.5 max-w-md mx-auto">
                 <button
+                  type="button"
                   onClick={() => {
                     onClose();
                     window.location.href = "/account/orders";
                   }}
-                  className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold"
+                  className="flex-1 btn-gm-primary py-3 rounded-xl text-xs font-bold"
                 >
                   Track Order
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     onClose();
                     window.location.href = "/products";
                   }}
-                  className="flex-1 premium-card hover:bg-white/5 py-3 rounded-xl text-xs font-bold text-white border border-white/10"
+                  className="flex-1 btn-gm-secondary py-3 rounded-xl text-xs font-bold"
                 >
                   Continue Shopping
                 </button>
@@ -869,23 +780,25 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           )}
         </div>
 
-        {/* Action Controls */}
+        {/* Footer Actions */}
         {cart.length > 0 && currentStep < 6 && (
-          <div className="pt-4 border-t border-white/10 space-y-3">
+          <div className="pt-3 border-t border-[#D9E2EA] space-y-2.5">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-400">Total Payable:</span>
-              <span className="text-amber-400 text-lg font-black font-mono">
+              <span className="text-[#606460]">Total Payable:</span>
+              <span className="text-[#173885] text-base font-black font-mono">
                 {isCalculating
                   ? "Computing..."
                   : `₹${calculatedTotals?.grandTotal || 0}`}
               </span>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {currentStep > 1 && (
                 <button
+                  type="button"
                   onClick={() => setCurrentStep((prev) => prev - 1)}
-                  className="px-4 py-3 rounded-xl premium-card hover:bg-white/5 text-slate-300 font-bold text-xs flex items-center gap-1 transition"
+                  className="px-3.5 py-2.5 rounded-xl btn-gm-secondary text-xs font-bold flex items-center gap-1 min-h-[44px]"
+                  aria-label="Previous step"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Back</span>
@@ -894,8 +807,9 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
               {currentStep === 1 && (
                 <button
+                  type="button"
                   onClick={handleNextFromCart}
-                  className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:scale-98 transition"
+                  className="flex-1 btn-gm-primary min-h-[44px] py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 active:scale-98"
                 >
                   <span>Select Delivery Address</span>
                   <ArrowRight className="w-4 h-4" />
@@ -904,9 +818,10 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
               {currentStep === 2 && (
                 <button
+                  type="button"
                   disabled={!selectedAddressId}
                   onClick={() => setCurrentStep(3)}
-                  className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition"
+                  className="flex-1 btn-gm-primary min-h-[44px] py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <span>Choose Delivery Method</span>
                   <ArrowRight className="w-4 h-4" />
@@ -915,8 +830,9 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
               {currentStep === 3 && (
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(4)}
-                  className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
+                  className="flex-1 btn-gm-primary min-h-[44px] py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
                 >
                   <span>Proceed to Payment</span>
                   <ArrowRight className="w-4 h-4" />
@@ -925,8 +841,9 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
               {currentStep === 4 && (
                 <button
+                  type="button"
                   onClick={() => setCurrentStep(5)}
-                  className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition"
+                  className="flex-1 btn-gm-primary min-h-[44px] py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
                 >
                   <span>Review Final Order</span>
                   <ArrowRight className="w-4 h-4" />
@@ -935,14 +852,15 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
               {currentStep === 5 && (
                 <button
+                  type="button"
                   onClick={() => {
                     setCurrentStep(6);
                     handlePlaceOrder();
                   }}
-                  className="flex-1 py-3.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-98"
+                  className="flex-1 min-h-[44px] py-2.5 rounded-xl btn-gm-primary text-xs font-bold flex items-center justify-center gap-2 shadow-xs active:scale-98"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Place Order (₹{calculatedTotals?.grandTotal})</span>
+                  <span>Confirm Order (₹{calculatedTotals?.grandTotal})</span>
                 </button>
               )}
             </div>

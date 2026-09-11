@@ -1,72 +1,53 @@
 import React, { useState, useEffect } from "react";
 import { AccountNav } from "./AccountNav";
-import { useAuth } from "../../context/AuthContext";
-import { profileService } from "../../services/profileService";
 import { b2bService } from "../../services/b2bService";
-import { PRODUCTS_DATA } from "../../data/mockData";
+import { useAuth } from "../../context/AuthContext";
+import { AuthModal } from "../AuthModal";
 import {
   Building2,
-  ShieldCheck,
-  Plus,
+  FileText,
   CheckCircle2,
   AlertCircle,
-  FileText,
   Send,
-  Sparkles,
+  Plus,
+  Clock,
+  ShieldCheck,
   Lock,
 } from "lucide-react";
-import { AuthModal } from "../AuthModal";
 
 export const B2BQuotations = () => {
   const { user, loading: authLoading } = useAuth();
 
-  const [profile, setProfile] = useState(null);
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState(null);
-  const [error, setError] = useState(null);
-
-  // GST Registration Form
-  const [gstInput, setGstInput] = useState("");
-  const [companyInput, setCompanyInput] = useState("");
-  const [businessType, setBusinessType] = useState(
-    "Architectural / Interior Contractor",
-  );
-  const [isVerifyingGst, setIsVerifyingGst] = useState(false);
-
-  // New RFQ Modal Form
-  const [isRfqModalOpen, setIsRfqModalOpen] = useState(false);
-  const [rfqForm, setRfqForm] = useState({
-    projectName: "",
-    productId: "2",
-    quantity: 10,
-    siteLocation: "Pune / PCMC",
-    notes: "",
-  });
-  const [isSubmittingRfq, setIsSubmittingRfq] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
-  const loadData = async () => {
+  // Form State
+  const [rfqForm, setRfqForm] = useState({
+    projectName: "",
+    gstin: "",
+    productName: "",
+    quantity: 100,
+    siteLocation: "",
+    notes: "",
+  });
+
+  const [gstValidation, setGstValidation] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [notice, setNotice] = useState(null);
+
+  const fetchQuotations = async () => {
     if (!user) {
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      const p = await profileService.getProfile(user.id, user);
-      setProfile(p);
-      if (p.b2bProfile) {
-        setGstInput(p.b2bProfile.gstNumber || "");
-        setCompanyInput(p.b2bProfile.companyName || "");
-        setBusinessType(
-          p.b2bProfile.businessType || "Architectural / Interior Contractor",
-        );
-      }
-
-      const qList = await b2bService.getQuotations(user.id);
-      setQuotations(qList);
-    } catch (e) {
-      setError("Error loading business records.");
+      const data = await b2bService.getQuotations(user.id);
+      setQuotations(data);
+    } catch (err) {
+      console.error("Error loading RFQs", err);
     } finally {
       setLoading(false);
     }
@@ -74,33 +55,83 @@ export const B2BQuotations = () => {
 
   useEffect(() => {
     if (!authLoading) {
-      loadData();
+      fetchQuotations();
     }
   }, [user, authLoading]);
+
+  const handleGstChange = (e) => {
+    const val = e.target.value.toUpperCase();
+    setRfqForm({ ...rfqForm, gstin: val });
+    if (val.length === 15) {
+      setGstValidation(b2bService.validateGSTIN(val));
+    } else {
+      setGstValidation(null);
+    }
+  };
+
+  const handleRfqSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+
+    if (rfqForm.gstin && (!gstValidation || !gstValidation.isValid)) {
+      alert(
+        "Please enter a valid 15-character GSTIN or leave blank for residential estimate.",
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setNotice(null);
+
+    try {
+      const result = await b2bService.submitQuotation(user.id, rfqForm);
+      if (result.success) {
+        setNotice(result.message);
+        setIsFormOpen(false);
+        setRfqForm({
+          projectName: "",
+          gstin: "",
+          productName: "",
+          quantity: 100,
+          siteLocation: "",
+          notes: "",
+        });
+        fetchQuotations();
+      }
+    } catch (err) {
+      console.error("Failed to submit RFQ", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!authLoading && !user) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
-        <h1 className="text-2xl font-black text-white">B2B Commercial Hub</h1>
+        <h1 className="text-2xl font-black text-[#173885]">
+          Commercial B2B Quotes
+        </h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
             <AccountNav />
           </div>
           <div className="md:col-span-3">
-            <div className="premium-panel p-12 rounded-3xl text-center space-y-4 max-w-md mx-auto">
-              <Building2 className="w-12 h-12 text-amber-400 mx-auto" />
-              <h2 className="text-lg font-bold text-white">
-                Sign In for B2B Pricing
+            <div className="gm-panel p-12 rounded-3xl text-center space-y-4 max-w-md mx-auto">
+              <Lock className="w-10 h-10 text-[#173885] mx-auto" />
+              <h2 className="text-lg font-bold text-[#173885]">
+                Authentication Required
               </h2>
-              <p className="text-xs text-slate-400">
-                Architects & contractors can access GST invoicing and commercial
-                quotation tools upon signing in.
+              <p className="text-xs text-[#606460]">
+                Sign in to manage volume project estimates and GST billing.
               </p>
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="gold-gradient-btn px-6 py-3 rounded-xl text-xs font-bold shadow-lg"
+                className="btn-gm-primary px-6 py-3 rounded-xl text-xs font-bold"
               >
-                Sign In to B2B Hub
+                Sign In
               </button>
             </div>
           </div>
@@ -109,128 +140,169 @@ export const B2BQuotations = () => {
         <AuthModal
           isOpen={authModalOpen}
           onClose={() => setAuthModalOpen(false)}
-          onSuccess={() => {
-            setAuthModalOpen(false);
-            loadData();
-          }}
+          onSuccess={() => setAuthModalOpen(false)}
         />
       </div>
     );
   }
 
-  const handleVerifyAndSaveGST = async (e) => {
-    e.preventDefault();
-    setIsVerifyingGst(true);
-    setError(null);
-
-    const validation = b2bService.validateGSTIN(gstInput);
-    if (!validation.isValid) {
-      setError(validation.message);
-      setIsVerifyingGst(false);
-      return;
-    }
-
-    if (!companyInput.trim()) {
-      setError("Please provide your registered legal company name.");
-      setIsVerifyingGst(false);
-      return;
-    }
-
-    const updatedProfile = {
-      ...profile,
-      b2bProfile: {
-        isB2BRegistered: true,
-        companyName: companyInput.trim(),
-        gstNumber: validation.formattedGst,
-        businessType,
-        stateCode: validation.stateCode,
-      },
-    };
-
-    try {
-      await profileService.updateProfile(user.id, updatedProfile);
-      setProfile(updatedProfile);
-      setNotice(`${validation.message}. Your B2B partner account is active!`);
-      setTimeout(() => setNotice(null), 4000);
-    } catch (err) {
-      setError("Failed to save business credentials.");
-    } finally {
-      setIsVerifyingGst(false);
-    }
-  };
-
-  const handleSubmitRfq = async (e) => {
-    e.preventDefault();
-    setIsSubmittingRfq(true);
-    setError(null);
-
-    const selectedProduct = PRODUCTS_DATA.find(
-      (p) => p.id === rfqForm.productId,
-    );
-
-    try {
-      const res = await b2bService.submitQuotation(user.id, {
-        projectName: rfqForm.projectName,
-        productName: selectedProduct?.name || "Gate Hardware Selection",
-        quantity: Number(rfqForm.quantity),
-        siteLocation: rfqForm.siteLocation,
-        notes: rfqForm.notes,
-      });
-
-      if (res.success) {
-        setIsRfqModalOpen(false);
-        setNotice(res.message);
-        loadData();
-        setTimeout(() => setNotice(null), 4000);
-      }
-    } catch (err) {
-      setError("Failed to submit RFQ.");
-    } finally {
-      setIsSubmittingRfq(false);
-    }
-  };
-
-  const isB2BActive = Boolean(profile?.b2bProfile?.isB2BRegistered);
-
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
       {/* Header */}
-      <div className="border-b border-white/10 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-amber-400" />
-            <h1 className="text-2xl font-black text-white">
-              Architect & Contractor Hub
-            </h1>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Commercial bulk quotes, GST input tax credits (ITC), and Pune / PCMC
-            architectural procurement.
+          <h1 className="text-2xl font-black text-[#173885]">
+            Commercial B2B Quotations
+          </h1>
+          <p className="text-xs text-[#606460]">
+            Direct bulk truckload pricing on Cement, TMT Rebars, and AAC Blocks
+            for developers & contractors.
           </p>
         </div>
 
-        {isB2BActive && (
-          <button
-            onClick={() => setIsRfqModalOpen(true)}
-            className="gold-gradient-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto shadow-md"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Request Bulk Quote (RFQ)</span>
-          </button>
-        )}
+        <button
+          onClick={() => setIsFormOpen(!isFormOpen)}
+          className="btn-gm-primary px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto"
+        >
+          {isFormOpen ? "Close Form" : "+ Request Bulk Project RFQ"}
+        </button>
       </div>
 
       {notice && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{notice}</span>
         </div>
       )}
 
-      {error && (
-        <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{error}</span>
+      {/* RFQ Form Box */}
+      {isFormOpen && (
+        <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#3C7DDA]/30 space-y-4 bg-[#FEFEFE]">
+          <div className="flex items-center gap-2 border-b border-[#D9E2EA] pb-3">
+            <Building2 className="w-5 h-5 text-[#3C7DDA]" />
+            <h3 className="text-sm font-bold text-[#173885]">
+              New Project Bill of Quantities (BOQ) Quote
+            </h3>
+          </div>
+
+          <form onSubmit={handleRfqSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-[#282926] block mb-1">
+                  Project / Site Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Baner Commercial Tower Foundation"
+                  value={rfqForm.projectName}
+                  onChange={(e) =>
+                    setRfqForm({ ...rfqForm, projectName: e.target.value })
+                  }
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#282926] block mb-1">
+                  Company GSTIN (Optional for ITC Credit)
+                </label>
+                <input
+                  type="text"
+                  maxLength={15}
+                  placeholder="27AAAAA0000A1Z5"
+                  value={rfqForm.gstin}
+                  onChange={handleGstChange}
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+                />
+                {gstValidation && (
+                  <span
+                    className={`text-[10px] mt-1 block font-semibold ${gstValidation.isValid ? "text-[#3F7D20]" : "text-[#B43D20]"}`}
+                  >
+                    {gstValidation.message}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-[#282926] block mb-1">
+                  Required Construction Product *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Tata Tiscon 550D Rebars 12mm / 16mm or UltraTech PPC Bags"
+                  value={rfqForm.productName}
+                  onChange={(e) =>
+                    setRfqForm({ ...rfqForm, productName: e.target.value })
+                  }
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-[#282926] block mb-1">
+                  Estimated Quantity *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={10}
+                  value={rfqForm.quantity}
+                  onChange={(e) =>
+                    setRfqForm({ ...rfqForm, quantity: Number(e.target.value) })
+                  }
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-[#282926] block mb-1">
+                Construction Site Location & Drop Access *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Balewadi High Street, Pune (Trailer access available)"
+                value={rfqForm.siteLocation}
+                onChange={(e) =>
+                  setRfqForm({ ...rfqForm, siteLocation: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-[#282926] block mb-1">
+                Project Technical Notes (Optional)
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Specify test certificates required, staggered delivery dates, or unloading preferences..."
+                value={rfqForm.notes}
+                onChange={(e) =>
+                  setRfqForm({ ...rfqForm, notes: e.target.value })
+                }
+                className="w-full gm-input p-3 rounded-xl text-xs"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-gm-primary px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>
+                {submitting
+                  ? "Submitting Estimate..."
+                  : "Submit Commercial Quote Request"}
+              </span>
+            </button>
+          </form>
         </div>
       )}
 
@@ -240,324 +312,77 @@ export const B2BQuotations = () => {
           <AccountNav />
         </div>
 
-        {/* Content Body */}
-        <div className="md:col-span-3 space-y-6">
-          {/* Section 1: Business Profile / GST Registration */}
-          <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-5 border border-white/10">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  Business Verification & GSTIN
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Enter your business details for GST tax invoicing in
-                  Maharashtra[cite: 1].
-                </p>
-              </div>
-              {isB2BActive && (
-                <span className="bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" /> VERIFIED B2B
-                </span>
-              )}
+        {/* Existing RFQs List */}
+        <div className="md:col-span-3 space-y-4">
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="gm-panel p-6 rounded-3xl h-36 animate-pulse bg-[#E4EEF3]"
+                />
+              ))}
             </div>
-
-            <form onSubmit={handleVerifyAndSaveGST} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Registered Company / Firm Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Skyline Architecture & Hardware LLP"
-                    value={companyInput}
-                    onChange={(e) => setCompanyInput(e.target.value)}
-                    className="w-full premium-input px-3.5 py-2.5 rounded-xl text-xs"
-                  />
+          ) : quotations.length === 0 ? (
+            <div className="gm-panel p-16 rounded-3xl text-center space-y-4 max-w-md mx-auto">
+              <FileText className="w-12 h-12 text-[#6F8A92] mx-auto" />
+              <h3 className="text-lg font-bold text-[#173885]">
+                No Commercial RFQs Submitted
+              </h3>
+              <p className="text-xs text-[#606460] leading-relaxed">
+                Need wholesale truckloads for your project? Submit a quotation
+                request above for tiered bulk pricing.
+              </p>
+            </div>
+          ) : (
+            quotations.map((rfq) => (
+              <div
+                key={rfq.id}
+                className="gm-panel p-5 rounded-3xl space-y-3 border border-[#D9E2EA]"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D9E2EA] pb-3">
+                  <div>
+                    <span className="font-mono text-xs font-black text-[#173885]">
+                      {rfq.id}
+                    </span>
+                    <h4 className="text-sm font-bold text-[#282926] mt-0.5">
+                      {rfq.projectName}
+                    </h4>
+                  </div>
+                  <span className="badge-gm-info px-3 py-1 rounded-full text-xs self-start sm:self-auto">
+                    {rfq.status.replace(/_/g, " ")}
+                  </span>
                 </div>
 
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    15-Digit GSTIN Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={15}
-                    placeholder="27AAAAA0000A1Z5"
-                    value={gstInput}
-                    onChange={(e) => setGstInput(e.target.value.toUpperCase())}
-                    className="w-full premium-input px-3.5 py-2.5 rounded-xl text-xs font-mono uppercase font-bold tracking-wider"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#606460]">
+                  <div>
+                    <span className="text-[#6F8A92]">Requested Product: </span>
+                    <strong className="text-[#282926]">
+                      {rfq.productName}
+                    </strong>{" "}
+                    ({rfq.quantity} units)
+                  </div>
+                  <div>
+                    <span className="text-[#6F8A92]">Site Destination: </span>
+                    <span className="text-[#282926]">{rfq.siteLocation}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Trade Category
-                </label>
-                <select
-                  value={businessType}
-                  onChange={(e) => setBusinessType(e.target.value)}
-                  className="w-full premium-input px-3.5 py-2.5 rounded-xl text-xs font-semibold"
-                >
-                  <option value="Architectural / Interior Contractor">
-                    Architectural / Interior Contractor
-                  </option>
-                  <option value="Civil Gate Fabricator & Builder">
-                    Civil Gate Fabricator & Builder
-                  </option>
-                  <option value="Society Facility Manager">
-                    Society Facility Manager (PMC / PCMC)
-                  </option>
-                  <option value="Hardware Reseller & Wholesaler">
-                    Hardware Reseller & Wholesaler
-                  </option>
-                </select>
-              </div>
-
-              <div className="flex justify-end pt-1">
-                <button
-                  type="submit"
-                  disabled={isVerifyingGst}
-                  className="gold-gradient-btn px-6 py-2.5 rounded-xl text-xs font-bold transition disabled:opacity-50"
-                >
-                  {isVerifyingGst
-                    ? "Validating GSTIN..."
-                    : isB2BActive
-                      ? "Update GST Credentials"
-                      : "Verify & Activate B2B Partner"}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Section 2: Active Quotations List */}
-          <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-4 border border-white/10">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-white">
-                  Commercial RFQs & Bulk Quotations
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Track quotes generated for projects across Pune & PCMC[cite:
-                  1].
-                </p>
-              </div>
-            </div>
-
-            {quotations.length === 0 ? (
-              <div className="text-center py-10 space-y-3">
-                <FileText className="w-10 h-10 text-slate-600 mx-auto" />
-                <p className="text-xs text-slate-300">
-                  No quotation requests logged yet.
-                </p>
-                {isB2BActive && (
-                  <button
-                    onClick={() => setIsRfqModalOpen(true)}
-                    className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold"
-                  >
-                    Submit Your First RFQ
-                  </button>
+                {rfq.estimatedTotal && (
+                  <div className="pt-2 border-t border-[#D9E2EA] flex items-center justify-between text-xs">
+                    <span className="text-emerald-700 font-semibold">
+                      {rfq.gstBreakdown}
+                    </span>
+                    <span className="font-mono text-[#173885] font-black text-sm">
+                      ₹{rfq.estimatedTotal} Estimated
+                    </span>
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="space-y-3">
-                {quotations.map((q) => (
-                  <div
-                    key={q.id}
-                    className="premium-card p-4 rounded-2xl space-y-3 border border-white/5"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-                      <div>
-                        <span className="text-[10px] font-mono text-amber-400 font-bold">
-                          {q.id}
-                        </span>
-                        <h4 className="text-xs font-bold text-white">
-                          {q.projectName}
-                        </h4>
-                      </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 self-start sm:self-auto">
-                        {q.status.replace(/_/g, " ")}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">
-                          Product
-                        </span>
-                        <span className="font-semibold text-white">
-                          {q.productName}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">
-                          Quantity
-                        </span>
-                        <span className="font-semibold text-amber-300">
-                          {q.quantity} units
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">
-                          Site Location
-                        </span>
-                        <span className="font-semibold text-white">
-                          {q.siteLocation}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block">
-                          Estimated Cost
-                        </span>
-                        <span className="font-mono text-white font-bold">
-                          {q.estimatedTotal
-                            ? `₹${q.estimatedTotal}`
-                            : "Pending Quote"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {q.notes && (
-                      <p className="text-[11px] text-slate-400 bg-[#070e1a] p-2.5 rounded-xl border border-white/5">
-                        <strong className="text-slate-300">Spec Note: </strong>
-                        {q.notes}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            ))
+          )}
         </div>
       </div>
-
-      {/* RFQ Creation Modal */}
-      {isRfqModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0a1424] border border-white/10 w-full max-w-lg p-6 sm:p-8 rounded-3xl relative shadow-2xl">
-            <button
-              onClick={() => setIsRfqModalOpen(false)}
-              className="absolute top-5 right-5 text-slate-400 hover:text-white"
-            >
-              ✕
-            </button>
-
-            <h3 className="text-lg font-black text-white mb-1">
-              New Commercial RFQ (Bulk Quote)
-            </h3>
-            <p className="text-xs text-slate-400 mb-5">
-              Direct factory procurement for estate gates & architectural
-              hardware[cite: 1].
-            </p>
-
-            <form onSubmit={handleSubmitRfq} className="space-y-3.5">
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Project / Site Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Pune CyberCity Gate Automated Access"
-                  value={rfqForm.projectName}
-                  onChange={(e) =>
-                    setRfqForm({ ...rfqForm, projectName: e.target.value })
-                  }
-                  className="w-full premium-input px-3.5 py-2.5 rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Select Hardware Item
-                  </label>
-                  <select
-                    value={rfqForm.productId}
-                    onChange={(e) =>
-                      setRfqForm({ ...rfqForm, productId: e.target.value })
-                    }
-                    className="w-full premium-input px-3 py-2 rounded-xl text-xs font-semibold"
-                  >
-                    {PRODUCTS_DATA.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">
-                    Required Quantity (Units) *
-                  </label>
-                  <input
-                    type="number"
-                    min={5}
-                    required
-                    value={rfqForm.quantity}
-                    onChange={(e) =>
-                      setRfqForm({ ...rfqForm, quantity: e.target.value })
-                    }
-                    className="w-full premium-input px-3.5 py-2 rounded-xl text-xs font-mono font-bold"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Delivery Destination / Site (Pune / PCMC) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Baner / Balewadi Road, Pune - 411045"
-                  value={rfqForm.siteLocation}
-                  onChange={(e) =>
-                    setRfqForm({ ...rfqForm, siteLocation: e.target.value })
-                  }
-                  className="w-full premium-input px-3.5 py-2.5 rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">
-                  Technical Specs & Notes
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Include motor arm linkages, heavy duty bolts, or custom dimensions required..."
-                  value={rfqForm.notes}
-                  onChange={(e) =>
-                    setRfqForm({ ...rfqForm, notes: e.target.value })
-                  }
-                  className="w-full premium-input p-3 rounded-xl text-xs"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsRfqModalOpen(false)}
-                  className="flex-1 premium-card py-2.5 rounded-xl text-xs font-bold text-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingRfq}
-                  className="flex-1 gold-gradient-btn py-2.5 rounded-xl text-xs font-bold"
-                >
-                  {isSubmittingRfq ? "Submitting..." : "Send RFQ to Vendors"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -34,72 +34,68 @@ function AppContent() {
   const { authModalRequired, closeAuthModal } = useWishlist();
 
   return (
-    <div className="min-h-screen bg-city-pattern bg-cover bg-center bg-fixed text-slate-100 flex flex-col relative font-sans">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#050b14]/90 via-[#0a1424]/92 to-[#050b14]/96 z-0 pointer-events-none" />
+    <div className="min-h-screen bg-[#F4F6FA] text-[#282926] flex flex-col relative font-sans">
+      <Header
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+      />
 
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <Header
-          onOpenAuth={() => setIsAuthOpen(true)}
-          onOpenCart={() => setIsCartOpen(true)}
-        />
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<CustomerHome />} />
+          <Route path="/products" element={<ProductListing />} />
+          <Route path="/products/:slug" element={<ProductDetails />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
 
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<CustomerHome />} />
-            <Route path="/products" element={<ProductListing />} />
-            <Route path="/products/:slug" element={<ProductDetails />} />
-            <Route path="/search" element={<SearchResults />} />
-            <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
+          {/* Customer Account Sub-Routes */}
+          <Route path="/account" element={<Account />} />
+          <Route path="/account/wishlist" element={<AccountWishlist />} />
+          <Route path="/account/b2b" element={<B2BQuotations />} />
+          <Route path="/account/addresses" element={<Addresses />} />
+          <Route path="/account/orders" element={<Orders />} />
+          <Route path="/account/orders/:id" element={<OrderDetails />} />
+          <Route path="/account/notifications" element={<Notifications />} />
+          <Route path="/account/reviews" element={<CustomerReviews />} />
+          <Route path="/account/preferences" element={<Preferences />} />
 
-            {/* Customer Account Sub-Routes */}
-            <Route path="/account" element={<Account />} />
-            <Route path="/account/wishlist" element={<AccountWishlist />} />
-            <Route path="/account/b2b" element={<B2BQuotations />} />
-            <Route path="/account/addresses" element={<Addresses />} />
-            <Route path="/account/orders" element={<Orders />} />
-            <Route path="/account/orders/:id" element={<OrderDetails />} />
-            <Route path="/account/notifications" element={<Notifications />} />
-            <Route path="/account/reviews" element={<CustomerReviews />} />
-            <Route path="/account/preferences" element={<Preferences />} />
-
-            {/* Vendor & Admin Placeholders (Preserved without breakage) */}
-            <Route
-              path="/seller"
-              element={
-                <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                  <div className="premium-panel p-8 rounded-3xl">
-                    <h2 className="text-2xl font-bold mb-2">
-                      GateMate Stockist & Vendor Hub
-                    </h2>
-                    <p className="text-slate-400 text-sm">
-                      Listing workflows & depot metrics.
-                    </p>
-                  </div>
+          {/* Vendor & Admin Portals */}
+          <Route
+            path="/seller"
+            element={
+              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+                <div className="gm-panel p-8 rounded-3xl">
+                  <h2 className="text-2xl font-bold text-[#173885] mb-2">
+                    GateMate Stockist & Vendor Hub
+                  </h2>
+                  <p className="text-[#606460] text-sm">
+                    Listing workflows & depot metrics.
+                  </p>
                 </div>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                  <div className="premium-panel p-8 rounded-3xl">
-                    <h2 className="text-2xl font-bold mb-2">
-                      GateMate Admin Portal
-                    </h2>
-                    <p className="text-slate-400 text-sm">
-                      Platform oversight, dispatch zones, & catalogue controls.
-                    </p>
-                  </div>
+              </div>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+                <div className="gm-panel p-8 rounded-3xl">
+                  <h2 className="text-2xl font-bold text-[#173885] mb-2">
+                    GateMate Admin Portal
+                  </h2>
+                  <p className="text-[#606460] text-sm">
+                    Platform oversight, dispatch zones, & catalogue controls.
+                  </p>
                 </div>
-              }
-            />
-          </Routes>
-        </main>
+              </div>
+            }
+          />
+        </Routes>
+      </main>
 
-        <Footer />
-      </div>
+      <Footer />
 
       {/* Global Mobile Bottom Navigation Bar */}
       <MobileBottomNav
