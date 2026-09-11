@@ -9,6 +9,7 @@ import {
   User,
   Bell,
   X,
+  Store,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
@@ -50,7 +51,7 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FEFEFE]/95 border-b border-[#D9E2EA] px-3 sm:px-6 md:px-8 py-3 shadow-xs backdrop-blur-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* GateMate Text Wordmark (No artificial/Gemini icon) */}
+        {/* GateMate Text Wordmark */}
         <Link
           to="/"
           className="flex flex-col select-none shrink-0"
@@ -104,6 +105,15 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
             Catalogue
           </Link>
 
+          {/* Vendor Portal Direct Link */}
+          <Link
+            to="/sell"
+            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-[#173885] bg-[#E4EEF3] hover:bg-[#D9E2EA] border border-[#9AAED4]/40 transition"
+          >
+            <Store className="w-3.5 h-3.5 text-[#3C7DDA]" />
+            <span>Become a Vendor</span>
+          </Link>
+
           {/* Wishlist */}
           <Link
             to={user ? "/account/wishlist" : "/wishlist"}
@@ -135,7 +145,7 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
             )}
           </button>
 
-          {/* User Auth & Profile Controls */}
+          {/* Customer Auth & Profile */}
           {user ? (
             <div className="flex items-center gap-1.5">
               <Link

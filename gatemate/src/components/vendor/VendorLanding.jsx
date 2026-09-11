@@ -12,8 +12,7 @@ import {
   ShoppingCart,
   FileCheck2,
   Check,
-  Clock,
-  TrendingUp,
+  LogIn,
 } from "lucide-react";
 import { VendorPublicHeader } from "./VendorPublicHeader";
 import { Footer } from "../Footer";
@@ -28,7 +27,7 @@ export const VendorLanding = () => {
     },
     {
       title: "Real-Time Inventory Management",
-      desc: "Update live warehouse and depot stock counts, set Minimum Order Quantities (MOQ), and instantly toggle product availability for customer checkout.",
+      desc: "Update live warehouse and depot stock counts, set Minimum Order Quantities (MOQ), and toggle product availability for customer checkout.",
       icon: FileCheck2,
     },
     {
@@ -88,7 +87,7 @@ export const VendorLanding = () => {
       <VendorPublicHeader />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-16">
-        {/* 1. Hero Section */}
+        {/* 1. Hero Section with Connected Register & Sign In Buttons */}
         <div className="text-center space-y-5 max-w-4xl mx-auto">
           <span className="badge-gm-info px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
             Hyperlocal Construction Products Marketplace
@@ -105,6 +104,7 @@ export const VendorLanding = () => {
           </p>
 
           <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            {/* Connected Register Button */}
             <Link
               to="/vendor/onboarding"
               className="w-full sm:w-auto btn-gm-primary px-8 py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md transition active:scale-98"
@@ -113,11 +113,13 @@ export const VendorLanding = () => {
               <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
             </Link>
 
+            {/* Connected Vendor Sign In Button */}
             <Link
-              to="/vendor/guidelines"
+              to="/vendor/login"
               className="w-full sm:w-auto btn-gm-secondary px-6 py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
             >
-              <span>Review Vendor Guidelines</span>
+              <LogIn className="w-4 h-4 text-[#173885]" />
+              <span>Sign In to Vendor Terminal</span>
             </Link>
           </div>
         </div>

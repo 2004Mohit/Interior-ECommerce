@@ -1,235 +1,649 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { vendorService } from "../../services/vendorService";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import {
+  ArrowLeft,
+  Upload,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Send,
+  Save,
+  Info,
+  Package,
+  Image as ImageIcon,
+} from "lucide-react";
+import { useVendorAuth } from "../../context/VendorAuthContext";
+import {
+  vendorProductService,
+  PRODUCT_APPROVAL_STATUS,
+} from "../../services/vendorProductService";
 import { CATALOGUE_CATEGORIES } from "../../data/categories";
+import {
+  CONSTRUCTION_UNITS,
+  getRecommendedUnitsForCategory,
+} from "../../data/constructionUnits";
+import { SeoHead } from "../common/SeoHead";
 
 export const VendorProductForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { vendorUser } = useVendorAuth();
   const isEditing = Boolean(id && id !== "new");
 
   const [formData, setFormData] = useState({
     name: "",
     brand: "",
-    category: "Cement",
     categorySlug: "cement",
-    unit: "Bag",
+    category: "Cement",
+    unit: "bag",
     sku: "",
-    price: 350,
-    originalPrice: 400,
-    stock: 100,
-    moq: 10,
-    isExpress30MinAvailable: true,
+    price: "",
+    originalPrice: "",
+    stock: "",
+    moq: "1",
     description: "",
-    img: "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=800&q=80",
+    features: "",
+    images: [],
+    status: PRODUCT_APPROVAL_STATUS.DRAFT,
   });
 
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(isEditing);
+  const [savingAction, setSavingAction] = useState(null); // 'draft' | 'submit'
+  const [formError, setFormError] = useState(null);
+  const [successNotice, setSuccessNotice] = useState(null);
+  const [imageUploadError, setImageUploadError] = useState(null);
 
   useEffect(() => {
     if (isEditing) {
-      vendorService.getProductById(id).then((prod) => {
-        if (prod) setFormData(prod);
-      });
+      vendorProductService
+        .getVendorProductById(vendorUser?.id || "vnd-pune-001", id)
+        .then((prod) => {
+          if (prod) {
+            setFormData({
+              ...prod,
+              price: String(prod.price || ""),
+              originalPrice: String(prod.originalPrice || ""),
+              stock: String(prod.stock !== undefined ? prod.stock : ""),
+              moq: String(prod.moq || "1"),
+              features: Array.isArray(prod.features)
+                ? prod.features.join("\n")
+                : prod.features || "",
+              images: prod.images || (prod.img ? [prod.img] : []),
+            });
+          }
+          setLoading(false);
+        });
     }
-  }, [id, isEditing]);
+  }, [id, isEditing, vendorUser]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    await vendorService.saveProduct(formData);
-    navigate("/vendor/products");
+  const availableUnits = getRecommendedUnitsForCategory(formData.categorySlug);
+
+  const handleCategoryChange = (e) => {
+    const slug = e.target.value;
+    const match = CATALOGUE_CATEGORIES.find((c) => c.slug === slug);
+    const recommended = getRecommendedUnitsForCategory(slug);
+
+    setFormData((prev) => ({
+      ...prev,
+      categorySlug: slug,
+      category: match?.name || slug,
+      unit: recommended[0]?.value || prev.unit,
+    }));
   };
 
+  const handleImageFileAdd = (e) => {
+    setImageUploadError(null);
+    const files = Array.from(e.target.files || []);
+    if (files.length + formData.images.length > 5) {
+      setImageUploadError("Maximum 5 product images allowed per listing.");
+      return;
+    }
+
+    files.forEach((file) => {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        setImageUploadError(
+          "Only PNG, JPG, or WebP product images are supported.",
+        );
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setImageUploadError("Image size exceeds 5MB limit.");
+        return;
+      }
+
+      const localUrl = URL.createObjectURL(file);
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, localUrl],
+      }));
+    });
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
+  const validateProductPayload = (isSubmittingForReview = false) => {
+    setFormError(null);
+
+    if (!formData.name.trim() || formData.name.trim().length < 5) {
+      return "Please provide a clear product name (at least 5 characters).";
+    }
+
+    if (!formData.brand.trim()) {
+      return "Please enter the product manufacturer or brand name.";
+    }
+
+    if (!formData.categorySlug) {
+      return "Please select a valid construction product category.";
+    }
+
+    if (!formData.unit) {
+      return "Please select an appropriate unit of supply.";
+    }
+
+    const numPrice = Number(formData.price);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      return "Please enter a valid positive unit selling price (₹).";
+    }
+
+    if (formData.originalPrice) {
+      const numOriginal = Number(formData.originalPrice);
+      if (isNaN(numOriginal) || numOriginal < numPrice) {
+        return "MRP / Strikethrough price cannot be lower than the selling price.";
+      }
+    }
+
+    const numStock = Number(formData.stock);
+    if (isNaN(numStock) || numStock < 0 || !Number.isInteger(numStock)) {
+      return "Please enter a valid available stock quantity (0 or positive whole number).";
+    }
+
+    const numMoq = Number(formData.moq);
+    if (isNaN(numMoq) || numMoq < 1 || !Number.isInteger(numMoq)) {
+      return "Minimum Order Quantity (MOQ) must be at least 1 unit.";
+    }
+
+    if (
+      !formData.description.trim() ||
+      formData.description.trim().length < 15
+    ) {
+      return "Please enter a product description (at least 15 characters).";
+    }
+
+    // Required images rule when submitting for review
+    if (isSubmittingForReview && formData.images.length === 0) {
+      return "At least 1 product photograph is required to submit for Admin Review.";
+    }
+
+    return null;
+  };
+
+  const handleSave = async (isSubmitAction) => {
+    const error = validateProductPayload(isSubmitAction);
+    if (error) {
+      setFormError(error);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setSavingAction(isSubmitAction ? "submit" : "draft");
+    setFormError(null);
+
+    const featureList = formData.features
+      .split("\n")
+      .map((f) => f.trim())
+      .filter(Boolean);
+
+    const payload = {
+      ...formData,
+      price: Number(formData.price),
+      originalPrice: formData.originalPrice
+        ? Number(formData.originalPrice)
+        : null,
+      stock: Number(formData.stock),
+      moq: Number(formData.moq),
+      features: featureList,
+      img:
+        formData.images[0] ||
+        "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=800&q=80",
+      images:
+        formData.images.length > 0
+          ? formData.images
+          : [
+              "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=800&q=80",
+            ],
+    };
+
+    const vendorId = vendorUser?.id || "vnd-pune-001";
+
+    try {
+      if (isSubmitAction) {
+        await vendorProductService.submitProductForReview(vendorId, payload);
+        setSuccessNotice(
+          "Product submitted successfully for Admin Review. Direct publishing is disabled.",
+        );
+      } else {
+        await vendorProductService.saveProductDraft(vendorId, payload);
+        setSuccessNotice(
+          "Product saved as Draft. You can edit and submit it for review whenever ready.",
+        );
+      }
+
+      setTimeout(() => {
+        navigate("/vendor/products");
+      }, 1200);
+    } catch (err) {
+      setFormError(err.message || "Failed to save product.");
+    } finally {
+      setSavingAction(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 space-y-4 animate-pulse">
+        <div className="h-6 bg-[#E4EEF3] rounded w-1/3" />
+        <div className="h-64 bg-[#FEFEFE] rounded-3xl border border-[#D9E2EA]" />
+      </div>
+    );
+  }
+
+  const isOutOfStock = Number(formData.stock) === 0;
+
   return (
-    <div className="max-w-3xl mx-auto py-6 space-y-6">
-      <div className="border-b border-[#D9E2EA] pb-4">
-        <h1 className="text-2xl font-black text-[#173885]">
-          {isEditing
-            ? "Edit Construction Product"
-            : "Add New Construction Product"}
-        </h1>
-        <p className="text-xs text-[#606460]">
-          Configure technical specifications, unit prices, and MOQ.
-        </p>
+    <div className="max-w-4xl mx-auto py-6 space-y-6 pb-24">
+      <SeoHead
+        title={`${isEditing ? "Edit Product" : "Add New Product"} | GateMate Vendor Portal`}
+        description="Add construction products with technical attributes, units of supply, MOQ, and batch imagery."
+        canonicalUrl="/vendor/products/new"
+        noIndex={true}
+      />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D9E2EA] pb-4">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/vendor/products"
+            className="p-2 rounded-xl bg-[#FEFEFE] border border-[#D9E2EA] text-[#606460] hover:text-[#173885] hover:bg-[#E4EEF3] transition"
+            aria-label="Back to products list"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div>
+            <span className="badge-gm-info px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+              Product Workflow
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black text-[#173885] mt-0.5">
+              {isEditing
+                ? "Edit Construction Product"
+                : "Add New Construction Product"}
+            </h1>
+          </div>
+        </div>
+
+        <span className="text-xs text-[#6F8A92] self-start sm:self-auto">
+          Status: <strong className="text-[#173885]">{formData.status}</strong>
+        </span>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="gm-panel p-6 sm:p-8 rounded-3xl space-y-4"
-      >
-        <div>
-          <label className="text-xs font-semibold text-[#282926] block mb-1">
-            Product Title *
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g. UltraTech Super Weather-Shield PPC Cement (50 kg Bag)"
-            className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
-          />
+      {/* Alerts */}
+      {formError && (
+        <div className="p-3.5 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-[#B43D20] shrink-0" />
+          <span>{formError}</span>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              Brand *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.brand}
-              onChange={(e) =>
-                setFormData({ ...formData, brand: e.target.value })
-              }
-              placeholder="e.g. UltraTech"
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
-            />
+      {successNotice && (
+        <div className="p-3.5 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#3F7D20] shrink-0" />
+          <span>{successNotice}</span>
+        </div>
+      )}
+
+      {/* Approval Notice */}
+      <div className="p-4 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40 text-xs text-[#173885] flex items-start gap-2.5">
+        <Info className="w-4 h-4 text-[#3C7DDA] shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <strong className="font-bold">Admin Review Policy:</strong>
+          <p className="text-[11px] text-[#606460] leading-relaxed">
+            All newly submitted products and price revisions are verified by the
+            GateMate reviewer team to confirm primary grade compliance before
+            going live to customers.
+          </p>
+        </div>
+      </div>
+
+      {/* Main Form */}
+      <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-6">
+        {/* 1. Identification & Category */}
+        <div className="space-y-4">
+          <h2 className="text-sm font-bold text-[#173885] border-b border-[#D9E2EA] pb-2">
+            1. Product Information & Category
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                Product Title *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. UltraTech Super Weather-Shield PPC Cement (50 kg Bag)"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                Brand / Manufacturer *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. UltraTech, Tata Tiscon, Astral"
+                value={formData.brand}
+                onChange={(e) =>
+                  setFormData({ ...formData, brand: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              Product Category *
-            </label>
-            <select
-              value={formData.category}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  category: e.target.value,
-                  categorySlug: e.target.value
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-"),
-                })
-              }
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                Product Category *
+              </label>
+              <select
+                value={formData.categorySlug}
+                onChange={handleCategoryChange}
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-bold"
+              >
+                {CATALOGUE_CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.slug}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                Unit of Supply *
+              </label>
+              <select
+                value={formData.unit}
+                onChange={(e) =>
+                  setFormData({ ...formData, unit: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-bold"
+              >
+                {availableUnits.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                Depot SKU / Batch ID (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. ULT-PPC-50KG"
+                value={formData.sku}
+                onChange={(e) =>
+                  setFormData({ ...formData, sku: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Pricing, Stock & Minimum Order Quantity */}
+        <div className="space-y-4 pt-2">
+          <h2 className="text-sm font-bold text-[#173885] border-b border-[#D9E2EA] pb-2">
+            2. Pricing, Inventory & Minimum Order Quantity (MOQ)
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                Selling Price per Unit (₹) *
+              </label>
+              <input
+                type="number"
+                required
+                min={1}
+                step="any"
+                placeholder="385"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                MRP / Original (₹)
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="any"
+                placeholder="420"
+                value={formData.originalPrice}
+                onChange={(e) =>
+                  setFormData({ ...formData, originalPrice: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                Available Quantity ({formData.unit}) *
+              </label>
+              <input
+                type="number"
+                required
+                min={0}
+                placeholder="500"
+                value={formData.stock}
+                onChange={(e) =>
+                  setFormData({ ...formData, stock: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[#282926] block mb-1">
+                MOQ ({formData.unit}s) *
+              </label>
+              <input
+                type="number"
+                required
+                min={1}
+                placeholder="10"
+                value={formData.moq}
+                onChange={(e) =>
+                  setFormData({ ...formData, moq: e.target.value })
+                }
+                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+              />
+            </div>
+          </div>
+
+          {/* Computed Stock Status Pill */}
+          <div className="flex items-center justify-between text-xs p-3 rounded-xl bg-[#F4F6FA] border border-[#D9E2EA]">
+            <span className="text-[#606460]">Stock Status Indicator:</span>
+            <span
+              className={`px-3 py-0.5 rounded-full font-bold text-[10px] ${
+                isOutOfStock
+                  ? "bg-[#FBE3DE] text-[#B43D20]"
+                  : "bg-[#E1F2D9] text-[#3F7D20]"
+              }`}
             >
-              {CATALOGUE_CATEGORIES.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              {isOutOfStock
+                ? "Out of Stock (Zero Quantity)"
+                : "In Stock & Available for Checkout"}
+            </span>
+          </div>
+        </div>
+
+        {/* 3. Description & Key Specifications */}
+        <div className="space-y-4 pt-2">
+          <h2 className="text-sm font-bold text-[#173885] border-b border-[#D9E2EA] pb-2">
+            3. Product Description & Specifications
+          </h2>
+
+          <div>
+            <label className="text-xs font-bold text-[#282926] block mb-1">
+              Product Description *
+            </label>
+            <textarea
+              rows={3}
+              required
+              placeholder="Provide technical details, grade, standard compliance (e.g. IS 1489 Part 1), setting times, and application notes..."
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              className="w-full gm-input p-3 rounded-xl text-xs leading-relaxed"
+            />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              Unit of Supply *
+            <label className="text-xs font-bold text-[#282926] block mb-1">
+              Key Features (One specification per line)
             </label>
-            <input
-              type="text"
-              required
-              value={formData.unit}
+            <textarea
+              rows={3}
+              placeholder="IS 1489 Part 1 Certified&#10;Micro-fine particle grade&#10;50 kg tamper-proof packing"
+              value={formData.features}
               onChange={(e) =>
-                setFormData({ ...formData, unit: e.target.value })
+                setFormData({ ...formData, features: e.target.value })
               }
-              placeholder="e.g. Bag, Piece, Brass"
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+              className="w-full gm-input p-3 rounded-xl text-xs leading-relaxed font-mono"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              Unit Price (₹) *
-            </label>
-            <input
-              type="number"
-              required
-              min={1}
-              value={formData.price}
-              onChange={(e) =>
-                setFormData({ ...formData, price: Number(e.target.value) })
-              }
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
-            />
+        {/* 4. Product Images */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-2">
+            <h2 className="text-sm font-bold text-[#173885]">
+              4. Product Photographs
+            </h2>
+            <span className="text-[11px] text-[#6F8A92]">
+              {formData.images.length} / 5 uploaded
+            </span>
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              MRP / Strikethrough
-            </label>
-            <input
-              type="number"
-              value={formData.originalPrice}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  originalPrice: Number(e.target.value),
-                })
-              }
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono"
-            />
-          </div>
+          {imageUploadError && (
+            <div className="p-3 rounded-xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs">
+              {imageUploadError}
+            </div>
+          )}
 
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              Available Stock *
-            </label>
-            <input
-              type="number"
-              required
-              min={0}
-              value={formData.stock}
-              onChange={(e) =>
-                setFormData({ ...formData, stock: Number(e.target.value) })
-              }
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono"
-            />
-          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {formData.images.map((imgUrl, idx) => (
+              <div
+                key={idx}
+                className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#D9E2EA] bg-[#F4F6FA]"
+              >
+                <img
+                  src={imgUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(idx)}
+                  className="absolute top-1 right-1 p-1 rounded-lg bg-[#173885]/80 text-[#FEFEFE] hover:bg-[#B43D20] transition"
+                  aria-label="Remove image"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+                {idx === 0 && (
+                  <span className="absolute bottom-1 left-1 right-1 text-center bg-[#173885]/90 text-[#FEFEFE] text-[8px] font-bold py-0.5 rounded">
+                    Primary Cover
+                  </span>
+                )}
+              </div>
+            ))}
 
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              MOQ *
-            </label>
-            <input
-              type="number"
-              required
-              min={1}
-              value={formData.moq}
-              onChange={(e) =>
-                setFormData({ ...formData, moq: Number(e.target.value) })
-              }
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono"
-            />
+            {formData.images.length < 5 && (
+              <label className="w-24 h-24 rounded-2xl border-2 border-dashed border-[#D9E2EA] hover:border-[#3C7DDA] flex flex-col items-center justify-center text-[#6F8A92] hover:text-[#3C7DDA] cursor-pointer transition bg-[#F4F6FA]">
+                <Upload className="w-5 h-5 mb-1" />
+                <span className="text-[10px] font-bold">Add Photo</span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleImageFileAdd}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-semibold text-[#282926] block mb-1">
-            Product Description *
-          </label>
-          <textarea
-            rows={3}
-            required
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            className="w-full gm-input p-3 rounded-xl text-xs"
-          />
-        </div>
-
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => navigate("/vendor/products")}
-            className="flex-1 btn-gm-secondary py-2.5 rounded-xl text-xs font-bold"
+        {/* Action Buttons */}
+        <div className="pt-6 border-t border-[#D9E2EA] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <Link
+            to="/vendor/products"
+            className="w-full sm:w-auto btn-gm-secondary px-5 py-2.5 rounded-xl text-xs font-bold text-center"
           >
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 btn-gm-primary py-2.5 rounded-xl text-xs font-bold"
-          >
-            {saving ? "Saving..." : "Save Product"}
-          </button>
+          </Link>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <button
+              type="button"
+              disabled={Boolean(savingAction)}
+              onClick={() => handleSave(false)}
+              className="w-full sm:w-auto btn-gm-secondary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              <Save className="w-3.5 h-3.5 text-[#173885]" />
+              <span>
+                {savingAction === "draft" ? "Saving Draft..." : "Save as Draft"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              disabled={Boolean(savingAction)}
+              onClick={() => handleSave(true)}
+              className="w-full sm:w-auto btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5 text-[#FEFEFE]" />
+              <span>
+                {savingAction === "submit"
+                  ? "Submitting..."
+                  : "Submit for Admin Review"}
+              </span>
+            </button>
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

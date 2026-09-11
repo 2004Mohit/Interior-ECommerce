@@ -135,10 +135,10 @@ export const VendorBenefits = () => {
         {/* Bottom Onboarding CTA */}
         <div className="gm-panel p-8 sm:p-10 rounded-3xl border border-[#D9E2EA] bg-[#173885] text-[#FEFEFE] flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1.5 text-center md:text-left">
-            <h2 className="text-2xl font-black text-[#FEFEFE]">
+            <h2 className="text-2xl font-black text-[#120d0d]">
               Ready to Partner with GateMate?
             </h2>
-            <p className="text-xs text-[#A5D6FA] max-w-xl">
+            <p className="text-xs text-[#143291] max-w-xl">
               Register your building supply depot today and start listing your
               construction products for local site dispatches.
             </p>

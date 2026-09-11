@@ -1,16 +1,69 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bell, User, Menu, ShieldCheck, Zap, LogOut } from "lucide-react";
+import {
+  Bell,
+  User,
+  Menu,
+  ShieldCheck,
+  Zap,
+  LogOut,
+  ShieldAlert,
+  Clock,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { vendorService } from "../../services/vendorService";
+import {
+  vendorOnboardingService,
+  VENDOR_APPLICATION_STATUS,
+} from "../../services/vendorOnboardingService";
 
 export const VendorHeader = ({ onOpenMobileNav }) => {
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [appStatus, setAppStatus] = useState(null);
 
   useEffect(() => {
-    vendorService.getProfile(user?.id).then(setProfile);
+    if (user?.id) {
+      vendorService.getProfile(user.id).then(setProfile);
+      vendorOnboardingService.getApplication(user.id).then((app) => {
+        setAppStatus(app?.status);
+      });
+    }
   }, [user]);
+
+  const getStatusBadge = () => {
+    if (appStatus === VENDOR_APPLICATION_STATUS.APPROVED) {
+      return (
+        <span className="badge-gm-success px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 font-bold">
+          <ShieldCheck className="w-3 h-3" /> Approved Partner
+        </span>
+      );
+    }
+    if (
+      appStatus === VENDOR_APPLICATION_STATUS.SUBMITTED ||
+      appStatus === VENDOR_APPLICATION_STATUS.UNDER_REVIEW
+    ) {
+      return (
+        <Link
+          to="/vendor/verification"
+          className="bg-[#E3EBFA] text-[#173885] border border-[#2E4D94]/30 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 font-bold hover:underline"
+        >
+          <Clock className="w-3 h-3 text-[#3C7DDA]" /> Under Review
+        </Link>
+      );
+    }
+    if (appStatus === VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED) {
+      return (
+        <Link
+          to="/vendor/verification"
+          className="bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 font-bold hover:underline"
+        >
+          <ShieldAlert className="w-3 h-3" /> Changes Requested
+        </Link>
+      );
+    }
+    return null;
+  };
 
   return (
     <header className="sticky top-0 z-30 w-full bg-[#FEFEFE]/95 border-b border-[#D9E2EA] px-4 sm:px-6 py-3 shadow-xs backdrop-blur-md">
@@ -27,9 +80,12 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
           </button>
 
           <div className="hidden sm:block">
-            <h1 className="text-sm font-bold text-[#173885]">
-              {profile?.businessName || "GateMate Vendor Portal"}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-bold text-[#173885]">
+                {profile?.businessName || "GateMate Vendor Portal"}
+              </h1>
+              {getStatusBadge()}
+            </div>
             <p className="text-[11px] text-[#606460]">
               Pune & PCMC Verified Stockist Terminal
             </p>

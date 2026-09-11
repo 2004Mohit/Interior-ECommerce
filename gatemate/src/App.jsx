@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { VendorAuthProvider } from "./context/VendorAuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider, useWishlist } from "./context/WishlistContext";
 
@@ -33,9 +34,11 @@ import { B2BQuotations } from "./components/customer/B2BQuotations";
 import { VendorLayout } from "./components/vendor/VendorLayout";
 import { VendorProtectedRoute } from "./components/vendor/VendorProtectedRoute";
 import { VendorLanding } from "./components/vendor/VendorLanding";
+import { VendorLogin } from "./components/vendor/VendorLogin";
 import { VendorGuidelines } from "./components/vendor/VendorGuidelines";
 import { VendorBenefits } from "./components/vendor/VendorBenefits";
 import { VendorOnboarding } from "./components/vendor/VendorOnboarding";
+import { VendorVerificationStatus } from "./components/vendor/VendorVerificationStatus";
 import { VendorDashboard } from "./components/vendor/VendorDashboard";
 import { VendorProducts } from "./components/vendor/VendorProducts";
 import { VendorProductForm } from "./components/vendor/VendorProductForm";
@@ -50,6 +53,9 @@ import { VendorSettlements } from "./components/vendor/VendorSettlements";
 import { VendorReviews } from "./components/vendor/VendorReviews";
 import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
+
+// Admin Review Console
+import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
 
 function CustomerAppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -84,20 +90,17 @@ function CustomerAppContent() {
           <Route path="/account/reviews" element={<CustomerReviews />} />
           <Route path="/account/preferences" element={<Preferences />} />
 
-          {/* Legacy seller alias redirect to /sell */}
           <Route path="/seller" element={<Navigate to="/sell" replace />} />
         </Routes>
       </main>
 
       <Footer />
 
-      {/* Global Mobile Bottom Navigation Bar */}
       <MobileBottomNav
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
       />
 
-      {/* Drawer & Modal Overlays */}
       <CheckoutDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
@@ -123,47 +126,70 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <Routes>
-              {/* Public Vendor Entry Pages */}
-              <Route path="/sell" element={<VendorLanding />} />
-              <Route path="/vendor" element={<VendorLanding />} />
-              <Route path="/vendor/guidelines" element={<VendorGuidelines />} />
-              <Route path="/vendor/benefits" element={<VendorBenefits />} />
+        <VendorAuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <Routes>
+                {/* Public Vendor Entry Pages */}
+                <Route path="/sell" element={<VendorLanding />} />
+                <Route path="/vendor" element={<VendorLanding />} />
+                <Route path="/vendor/login" element={<VendorLogin />} />
+                <Route
+                  path="/vendor/guidelines"
+                  element={<VendorGuidelines />}
+                />
+                <Route path="/vendor/benefits" element={<VendorBenefits />} />
+                <Route
+                  path="/vendor/onboarding"
+                  element={<VendorOnboarding />}
+                />
+                <Route
+                  path="/vendor/verification"
+                  element={<VendorVerificationStatus />}
+                />
 
-              {/* Vendor Onboarding & Protected Terminal Sub-Routes */}
-              <Route
-                path="/vendor"
-                element={
-                  <VendorProtectedRoute>
-                    <VendorLayout />
-                  </VendorProtectedRoute>
-                }
-              >
-                <Route path="onboarding" element={<VendorOnboarding />} />
-                <Route path="dashboard" element={<VendorDashboard />} />
-                <Route path="products" element={<VendorProducts />} />
-                <Route path="products/new" element={<VendorProductForm />} />
-                <Route path="products/:id" element={<VendorProductForm />} />
-                <Route path="inventory" element={<VendorInventory />} />
-                <Route path="orders" element={<VendorOrders />} />
-                <Route path="orders/:id" element={<VendorOrderDetail />} />
-                <Route path="rfqs" element={<VendorRfqs />} />
-                <Route path="rfqs/:id" element={<VendorRfqDetail />} />
-                <Route path="quotations" element={<VendorQuotations />} />
-                <Route path="payments" element={<VendorPayments />} />
-                <Route path="settlements" element={<VendorSettlements />} />
-                <Route path="reviews" element={<VendorReviews />} />
-                <Route path="notifications" element={<VendorNotifications />} />
-                <Route path="profile" element={<VendorProfile />} />
-              </Route>
+                {/* Protected Vendor Operations Terminal */}
+                <Route
+                  path="/vendor"
+                  element={
+                    <VendorProtectedRoute>
+                      <VendorLayout />
+                    </VendorProtectedRoute>
+                  }
+                >
+                  <Route path="dashboard" element={<VendorDashboard />} />
+                  <Route path="products" element={<VendorProducts />} />
+                  <Route path="products/new" element={<VendorProductForm />} />
+                  <Route path="products/:id" element={<VendorProductForm />} />
+                  <Route path="inventory" element={<VendorInventory />} />
+                  <Route path="orders" element={<VendorOrders />} />
+                  <Route path="orders/:id" element={<VendorOrderDetail />} />
+                  <Route path="rfqs" element={<VendorRfqs />} />
+                  <Route path="rfqs/:id" element={<VendorRfqDetail />} />
+                  <Route path="quotations" element={<VendorQuotations />} />
+                  <Route path="payments" element={<VendorPayments />} />
+                  <Route path="settlements" element={<VendorSettlements />} />
+                  <Route path="reviews" element={<VendorReviews />} />
+                  <Route
+                    path="notifications"
+                    element={<VendorNotifications />}
+                  />
+                  <Route path="profile" element={<VendorProfile />} />
+                </Route>
 
-              {/* All other routes render customer experience */}
-              <Route path="/*" element={<CustomerAppContent />} />
-            </Routes>
-          </CartProvider>
-        </WishlistProvider>
+                {/* Admin Console */}
+                <Route path="/admin" element={<AdminVendorReviewPanel />} />
+                <Route
+                  path="/admin/vendor-reviews"
+                  element={<AdminVendorReviewPanel />}
+                />
+
+                {/* Fallback to Customer Experience */}
+                <Route path="/*" element={<CustomerAppContent />} />
+              </Routes>
+            </CartProvider>
+          </WishlistProvider>
+        </VendorAuthProvider>
       </AuthProvider>
     </BrowserRouter>
   );
