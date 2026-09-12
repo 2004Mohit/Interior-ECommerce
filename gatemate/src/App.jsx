@@ -165,6 +165,10 @@ export default function App() {
                   <Route path="products" element={<VendorProducts />} />
                   <Route path="products/new" element={<VendorProductForm />} />
                   <Route path="products/:id" element={<VendorProductForm />} />
+                  <Route
+                    path="products/:id/preview"
+                    element={<VendorProductPreview />}
+                  />
                   <Route path="inventory" element={<VendorInventory />} />
                   <Route path="orders" element={<VendorOrders />} />
                   <Route path="orders/:id" element={<VendorOrderDetail />} />
@@ -195,7 +199,6 @@ export default function App() {
                   path="/admin/product-reviews"
                   element={<AdminProductReviewPanel />}
                 />
-
                 {/* 4. Customer Storefront */}
                 <Route path="/*" element={<CustomerAppContent />} />
               </Routes>

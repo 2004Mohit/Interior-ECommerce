@@ -307,11 +307,13 @@ export const VendorOnboarding = () => {
       );
       setApplication(finalized);
       setSuccessNotice(
-        "Your vendor application has been submitted for verification.",
+        "Your vendor application has been submitted for verification review.",
       );
+
+      // Route directly to the Verification Status Page to show review state
       setTimeout(() => {
-        navigate("/vendor/dashboard");
-      }, 1200);
+        navigate("/vendor/verification");
+      }, 1000);
     } catch (err) {
       setFormError(err.message || "Submission failed. Please try again.");
     } finally {

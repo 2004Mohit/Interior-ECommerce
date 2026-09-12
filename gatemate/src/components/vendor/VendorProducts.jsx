@@ -309,11 +309,9 @@ export const VendorProducts = () => {
 
                         {/* Guest Storefront View Preview */}
                         <Link
-                          to={`/products/${p.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          to={`/vendor/products/${p.id}/preview`}
                           className="btn-gm-secondary p-2 rounded-xl text-xs font-bold inline-flex items-center gap-1 text-[#3C7DDA]"
-                          title="View how product looks to guest customers"
+                          title="Inspect product as seen by guest customers"
                         >
                           <Eye className="w-3.5 h-3.5 text-[#3C7DDA]" />
                           <span className="hidden sm:inline">Guest View</span>

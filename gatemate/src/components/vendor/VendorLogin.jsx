@@ -1,18 +1,27 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Lock, Mail, ArrowRight, AlertCircle, UserPlus } from "lucide-react";
+import {
+  Lock,
+  Mail,
+  ArrowRight,
+  AlertCircle,
+  UserPlus,
+  KeyRound,
+} from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
+import { ForgotPasswordModal } from "../common/ForgotPasswordModal";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorLogin = () => {
   const navigate = useNavigate();
-  const { loginVendor } = useVendorAuth();
+  const { loginVendor, isVendorAuthenticated } = useVendorAuth();
 
   const [email, setEmail] = useState("depot@punemegaconstruct.in");
   const [password, setPassword] = useState("password123");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isNotRegistered, setIsNotRegistered] = useState(false);
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -128,9 +137,18 @@ export const VendorLogin = () => {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[#282926] block mb-1">
-                Terminal Password *
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-bold text-[#282926]">
+                  Terminal Password *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsForgotModalOpen(true)}
+                  className="text-[11px] text-[#3C7DDA] font-semibold hover:underline"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
                 <input
@@ -166,15 +184,28 @@ export const VendorLogin = () => {
                 Register as Vendor
               </Link>
             </span>
-            <span>
-              Looking to purchase?{" "}
-              <Link to="/" className="text-[#173885] font-bold hover:underline">
-                Go to Customer Store
-              </Link>
-            </span>
+
+            {/* Show Customer Store option ONLY if user is NOT logged in as vendor */}
+            {!isVendorAuthenticated && (
+              <span>
+                Looking to purchase?{" "}
+                <Link
+                  to="/"
+                  className="text-[#173885] font-bold hover:underline"
+                >
+                  Go to Customer Store
+                </Link>
+              </span>
+            )}
           </div>
         </div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+        role="VENDOR"
+      />
     </div>
   );
 };

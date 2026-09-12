@@ -435,6 +435,39 @@ export const CustomerHome = () => {
           </Link>
         </div>
       </div>
+      // Inside CustomerHome.jsx
+      {/* VENDOR STOREFRONT ENTRY BANNER - VISIBLE ONLY TO GUEST USERS */}
+      {!user && (
+        <div className="gm-panel p-8 rounded-3xl border border-[#9AAED4]/40 flex flex-col md:flex-row items-center justify-between gap-6 bg-[#FEFEFE]">
+          <div className="space-y-1.5 text-center md:text-left">
+            <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+              Stockist & Dealer Hub
+            </span>
+            <h3 className="text-2xl font-black text-[#173885]">
+              Are you a construction materials vendor or stockist?
+            </h3>
+            <p className="text-xs text-[#606460] max-w-2xl">
+              Register your depot to receive direct site orders, fulfill
+              30-minute priority dispatches, and bid on commercial builder RFQs.
+            </p>
+          </div>
+          <div className="flex gap-3 shrink-0">
+            <Link
+              to="/sell"
+              className="btn-gm-primary px-6 py-3.5 rounded-xl text-xs font-bold flex items-center gap-2"
+            >
+              <span>Sell on GateMate</span>
+              <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
+            </Link>
+            <Link
+              to="/vendor/login"
+              className="btn-gm-secondary px-5 py-3.5 rounded-xl text-xs font-bold"
+            >
+              Vendor Sign In
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
