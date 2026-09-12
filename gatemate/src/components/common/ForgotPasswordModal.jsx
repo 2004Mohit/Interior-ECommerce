@@ -9,65 +9,41 @@ import {
 } from "lucide-react";
 import { passwordRecoveryService } from "../../services/passwordRecoveryService";
 
-export const ForgotPasswordModal = ({
-  isOpen,
-  onClose,
-  role = "CUSTOMER",
-  onResetCompleted,
-}) => {
+export const ForgotPasswordModal = ({ isOpen, onClose, role = "CUSTOMER" }) => {
   const [email, setEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [step, setStep] = useState(1); // 1: Request, 2: New Password Form
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
+  const [sentSuccess, setSentSuccess] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleRequestToken = async (e) => {
+  const handleSendResetEmail = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
       await passwordRecoveryService.requestPasswordReset(email, role);
-      setStep(2);
-      setSuccessMsg(
-        `Reset instructions confirmed for ${email}. Set your new password below.`,
-      );
+      setSentSuccess(true);
     } catch (err) {
-      setError(err.message || "Unable to request password reset.");
+      setError(err.message || "Unable to send password reset email.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdatePassword = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleCloseModal = () => {
+    setSentSuccess(false);
+    setEmail("");
     setError(null);
-    try {
-      await passwordRecoveryService.resetPassword({ email, newPassword, role });
-      setSuccessMsg("Your password has been reset successfully!");
-      setTimeout(() => {
-        onResetCompleted?.();
-        onClose();
-        setStep(1);
-        setEmail("");
-        setNewPassword("");
-        setSuccessMsg(null);
-      }, 1500);
-    } catch (err) {
-      setError(err.message || "Password update failed.");
-    } finally {
-      setLoading(false);
-    }
+    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-[#FEFEFE] border border-[#D9E2EA] w-full max-w-md p-6 sm:p-8 rounded-3xl relative shadow-2xl">
         <button
-          onClick={onClose}
+          onClick={handleCloseModal}
           disabled={loading}
           className="absolute top-5 right-5 text-[#606460] hover:text-[#282926]"
           aria-label="Close modal"
@@ -84,7 +60,8 @@ export const ForgotPasswordModal = ({
           </h3>
         </div>
         <p className="text-xs text-[#606460] mb-4">
-          Enter your registered email address to recover terminal credentials.
+          We will send a secure verification link to your registered email
+          address.
         </p>
 
         {error && (
@@ -94,25 +71,41 @@ export const ForgotPasswordModal = ({
           </div>
         )}
 
-        {successMsg && (
-          <div className="p-3 rounded-xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs mb-4 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#3F7D20] shrink-0" />
-            <span>{successMsg}</span>
-          </div>
-        )}
+        {sentSuccess ? (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 space-y-2">
+              <div className="flex items-center gap-2 text-[#3F7D20] text-xs font-bold">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>Verification Email Dispatched!</span>
+              </div>
+              <p className="text-[11px] text-[#282926] leading-relaxed">
+                We sent a secure password reset link to{" "}
+                <strong className="text-[#173885]">{email}</strong>. Please
+                check your inbox and click the link to verify your identity and
+                set a new password.
+              </p>
+            </div>
 
-        {step === 1 ? (
-          <form onSubmit={handleRequestToken} className="space-y-4">
+            <button
+              type="button"
+              onClick={handleCloseModal}
+              className="w-full btn-gm-primary py-2.5 rounded-xl text-xs font-bold"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSendResetEmail} className="space-y-4">
             <div>
               <label className="text-xs font-bold text-[#282926] block mb-1">
-                Account Email Address *
+                Registered Account Email *
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
                 <input
                   type="email"
                   required
-                  placeholder="your-account@example.com"
+                  placeholder="your-email@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full gm-input pl-10 pr-3.5 py-2.5 rounded-xl text-xs"
@@ -126,37 +119,9 @@ export const ForgotPasswordModal = ({
               className="w-full btn-gm-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
             >
               <span>
-                {loading ? "Sending Request..." : "Continue to Password Reset"}
-              </span>
-              <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div>
-              <label className="text-xs font-bold text-[#282926] block mb-1">
-                Enter New Password *
-              </label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                placeholder="At least 6 characters"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-gm-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs disabled:opacity-50"
-            >
-              <span>
                 {loading
-                  ? "Updating Password..."
-                  : "Save New Password & Sign In"}
+                  ? "Dispatching Email..."
+                  : "Send Verification Email Link"}
               </span>
               <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
             </button>

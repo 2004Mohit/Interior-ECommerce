@@ -2,17 +2,16 @@ import React, { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { VendorAuthProvider } from "./context/VendorAuthContext";
+import { AdminAuthProvider } from "./context/AdminAuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider, useWishlist } from "./context/WishlistContext";
 
-// Customer Components
+// Customer Components & Views
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { MobileBottomNav } from "./components/common/MobileBottomNav";
 import { CheckoutDrawer } from "./components/customer/CheckoutDrawer";
 import { AuthModal } from "./components/AuthModal";
-
-// Customer Views
 import { CustomerHome } from "./components/customer/CustomerHome";
 import { ProductListing } from "./components/customer/ProductListing";
 import { ProductDetails } from "./components/customer/ProductDetails";
@@ -30,6 +29,9 @@ import { Preferences } from "./components/customer/Preferences";
 import { AccountWishlist } from "./components/customer/AccountWishlist";
 import { B2BQuotations } from "./components/customer/B2BQuotations";
 
+// Password Reset Page
+import { ResetPasswordPage } from "./components/common/ResetPasswordPage";
+
 // Vendor Views & Architecture
 import { VendorLayout } from "./components/vendor/VendorLayout";
 import { VendorProtectedRoute } from "./components/vendor/VendorProtectedRoute";
@@ -43,6 +45,7 @@ import { VendorVerificationStatus } from "./components/vendor/VendorVerification
 import { VendorDashboard } from "./components/vendor/VendorDashboard";
 import { VendorProducts } from "./components/vendor/VendorProducts";
 import { VendorProductForm } from "./components/vendor/VendorProductForm";
+import { VendorProductPreview } from "./components/vendor/VendorProductPreview";
 import { VendorInventory } from "./components/vendor/VendorInventory";
 import { VendorOrders } from "./components/vendor/VendorOrders";
 import { VendorOrderDetail } from "./components/vendor/VendorOrderDetail";
@@ -55,7 +58,10 @@ import { VendorReviews } from "./components/vendor/VendorReviews";
 import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
 
-// Admin Consoles
+// Admin Architecture & Workspaces
+import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
+import { AdminLogin } from "./components/admin/AdminLogin";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPanel";
@@ -130,80 +136,123 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <VendorAuthProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <Routes>
-                {/* 1. Public Vendor Portal Routes (Independent) */}
-                <Route path="/sell" element={<VendorLanding />} />
-                <Route path="/vendor" element={<VendorLanding />} />
-                <Route path="/vendor/register" element={<VendorRegister />} />
-                <Route path="/vendor/login" element={<VendorLogin />} />
-                <Route
-                  path="/vendor/guidelines"
-                  element={<VendorGuidelines />}
-                />
-                <Route path="/vendor/benefits" element={<VendorBenefits />} />
-                <Route
-                  path="/vendor/onboarding"
-                  element={<VendorOnboarding />}
-                />
-                <Route
-                  path="/vendor/verification"
-                  element={<VendorVerificationStatus />}
-                />
-
-                {/* 2. Protected Vendor Operations Terminal */}
-                <Route
-                  path="/vendor"
-                  element={
-                    <VendorProtectedRoute>
-                      <VendorLayout />
-                    </VendorProtectedRoute>
-                  }
-                >
-                  <Route path="dashboard" element={<VendorDashboard />} />
-                  <Route path="products" element={<VendorProducts />} />
-                  <Route path="products/new" element={<VendorProductForm />} />
-                  <Route path="products/:id" element={<VendorProductForm />} />
+          <AdminAuthProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <Routes>
+                  {/* Public Password Reset Link Target */}
                   <Route
-                    path="products/:id/preview"
-                    element={<VendorProductPreview />}
+                    path="/reset-password"
+                    element={<ResetPasswordPage />}
                   />
-                  <Route path="inventory" element={<VendorInventory />} />
-                  <Route path="orders" element={<VendorOrders />} />
-                  <Route path="orders/:id" element={<VendorOrderDetail />} />
-                  <Route path="rfqs" element={<VendorRfqs />} />
-                  <Route path="rfqs/:id" element={<VendorRfqDetail />} />
-                  <Route path="quotations" element={<VendorQuotations />} />
-                  <Route path="payments" element={<VendorPayments />} />
-                  <Route path="settlements" element={<VendorSettlements />} />
-                  <Route path="reviews" element={<VendorReviews />} />
-                  <Route
-                    path="notifications"
-                    element={<VendorNotifications />}
-                  />
-                  <Route path="profile" element={<VendorProfile />} />
-                </Route>
 
-                {/* 3. Admin Consoles */}
-                <Route path="/admin" element={<AdminVendorReviewPanel />} />
-                <Route
-                  path="/admin/vendor-reviews"
-                  element={<AdminVendorReviewPanel />}
-                />
-                <Route
-                  path="/admin/attributes"
-                  element={<AdminAttributeReviewPanel />}
-                />
-                <Route
-                  path="/admin/product-reviews"
-                  element={<AdminProductReviewPanel />}
-                />
-                {/* 4. Customer Storefront */}
-                <Route path="/*" element={<CustomerAppContent />} />
-              </Routes>
-            </CartProvider>
-          </WishlistProvider>
+                  {/* Public Vendor Portal Routes */}
+                  <Route path="/sell" element={<VendorLanding />} />
+                  <Route path="/vendor" element={<VendorLanding />} />
+                  <Route path="/vendor/register" element={<VendorRegister />} />
+                  <Route path="/vendor/login" element={<VendorLogin />} />
+                  <Route
+                    path="/vendor/guidelines"
+                    element={<VendorGuidelines />}
+                  />
+                  <Route path="/vendor/benefits" element={<VendorBenefits />} />
+                  <Route
+                    path="/vendor/onboarding"
+                    element={<VendorOnboarding />}
+                  />
+                  <Route
+                    path="/vendor/verification"
+                    element={<VendorVerificationStatus />}
+                  />
+
+                  {/* Protected Vendor Operations Terminal */}
+                  <Route
+                    path="/vendor"
+                    element={
+                      <VendorProtectedRoute>
+                        <VendorLayout />
+                      </VendorProtectedRoute>
+                    }
+                  >
+                    <Route path="dashboard" element={<VendorDashboard />} />
+                    <Route path="products" element={<VendorProducts />} />
+                    <Route
+                      path="products/new"
+                      element={<VendorProductForm />}
+                    />
+                    <Route
+                      path="products/:id"
+                      element={<VendorProductForm />}
+                    />
+                    <Route
+                      path="products/:id/preview"
+                      element={<VendorProductPreview />}
+                    />
+                    <Route path="inventory" element={<VendorInventory />} />
+                    <Route path="orders" element={<VendorOrders />} />
+                    <Route path="orders/:id" element={<VendorOrderDetail />} />
+                    <Route path="rfqs" element={<VendorRfqs />} />
+                    <Route path="rfqs/:id" element={<VendorRfqDetail />} />
+                    <Route path="quotations" element={<VendorQuotations />} />
+                    <Route path="payments" element={<VendorPayments />} />
+                    <Route path="settlements" element={<VendorSettlements />} />
+                    <Route path="reviews" element={<VendorReviews />} />
+                    <Route
+                      path="notifications"
+                      element={<VendorNotifications />}
+                    />
+                    <Route path="profile" element={<VendorProfile />} />
+                  </Route>
+
+                  {/* Admin Protected Workspaces */}
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route
+                    path="/admin"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminDashboard />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/dashboard"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminDashboard />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/vendor-reviews"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminVendorReviewPanel />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/product-reviews"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminProductReviewPanel />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/attributes"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminAttributeReviewPanel />
+                      </AdminProtectedRoute>
+                    }
+                  />
+
+                  {/* Customer Storefront App */}
+                  <Route path="/*" element={<CustomerAppContent />} />
+                </Routes>
+              </CartProvider>
+            </WishlistProvider>
+          </AdminAuthProvider>
         </VendorAuthProvider>
       </AuthProvider>
     </BrowserRouter>

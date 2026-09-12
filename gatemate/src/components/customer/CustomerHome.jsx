@@ -112,6 +112,7 @@ export const CustomerHome = () => {
         canonicalUrl="/"
         structuredData={organizationSchema}
       />
+
       {/* 1. PRIORITY 1: SEARCH & HERO CORE PROMISE */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#E4EEF3] border border-[#9AAED4]/40 text-[#173885] text-xs font-bold tracking-wide">
@@ -174,6 +175,7 @@ export const CustomerHome = () => {
           </button>
         </form>
       </div>
+
       {error && (
         <div className="gm-panel p-6 rounded-3xl text-center space-y-3 max-w-md mx-auto">
           <AlertCircle className="w-8 h-8 text-[#B43D20] mx-auto" />
@@ -187,6 +189,7 @@ export const CustomerHome = () => {
           </button>
         </div>
       )}
+
       {/* PROMOTIONAL PROJECT HIGHLIGHTS */}
       {banners.length > 0 && (
         <div className="relative overflow-hidden rounded-3xl bg-[#173885] text-[#FEFEFE] p-6 sm:p-10 shadow-lg border border-[#173885]">
@@ -242,6 +245,7 @@ export const CustomerHome = () => {
           </AnimatePresence>
         </div>
       )}
+
       {/* 2. PRIORITY 2: CONSTRUCTION PRODUCT CATEGORIES */}
       <div>
         <div className="flex items-center justify-between mb-6">
@@ -278,6 +282,7 @@ export const CustomerHome = () => {
           </div>
         )}
       </div>
+
       {/* 3. PRIORITY 3: FEATURED CONSTRUCTION PRODUCTS */}
       <div>
         <div className="flex items-center justify-between mb-6">
@@ -314,6 +319,7 @@ export const CustomerHome = () => {
           </div>
         )}
       </div>
+
       {/* 4. NEARBY / FAST DELIVERY & TRUSTED VENDOR BADGES */}
       <div className="space-y-6 pt-2">
         <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
@@ -382,7 +388,8 @@ export const CustomerHome = () => {
           </div>
         </div>
       </div>
-      {/* 6. BULK ORDERS & PROJECT RFQ */}
+
+      {/* 5. BULK ORDERS & PROJECT RFQ */}
       <div className="gm-panel p-8 rounded-3xl border border-[#D9E2EA] flex flex-col md:flex-row items-center justify-between gap-6 bg-[#E4EEF3]/60">
         <div className="space-y-2 text-center md:text-left">
           <span className="badge-gm-info px-3 py-1 rounded-full text-xs uppercase tracking-wider">
@@ -405,38 +412,8 @@ export const CustomerHome = () => {
           <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
         </Link>
       </div>
-      {/* VENDOR STOREFRONT ENTRY BANNER */}
-      <div className="gm-panel p-8 rounded-3xl border border-[#9AAED4]/40 flex flex-col md:flex-row items-center justify-between gap-6 bg-[#FEFEFE]">
-        <div className="space-y-1.5 text-center md:text-left">
-          <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-            Stockist & Dealer Hub
-          </span>
-          <h3 className="text-2xl font-black text-[#173885]">
-            Are you a construction materials vendor or stockist?
-          </h3>
-          <p className="text-xs text-[#606460] max-w-2xl">
-            Register your depot to receive direct site orders, fulfill 30-minute
-            priority dispatches, and bid on commercial builder RFQs.
-          </p>
-        </div>
-        <div className="flex gap-3 shrink-0">
-          <Link
-            to="/sell"
-            className="btn-gm-primary px-6 py-3.5 rounded-xl text-xs font-bold flex items-center gap-2"
-          >
-            <span>Sell on GateMate</span>
-            <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
-          </Link>
-          <Link
-            to="/vendor/login"
-            className="btn-gm-secondary px-5 py-3.5 rounded-xl text-xs font-bold"
-          >
-            Vendor Sign In
-          </Link>
-        </div>
-      </div>
-      // Inside CustomerHome.jsx
-      {/* VENDOR STOREFRONT ENTRY BANNER - VISIBLE ONLY TO GUEST USERS */}
+
+      {/* 6. VENDOR STOREFRONT ENTRY BANNER - STRICTLY FOR GUEST USERS */}
       {!user && (
         <div className="gm-panel p-8 rounded-3xl border border-[#9AAED4]/40 flex flex-col md:flex-row items-center justify-between gap-6 bg-[#FEFEFE]">
           <div className="space-y-1.5 text-center md:text-left">

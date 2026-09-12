@@ -16,10 +16,8 @@ import {
   Edit2,
   RotateCcw,
   Lock,
-  FileCheck2,
-  ExternalLink,
 } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 import {
   vendorOnboardingService,
   VENDOR_APPLICATION_STATUS,
@@ -28,7 +26,7 @@ import { CATALOGUE_CATEGORIES } from "../../data/categories";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorVerificationStatus = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { vendorUser, loading: authLoading } = useVendorAuth();
   const navigate = useNavigate();
 
   const [application, setApplication] = useState(null);
@@ -36,11 +34,11 @@ export const VendorVerificationStatus = () => {
   const [error, setError] = useState(null);
 
   const loadApplication = async () => {
-    if (!user) return;
+    if (!vendorUser?.id) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await vendorOnboardingService.getApplication(user.id);
+      const data = await vendorOnboardingService.getApplication(vendorUser.id);
       setApplication(data);
     } catch (err) {
       setError("Unable to load verification records. Please retry.");
@@ -50,10 +48,12 @@ export const VendorVerificationStatus = () => {
   };
 
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && vendorUser) {
       loadApplication();
+    } else if (!authLoading && !vendorUser) {
+      setLoading(false);
     }
-  }, [user, authLoading]);
+  }, [vendorUser, authLoading]);
 
   if (authLoading || loading) {
     return (
@@ -64,9 +64,9 @@ export const VendorVerificationStatus = () => {
     );
   }
 
-  if (!user) {
+  if (!vendorUser) {
     return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4">
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4 font-sans">
         <div className="w-14 h-14 rounded-2xl bg-[#E4EEF3] text-[#173885] flex items-center justify-center mx-auto border border-[#D9E2EA]">
           <Lock className="w-7 h-7" />
         </div>
@@ -78,10 +78,10 @@ export const VendorVerificationStatus = () => {
           reviewer remarks.
         </p>
         <Link
-          to="/sell"
+          to="/vendor/login"
           className="btn-gm-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold shadow-sm"
         >
-          <span>Sell on GateMate</span>
+          <span>Sign In to Vendor Terminal</span>
           <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
         </Link>
       </div>
@@ -152,12 +152,12 @@ export const VendorVerificationStatus = () => {
   const statusInfo = getStatusBadge();
   const StatusIcon = statusInfo.icon;
 
-  const handleEditAndResubmit = (step = 1) => {
+  const handleEditAndResubmit = () => {
     navigate("/vendor/onboarding");
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 pb-28">
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 pb-28 font-sans">
       <SeoHead
         title="Vendor Verification Status | GateMate"
         description="Inspect your GateMate vendor onboarding review state, submitted business documents, and reviewer remarks."
@@ -267,7 +267,7 @@ export const VendorVerificationStatus = () => {
             status === VENDOR_APPLICATION_STATUS.DRAFT ||
             status === VENDOR_APPLICATION_STATUS.REJECTED) && (
             <button
-              onClick={() => handleEditAndResubmit(1)}
+              onClick={handleEditAndResubmit}
               className="btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2"
             >
               <Edit2 className="w-4 h-4 text-[#FEFEFE]" />
@@ -298,7 +298,7 @@ export const VendorVerificationStatus = () => {
           </h3>
           {status !== VENDOR_APPLICATION_STATUS.APPROVED && (
             <button
-              onClick={() => handleEditAndResubmit(1)}
+              onClick={handleEditAndResubmit}
               className="text-xs font-bold text-[#3C7DDA] hover:underline flex items-center gap-1"
             >
               <Edit2 className="w-3.5 h-3.5" />
