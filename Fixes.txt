@@ -1,4 +1,0 @@
-Fixes : 
-1) After signout customer side bag is not getting empty.
-2) there is no way to go to vendor side from customer portal.
-3)guidelines and partner benefits shouldn't required sign in
