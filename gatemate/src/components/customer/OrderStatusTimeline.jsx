@@ -36,7 +36,7 @@ export const OrderStatusTimeline = ({
           Fulfillment Journey
         </span>
         {isExpress30Min && (
-          <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md">
+          <span className="bg-dark-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-md">
             <Sparkles className="w-3 h-3 fill-current" />
             30-MIN PRIORITY DISPATCH
           </span>
@@ -54,7 +54,7 @@ export const OrderStatusTimeline = ({
               <div
                 className={`absolute -left-[31px] top-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
                   isCurrent
-                    ? "bg-amber-400 text-slate-950 ring-4 ring-amber-400/20 shadow-lg font-black"
+                    ? "bg-dark-400 text-slate-950 ring-4 ring-dark-400/20 shadow-lg font-black"
                     : isCompleted
                       ? "bg-emerald-500 text-slate-950"
                       : "bg-[#091526] border border-white/20 text-slate-500"
@@ -72,9 +72,9 @@ export const OrderStatusTimeline = ({
                 <h4
                   className={`text-xs font-bold ${
                     isCurrent
-                      ? "text-amber-400 text-sm"
+                      ? "text-dark-400 text-sm"
                       : isCompleted
-                        ? "text-white"
+                        ? "text-dark"
                         : "text-slate-500"
                   }`}
                 >

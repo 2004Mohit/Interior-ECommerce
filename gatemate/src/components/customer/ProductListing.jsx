@@ -127,7 +127,7 @@ export const ProductListing = () => {
       {/* Top Header & Sort Toolbar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-white">
+          <h1 className="text-xl sm:text-2xl font-black text-dark">
             {categoryTitle}
           </h1>
           <p className="text-xs text-slate-400">
@@ -141,10 +141,10 @@ export const ProductListing = () => {
           <button
             type="button"
             onClick={() => setMobileFilterOpen(true)}
-            className="lg:hidden premium-card min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-2 border border-white/10"
+            className="lg:hidden premium-card min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-bold text-dark flex items-center gap-2 border border-white/10"
             aria-label="Open Filter Controls"
           >
-            <SlidersHorizontal className="w-4 h-4 text-amber-400" />
+            <SlidersHorizontal className="w-4 h-4 text-dark-400" />
             <span>Filters</span>
           </button>
 
@@ -184,7 +184,7 @@ export const ProductListing = () => {
               <button
                 type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="w-full mt-6 gold-gradient-btn min-h-[44px] py-3 rounded-xl text-xs font-bold"
+                className="w-full mt-6 dark-gradient-btn min-h-[44px] py-3 rounded-xl text-xs font-bold"
               >
                 Apply Product Filters
               </button>

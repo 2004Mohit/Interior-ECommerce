@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  Search,
-  SlidersHorizontal,
-  AlertCircle,
-  RotateCcw,
-  X,
-  PackageX,
-} from "lucide-react";
+import { Search, SlidersHorizontal, X, PackageX } from "lucide-react";
 import { productService } from "../../services/productService";
 import { ProductCard } from "./ProductCard";
 import { ProductCardSkeleton } from "../ProductCardSkeleton";
@@ -140,23 +133,23 @@ export const SearchResults = () => {
         canonicalUrl={`/search?q=${encodeURIComponent(query)}`}
       />
 
-      {/* Construction Search Input Bar with Cross Button */}
-      <div className="premium-panel p-4 sm:p-6 rounded-3xl border border-white/10 space-y-4">
+      {/* Distinct Separating Search Box with GateMate Palette */}
+      <div className="bg-[#FEFEFE] p-5 sm:p-7 rounded-3xl border border-[#D9E2EA] shadow-xs space-y-4">
         <div className="relative w-full max-w-3xl mx-auto flex items-center">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-400 pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#173885] pointer-events-none" />
           <input
             type="text"
             placeholder="Search keywords: 'UltraTech cement', '12mm TMT rebar', 'Siporex AAC blocks', 'M-Sand', 'CPVC pipe'..."
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            className="w-full premium-input pl-12 pr-10 py-3 rounded-2xl text-sm placeholder-slate-400 shadow-xl"
+            className="w-full bg-[#F4F6FA] border border-[#D9E2EA] focus:border-[#3C7DDA] focus:bg-[#FEFEFE] focus:ring-3 focus:ring-[#A5D6FA]/50 text-[#282926] placeholder-[#6F8A92] pl-12 pr-12 py-3.5 rounded-2xl text-sm transition outline-none shadow-inner"
             aria-label="Search construction products"
           />
           {inputVal && (
             <button
               type="button"
               onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white transition"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-xl bg-[#E4EEF3] text-[#173885] hover:bg-[#D9E2EA] transition"
               aria-label="Clear search input"
             >
               <X className="w-4 h-4" />
@@ -164,13 +157,13 @@ export const SearchResults = () => {
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-white/5 text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#D9E2EA] text-xs">
           <div>
-            <span className="text-slate-400">Search results for: </span>
-            <span className="font-bold text-amber-400 text-sm">
+            <span className="text-[#606460]">Search results for: </span>
+            <span className="font-bold text-[#173885] text-sm">
               "{query || "All Construction Products"}"
             </span>
-            <span className="text-slate-400 ml-2">
+            <span className="text-[#6F8A92] ml-2 font-semibold">
               ({results.length} products found)
             </span>
           </div>
@@ -179,9 +172,9 @@ export const SearchResults = () => {
             <button
               type="button"
               onClick={() => setMobileFilterOpen(true)}
-              className="lg:hidden premium-card px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 border border-white/10 min-h-[38px]"
+              className="lg:hidden btn-gm-secondary px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 min-h-[38px]"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-[#173885]" />
               <span>Filters</span>
             </button>
             <SortSelect
@@ -194,7 +187,7 @@ export const SearchResults = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
         {/* Desktop Filters */}
-        <div className="hidden lg:block premium-panel p-5 rounded-3xl sticky top-24">
+        <div className="hidden lg:block gm-panel p-5 rounded-3xl sticky top-24">
           <FilterPanel
             filters={currentFilters}
             onFilterChange={handleFilterChange}
@@ -204,8 +197,8 @@ export const SearchResults = () => {
 
         {/* Mobile Filter Drawer */}
         {mobileFilterOpen && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-end">
-            <div className="w-full max-w-xs bg-[#0a1424] h-full p-5 overflow-y-auto border-l border-white/10 shadow-2xl flex flex-col justify-between">
+          <div className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-xs lg:hidden flex justify-end">
+            <div className="w-full max-w-xs bg-[#FEFEFE] h-full p-5 overflow-y-auto border-l border-[#D9E2EA] shadow-2xl flex flex-col justify-between">
               <FilterPanel
                 filters={currentFilters}
                 onFilterChange={handleFilterChange}
@@ -216,7 +209,7 @@ export const SearchResults = () => {
               <button
                 type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="w-full mt-6 gold-gradient-btn min-h-[44px] py-3 rounded-xl text-xs font-bold"
+                className="w-full mt-6 btn-gm-primary min-h-[44px] py-3 rounded-xl text-xs font-bold"
               >
                 Apply Product Filters
               </button>

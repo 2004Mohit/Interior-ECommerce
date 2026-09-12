@@ -36,7 +36,6 @@ export const Checkout = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Address State
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [loadingAddresses, setLoadingAddresses] = useState(true);
@@ -44,17 +43,13 @@ export const Checkout = () => {
   const [editingAddress, setEditingAddress] = useState(null);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
-  // Delivery SLA State
   const [deliveryOptionId, setDeliveryOptionId] = useState("express_30min");
-
-  // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState(
     PAYMENT_METHODS.PAY_ON_DELIVERY,
   );
   const [upiIdInput, setUpiIdInput] = useState("");
   const [selectedBank, setSelectedBank] = useState("HDFC");
 
-  // Calculation & Order Execution States
   const [calculatedTotals, setCalculatedTotals] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,7 +57,6 @@ export const Checkout = () => {
   const [completedOrder, setCompletedOrder] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
-  // Load User Addresses
   useEffect(() => {
     if (!authLoading && user) {
       setLoadingAddresses(true);
@@ -81,7 +75,6 @@ export const Checkout = () => {
 
   const activeAddress = savedAddresses.find((a) => a.id === selectedAddressId);
 
-  // Authoritative Calculation from Order Service
   const fetchAuthoritativeTotals = useCallback(async () => {
     if (cart.length === 0) return;
     setIsCalculating(true);
@@ -94,7 +87,6 @@ export const Checkout = () => {
       });
       setCalculatedTotals(totals);
 
-      // Auto-fallback if outside express zone
       if (deliveryOptionId === "express_30min" && !totals.isExpressEligible) {
         setDeliveryOptionId("standard_scheduled");
       }
@@ -109,7 +101,6 @@ export const Checkout = () => {
     fetchAuthoritativeTotals();
   }, [fetchAuthoritativeTotals]);
 
-  // Handle saving new / edited address
   const handleSaveNewAddress = async (formData) => {
     if (!user) {
       setIsAddressModalOpen(false);
@@ -133,7 +124,6 @@ export const Checkout = () => {
     }
   };
 
-  // Place Order / Pay Action
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     if (!user) {
@@ -177,18 +167,18 @@ export const Checkout = () => {
   if (cart.length === 0 && !completedOrder) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-[#0c182b] border border-white/10 text-amber-400 flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 rounded-2xl bg-[#E4EEF3] border border-[#D9E2EA] text-[#173885] flex items-center justify-center mx-auto">
           <ShoppingBag className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-black text-white">
+        <h2 className="text-2xl font-black text-[#173885]">
           Your Shopping Bag is Empty
         </h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-[#606460]">
           Add products to your cart to proceed with instant checkout.
         </p>
         <Link
           to="/products"
-          className="gold-gradient-btn inline-block px-6 py-3 rounded-xl text-xs font-bold"
+          className="btn-gm-primary inline-block px-6 py-3 rounded-xl text-xs font-bold"
         >
           Explore Products
         </Link>
@@ -196,7 +186,6 @@ export const Checkout = () => {
     );
   }
 
-  // Order Confirmed State
   if (completedOrder) {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-6">
@@ -205,34 +194,36 @@ export const Checkout = () => {
           description="Your GateMate order has been placed successfully."
           noIndex={true}
         />
-        <div className="premium-panel p-8 rounded-3xl border border-emerald-500/30 space-y-4">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+        <div className="gm-panel p-8 rounded-3xl border border-[#3F7D20]/30 space-y-4">
+          <div className="w-16 h-16 rounded-full bg-[#E1F2D9] text-[#3F7D20] flex items-center justify-center mx-auto border border-[#3F7D20]/30">
             <CheckCircle2 className="w-10 h-10" />
           </div>
-          <h2 className="text-2xl font-black text-white">Order Confirmed!</h2>
-          <p className="text-xs text-slate-300">
+          <h2 className="text-2xl font-black text-[#173885]">
+            Order Confirmed!
+          </h2>
+          <p className="text-xs text-[#606460]">
             Order Reference:{" "}
-            <span className="text-amber-400 font-bold font-mono">
+            <span className="text-[#3C7DDA] font-bold font-mono">
               {completedOrder.orderId}
             </span>
           </p>
 
-          <div className="p-4 rounded-2xl bg-[#091526] text-xs text-slate-300 space-y-2 text-left border border-white/5">
+          <div className="p-4 rounded-2xl bg-[#F4F6FA] text-xs text-[#282926] space-y-2 text-left border border-[#D9E2EA]">
             <div className="flex justify-between">
-              <span className="text-slate-400">Payment Status:</span>
-              <span className="text-amber-300 font-bold font-mono">
+              <span className="text-[#606460]">Payment Status:</span>
+              <span className="text-[#A66A08] font-bold font-mono">
                 {completedOrder.paymentStatus}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Fulfillment Status:</span>
-              <span className="text-emerald-400 font-bold">
+              <span className="text-[#606460]">Fulfillment Status:</span>
+              <span className="text-[#3F7D20] font-bold">
                 {completedOrder.orderStatus}
               </span>
             </div>
-            <div className="flex justify-between border-t border-white/5 pt-2">
-              <span className="text-slate-400">Amount Payable:</span>
-              <span className="text-white font-black font-mono">
+            <div className="flex justify-between border-t border-[#D9E2EA] pt-2">
+              <span className="text-[#606460]">Amount Payable:</span>
+              <span className="text-[#173885] font-black font-mono">
                 ₹{completedOrder.record?.totals?.grandTotal}
               </span>
             </div>
@@ -241,13 +232,13 @@ export const Checkout = () => {
           <div className="pt-4 flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => navigate("/account/orders")}
-              className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold"
+              className="flex-1 btn-gm-primary py-3 rounded-xl text-xs font-bold"
             >
               Track Live Order
             </button>
             <button
               onClick={() => navigate("/products")}
-              className="flex-1 premium-card hover:bg-white/5 py-3 rounded-xl text-xs font-bold text-white border border-white/10"
+              className="flex-1 btn-gm-secondary py-3 rounded-xl text-xs font-bold"
             >
               Continue Shopping
             </button>
@@ -269,23 +260,22 @@ export const Checkout = () => {
         noIndex={true}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-4">
+      <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
+          <h1 className="text-2xl sm:text-3xl font-black text-[#173885]">
             Instant Checkout
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-[#606460] mt-0.5">
             Review delivery destination, dispatch SLA, and payment methods in
             Pune & PCMC.
           </p>
         </div>
         <Link
           to="/products"
-          className="hidden sm:inline-flex items-center gap-1.5 text-xs text-amber-400 font-bold hover:underline"
+          className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[#3C7DDA] font-bold hover:underline"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Catalog</span>
+          <span>Back to Catalogue</span>
         </Link>
       </div>
 
@@ -293,14 +283,14 @@ export const Checkout = () => {
         onSubmit={handlePlaceOrder}
         className="grid grid-cols-1 lg:grid-cols-3 gap-8"
       >
-        {/* Left 2 Columns: Address, Delivery & Payment Options */}
+        {/* Left 2 Columns */}
         <div className="lg:col-span-2 space-y-6">
           {/* 1. Address Section */}
-          <div className="premium-panel p-6 rounded-3xl space-y-4 border border-white/10">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="gm-panel p-6 rounded-3xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
               <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-amber-400" />
-                <h3 className="text-base font-bold text-white">
+                <MapPin className="w-5 h-5 text-[#3C7DDA]" />
+                <h3 className="text-base font-bold text-[#173885]">
                   1. Delivery Address
                 </h3>
               </div>
@@ -310,7 +300,7 @@ export const Checkout = () => {
                   setEditingAddress(null);
                   setIsAddressModalOpen(true);
                 }}
-                className="gold-gradient-btn px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 font-bold"
+                className="btn-gm-primary px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 font-bold"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Address</span>
@@ -318,16 +308,16 @@ export const Checkout = () => {
             </div>
 
             {loadingAddresses ? (
-              <div className="h-28 bg-white/5 rounded-2xl animate-pulse" />
+              <div className="h-28 bg-[#E4EEF3] rounded-2xl animate-pulse" />
             ) : savedAddresses.length === 0 ? (
               <div className="p-8 text-center space-y-3">
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[#606460]">
                   No saved address found on file.
                 </p>
                 <button
                   type="button"
                   onClick={() => setIsAddressModalOpen(true)}
-                  className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold"
+                  className="btn-gm-primary px-4 py-2 rounded-xl text-xs font-bold"
                 >
                   Add Delivery Address
                 </button>
@@ -345,48 +335,48 @@ export const Checkout = () => {
                       onClick={() => setSelectedAddressId(addr.id)}
                       className={`p-4 rounded-2xl border cursor-pointer transition flex items-start justify-between gap-3 ${
                         isSelected
-                          ? "bg-[#172a4d] border-amber-400 shadow-lg shadow-amber-950/30"
-                          : "premium-card hover:border-slate-600"
+                          ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                          : "gm-card hover:border-[#9AAED4]"
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div
                           className={`w-4 h-4 rounded-full mt-0.5 flex items-center justify-center border ${
                             isSelected
-                              ? "border-amber-400 bg-amber-400"
-                              : "border-slate-500"
+                              ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                              : "border-[#9AAED4]"
                           }`}
                         >
                           {isSelected && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
                           )}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="text-xs font-bold text-white">
+                            <h4 className="text-xs font-bold text-[#282926]">
                               {addr.fullName}
                             </h4>
-                            <span className="text-[10px] text-slate-400 font-mono">
+                            <span className="text-[10px] text-[#606460] font-mono">
                               ({addr.phone})
                             </span>
                             {addr.isDefault && (
-                              <span className="text-[9px] bg-amber-400/20 text-amber-300 font-black px-1.5 py-0.2 rounded">
+                              <span className="text-[9px] bg-[#173885] text-[#FEFEFE] font-black px-1.5 py-0.2 rounded">
                                 DEFAULT
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                          <p className="text-xs text-[#606460] mt-0.5 leading-relaxed">
                             {addr.line1}, {addr.locality}
                             {addr.landmark
                               ? `, Near ${addr.landmark}`
                               : ""}, {addr.city} -{" "}
-                            <span className="font-mono text-amber-400 font-bold">
+                            <span className="font-mono text-[#173885] font-bold">
                               {addr.pincode}
                             </span>
                           </p>
                           {assessment.isExpress30Min && (
-                            <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-400/20">
-                              <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
+                            <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-[#173885] bg-[#E4EEF3] px-2 py-0.5 rounded-full border border-[#9AAED4]/40">
+                              <Zap className="w-3 h-3 text-[#3C7DDA] fill-[#3C7DDA]" />
                               <span>
                                 30-Minute Priority Express Zone in{" "}
                                 {assessment.area}
@@ -403,7 +393,7 @@ export const Checkout = () => {
                           setEditingAddress(addr);
                           setIsAddressModalOpen(true);
                         }}
-                        className="p-1 text-slate-400 hover:text-white"
+                        className="p-1 text-[#606460] hover:text-[#282926]"
                         title="Edit address"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -416,10 +406,10 @@ export const Checkout = () => {
           </div>
 
           {/* 2. Delivery Option Section */}
-          <div className="premium-panel p-6 rounded-3xl space-y-4 border border-white/10">
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-              <Truck className="w-5 h-5 text-amber-400" />
-              <h3 className="text-base font-bold text-white">
+          <div className="gm-panel p-6 rounded-3xl space-y-4">
+            <div className="flex items-center gap-2 border-b border-[#D9E2EA] pb-3">
+              <Truck className="w-5 h-5 text-[#3C7DDA]" />
+              <h3 className="text-base font-bold text-[#173885]">
                 2. Delivery SLA Option
               </h3>
             </div>
@@ -437,10 +427,10 @@ export const Checkout = () => {
                     onClick={() => isAvailable && setDeliveryOptionId(opt.id)}
                     className={`p-4 rounded-2xl border transition ${
                       !isAvailable
-                        ? "opacity-40 cursor-not-allowed bg-slate-900/40 border-white/5"
+                        ? "opacity-40 cursor-not-allowed bg-[#F4F6FA] border-[#D9E2EA]"
                         : isSelected
-                          ? "bg-[#172a4d] border-amber-400 shadow-md cursor-pointer"
-                          : "premium-card hover:border-slate-600 cursor-pointer"
+                          ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs cursor-pointer"
+                          : "gm-card hover:border-[#9AAED4] cursor-pointer"
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -448,33 +438,33 @@ export const Checkout = () => {
                         <div
                           className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
                             isSelected
-                              ? "border-amber-400 bg-amber-400"
-                              : "border-slate-500"
+                              ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                              : "border-[#9AAED4]"
                           }`}
                         >
                           {isSelected && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
                           )}
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <h4 className="text-xs font-bold text-[#282926] flex items-center gap-1.5">
                             {opt.name}
                             {isExpress && isAvailable && (
-                              <span className="bg-amber-400/20 text-amber-300 text-[9px] font-black px-1.5 py-0.2 rounded border border-amber-400/30">
+                              <span className="bg-[#173885] text-[#FEFEFE] text-[9px] font-bold px-1.5 py-0.2 rounded">
                                 FASTEST
                               </span>
                             )}
                           </h4>
-                          <p className="text-[11px] text-slate-300 mt-0.5">
+                          <p className="text-[11px] text-[#606460] mt-0.5">
                             {opt.description}
                           </p>
-                          <div className="text-[10px] text-amber-400 font-semibold mt-1">
+                          <div className="text-[10px] text-[#3C7DDA] font-semibold mt-1">
                             SLA: {opt.sla} • {opt.cutoffTime}
                           </div>
                         </div>
                       </div>
 
-                      <span className="text-xs font-black text-emerald-400 font-mono">
+                      <span className="text-xs font-black text-[#3F7D20] font-mono">
                         {opt.baseFee === 0 ? "FREE" : `₹${opt.baseFee}`}
                       </span>
                     </div>
@@ -484,50 +474,49 @@ export const Checkout = () => {
             </div>
           </div>
 
-          {/* 3. Payment Method Section (Fixes Missing Payment Options) */}
-          <div className="premium-panel p-6 rounded-3xl space-y-4 border border-white/10">
-            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-              <CreditCard className="w-5 h-5 text-amber-400" />
-              <h3 className="text-base font-bold text-white">
+          {/* 3. Payment Option Section */}
+          <div className="gm-panel p-6 rounded-3xl space-y-4">
+            <div className="flex items-center gap-2 border-b border-[#D9E2EA] pb-3">
+              <CreditCard className="w-5 h-5 text-[#3C7DDA]" />
+              <h3 className="text-base font-bold text-[#173885]">
                 3. Payment Option
               </h3>
             </div>
 
             <div className="space-y-3">
-              {/* Pay on Delivery */}
               <div
                 onClick={() =>
                   setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY)
                 }
                 className={`p-4 rounded-2xl border cursor-pointer transition ${
                   paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
-                    ? "bg-[#172a4d] border-amber-400 shadow-md"
-                    : "premium-card hover:border-slate-600"
+                    ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                    : "gm-card hover:border-[#9AAED4]"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
                       paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
-                        ? "border-amber-400 bg-amber-400"
-                        : "border-slate-500"
+                        ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                        : "border-[#9AAED4]"
                     }`}
                   >
                     {paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
                     )}
                   </div>
-                  <Banknote className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                  <Banknote className="w-5 h-5 text-[#3F7D20] shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <div className="text-xs font-bold text-white flex items-center justify-between">
+                    <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
                       <span>
                         Pay on Delivery (Cash / UPI on Doorstep Arrival)
                       </span>
-                      <span className="text-[10px] text-amber-400 font-bold font-mono">
+                      <span className="text-[10px] text-[#173885] font-bold font-mono">
                         +₹49 Handling
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">
+                    <p className="text-[11px] text-[#606460] mt-0.5">
                       Pay safely after inspecting the delivery package at your
                       site.
                     </p>
@@ -535,178 +524,93 @@ export const Checkout = () => {
                 </div>
               </div>
 
-              {/* UPI Collect */}
               <div
                 onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_COLLECT)}
                 className={`p-4 rounded-2xl border cursor-pointer transition ${
                   paymentMethod === PAYMENT_METHODS.UPI_COLLECT
-                    ? "bg-[#172a4d] border-amber-400 shadow-md"
-                    : "premium-card hover:border-slate-600"
+                    ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                    : "gm-card hover:border-[#9AAED4]"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
                       paymentMethod === PAYMENT_METHODS.UPI_COLLECT
-                        ? "border-amber-400 bg-amber-400"
-                        : "border-slate-500"
+                        ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                        : "border-[#9AAED4]"
                     }`}
                   >
                     {paymentMethod === PAYMENT_METHODS.UPI_COLLECT && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
                     )}
                   </div>
-                  <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <Zap className="w-5 h-5 text-[#3C7DDA] shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <div className="text-xs font-bold text-white flex items-center justify-between">
+                    <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
                       <span>UPI Collect (GPay, PhonePe, Paytm, BHIM)</span>
-                      <span className="text-[9px] text-emerald-400 font-bold">
+                      <span className="text-[9px] text-[#3F7D20] font-bold">
                         ZERO FEES
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">
+                    <p className="text-[11px] text-[#606460] mt-0.5">
                       Direct instant bank transfer via your UPI Virtual Private
                       Address.
                     </p>
                   </div>
                 </div>
                 {paymentMethod === PAYMENT_METHODS.UPI_COLLECT && (
-                  <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="mt-3 pt-3 border-t border-[#D9E2EA]">
                     <input
                       type="text"
                       placeholder="yourname@upi or yourname@okhdfcbank"
                       value={upiIdInput}
                       onChange={(e) => setUpiIdInput(e.target.value)}
-                      className="w-full premium-input px-3 py-2 rounded-xl text-xs font-mono"
+                      className="w-full gm-input px-3 py-2 rounded-xl text-xs font-mono"
                     />
                   </div>
                 )}
               </div>
 
-              {/* UPI Dynamic QR */}
-              <div
-                onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_QR)}
-                className={`p-4 rounded-2xl border cursor-pointer transition ${
-                  paymentMethod === PAYMENT_METHODS.UPI_QR
-                    ? "bg-[#172a4d] border-amber-400 shadow-md"
-                    : "premium-card hover:border-slate-600"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
-                      paymentMethod === PAYMENT_METHODS.UPI_QR
-                        ? "border-amber-400 bg-amber-400"
-                        : "border-slate-500"
-                    }`}
-                  >
-                    {paymentMethod === PAYMENT_METHODS.UPI_QR && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
-                    )}
-                  </div>
-                  <QrCode className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-white">
-                      Dynamic UPI QR Code
-                    </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">
-                      Scan dynamically generated QR with any camera banking
-                      application.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Credit / Debit Card */}
               <div
                 onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}
                 className={`p-4 rounded-2xl border cursor-pointer transition ${
                   paymentMethod === PAYMENT_METHODS.CARD
-                    ? "bg-[#172a4d] border-amber-400 shadow-md"
-                    : "premium-card hover:border-slate-600"
+                    ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                    : "gm-card hover:border-[#9AAED4]"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
                       paymentMethod === PAYMENT_METHODS.CARD
-                        ? "border-amber-400 bg-amber-400"
-                        : "border-slate-500"
+                        ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                        : "border-[#9AAED4]"
                     }`}
                   >
                     {paymentMethod === PAYMENT_METHODS.CARD && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
                     )}
                   </div>
-                  <CreditCard className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+                  <CreditCard className="w-5 h-5 text-[#173885] shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <div className="text-xs font-bold text-white">
+                    <div className="text-xs font-bold text-[#282926]">
                       Credit / Debit Card
                     </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">
+                    <p className="text-[11px] text-[#606460] mt-0.5">
                       Visa, MasterCard, RuPay, Diners (256-bit encrypted
                       checkout).
                     </p>
                   </div>
                 </div>
               </div>
-
-              {/* Net Banking */}
-              <div
-                onClick={() => setPaymentMethod(PAYMENT_METHODS.NET_BANKING)}
-                className={`p-4 rounded-2xl border cursor-pointer transition ${
-                  paymentMethod === PAYMENT_METHODS.NET_BANKING
-                    ? "bg-[#172a4d] border-amber-400 shadow-md"
-                    : "premium-card hover:border-slate-600"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
-                      paymentMethod === PAYMENT_METHODS.NET_BANKING
-                        ? "border-amber-400 bg-amber-400"
-                        : "border-slate-500"
-                    }`}
-                  >
-                    {paymentMethod === PAYMENT_METHODS.NET_BANKING && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />
-                    )}
-                  </div>
-                  <Building2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-white">
-                      Net Banking
-                    </div>
-                    <p className="text-[11px] text-slate-300 mt-0.5">
-                      Direct login across all major Indian scheduled banks.
-                    </p>
-                  </div>
-                </div>
-                {paymentMethod === PAYMENT_METHODS.NET_BANKING && (
-                  <div className="mt-3 pt-3 border-t border-white/10">
-                    <select
-                      value={selectedBank}
-                      onChange={(e) => setSelectedBank(e.target.value)}
-                      className="w-full premium-input px-3 py-2 rounded-xl text-xs font-semibold"
-                    >
-                      <option value="HDFC">HDFC Bank</option>
-                      <option value="ICICI">ICICI Bank</option>
-                      <option value="SBI">State Bank of India</option>
-                      <option value="AXIS">Axis Bank</option>
-                      <option value="KOTAK">Kotak Mahindra Bank</option>
-                    </select>
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Gateway Configuration Notice */}
             {isOnlinePaymentSelected && !onlinePaymentStatus.ready && (
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs flex items-start gap-2">
-                <Info className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <div className="p-3.5 rounded-2xl bg-[#FFF0D5] border border-[#A66A08]/20 text-[#A66A08] text-xs flex items-start gap-2">
+                <Info className="w-4 h-4 shrink-0 mt-0.5 text-[#A66A08]" />
                 <div className="space-y-0.5">
                   <span className="font-bold">Gateway Integration Notice:</span>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                  <p className="text-[11px] text-[#606460] leading-relaxed">
                     Online payments are not configured yet. Please select "Pay
                     on Delivery" to proceed with placing this order.
                   </p>
@@ -716,19 +620,18 @@ export const Checkout = () => {
           </div>
         </div>
 
-        {/* Right Column: Order Summary & Confirmation CTA */}
+        {/* Right Column: Order Summary */}
         <div>
-          <div className="premium-panel p-6 rounded-3xl space-y-4 sticky top-24 border border-white/10">
-            <h3 className="text-base font-bold text-white border-b border-white/10 pb-3">
+          <div className="gm-panel p-6 rounded-3xl space-y-4 sticky top-24">
+            <h3 className="text-base font-bold text-[#173885] border-b border-[#D9E2EA] pb-3">
               Payable Summary
             </h3>
 
-            {/* Items Mini List */}
             <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
               {cart.map((item) => (
                 <div
                   key={item.id}
-                  className="premium-card p-2.5 rounded-xl flex items-center justify-between text-xs"
+                  className="bg-[#F4F6FA] p-2.5 rounded-xl flex items-center justify-between text-xs border border-[#D9E2EA]"
                 >
                   <div className="flex items-center gap-2 truncate max-w-[180px]">
                     <img
@@ -736,58 +639,58 @@ export const Checkout = () => {
                       alt=""
                       className="w-8 h-8 rounded object-cover"
                     />
-                    <span className="text-white truncate">{item.name}</span>
+                    <span className="text-[#282926] font-bold truncate">
+                      {item.name}
+                    </span>
                   </div>
-                  <span className="text-amber-300 font-bold font-mono">
+                  <span className="text-[#173885] font-bold font-mono">
                     Qty {item.quantity} × ₹{item.price}
                   </span>
                 </div>
               ))}
             </div>
 
-            {/* Price Calculations */}
-            <div className="space-y-2 text-xs pt-2 border-t border-white/10">
-              <div className="flex justify-between text-slate-300">
-                <span>Items Subtotal:</span>
-                <span className="text-white font-bold font-mono">
+            <div className="space-y-2 text-xs pt-2 border-t border-[#D9E2EA]">
+              <div className="flex justify-between text-[#606460]">
+                <span>Products Subtotal:</span>
+                <span className="text-[#282926] font-bold font-mono">
                   ₹{calculatedTotals?.itemSubtotal}
                 </span>
               </div>
-              <div className="flex justify-between text-slate-300">
+              <div className="flex justify-between text-[#606460]">
                 <span>Delivery SLA Charges:</span>
-                <span className="text-emerald-400 font-bold">
+                <span className="text-[#3F7D20] font-bold">
                   {calculatedTotals?.deliveryFee === 0
                     ? "FREE"
                     : `₹${calculatedTotals?.deliveryFee}`}
                 </span>
               </div>
-              <div className="flex justify-between text-slate-300">
-                <span>Custom Honeycomb & Platform Fee:</span>
-                <span className="text-white font-mono">
+              <div className="flex justify-between text-[#606460]">
+                <span>Custom Packaging & Platform Fee:</span>
+                <span className="text-[#282926] font-mono">
                   ₹{calculatedTotals?.packagingFee}
                 </span>
               </div>
               {calculatedTotals?.codConvenienceFee > 0 && (
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-[#606460]">
                   <span>Pay on Delivery Handling:</span>
-                  <span className="text-amber-400 font-mono">
+                  <span className="text-[#173885] font-mono font-bold">
                     +₹{calculatedTotals?.codConvenienceFee}
                   </span>
                 </div>
               )}
-              <div className="flex justify-between text-sm font-black text-white pt-2 border-t border-white/10">
+              <div className="flex justify-between text-sm font-black text-[#282926] pt-2 border-t border-[#D9E2EA]">
                 <span>Total Amount:</span>
-                <span className="text-amber-400 text-lg font-mono">
+                <span className="text-[#173885] text-lg font-mono">
                   ₹{calculatedTotals?.grandTotal}
                 </span>
               </div>
             </div>
 
-            {/* Submission Error Banner */}
             {submissionError && (
-              <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs space-y-1.5">
+              <div className="p-3 rounded-xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs space-y-1.5">
                 <div className="flex items-center gap-1.5 font-bold">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-[#B43D20] shrink-0" />
                   <span>Notice</span>
                 </div>
                 <p className="text-[11px] leading-relaxed">{submissionError}</p>
@@ -796,18 +699,17 @@ export const Checkout = () => {
                   onClick={() =>
                     setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY)
                   }
-                  className="w-full gold-gradient-btn py-1.5 rounded-lg text-[11px] font-bold mt-1"
+                  className="w-full btn-gm-primary py-1.5 rounded-lg text-[11px] font-bold mt-1"
                 >
                   Switch to Pay on Delivery
                 </button>
               </div>
             )}
 
-            {/* CTA Button */}
             <button
               type="submit"
               disabled={isProcessing || isCalculating || !activeAddress}
-              className="w-full py-3.5 rounded-xl gold-gradient-btn font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-98 disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl btn-gm-primary font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition active:scale-98 disabled:opacity-50"
             >
               <ShieldCheck className="w-4 h-4" />
               <span>
@@ -819,7 +721,7 @@ export const Checkout = () => {
               </span>
             </button>
 
-            <div className="flex items-center justify-center gap-2 text-emerald-400 text-[11px] pt-1">
+            <div className="flex items-center justify-center gap-2 text-[#3F7D20] text-[11px] pt-1">
               <ShieldCheck className="w-4 h-4" /> 256-Bit Encrypted Order
               Dispatch
             </div>
@@ -827,7 +729,6 @@ export const Checkout = () => {
         </div>
       </form>
 
-      {/* Address & Auth Modals */}
       <AddressFormModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}

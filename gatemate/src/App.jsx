@@ -1,16 +1,17 @@
 import React, { useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { VendorAuthProvider } from "./context/VendorAuthContext";
+import { AdminAuthProvider } from "./context/AdminAuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider, useWishlist } from "./context/WishlistContext";
 
+// Customer Components & Views
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
 import { MobileBottomNav } from "./components/common/MobileBottomNav";
 import { CheckoutDrawer } from "./components/customer/CheckoutDrawer";
 import { AuthModal } from "./components/AuthModal";
-
-// Customer Views
 import { CustomerHome } from "./components/customer/CustomerHome";
 import { ProductListing } from "./components/customer/ProductListing";
 import { ProductDetails } from "./components/customer/ProductDetails";
@@ -28,86 +29,87 @@ import { Preferences } from "./components/customer/Preferences";
 import { AccountWishlist } from "./components/customer/AccountWishlist";
 import { B2BQuotations } from "./components/customer/B2BQuotations";
 
-function AppContent() {
+// Password Reset Page
+import { ResetPasswordPage } from "./components/common/ResetPasswordPage";
+
+// Vendor Views & Architecture
+import { VendorLayout } from "./components/vendor/VendorLayout";
+import { VendorProtectedRoute } from "./components/vendor/VendorProtectedRoute";
+import { VendorLanding } from "./components/vendor/VendorLanding";
+import { VendorRegister } from "./components/vendor/VendorRegister";
+import { VendorLogin } from "./components/vendor/VendorLogin";
+import { VendorGuidelines } from "./components/vendor/VendorGuidelines";
+import { VendorBenefits } from "./components/vendor/VendorBenefits";
+import { VendorOnboarding } from "./components/vendor/VendorOnboarding";
+import { VendorVerificationStatus } from "./components/vendor/VendorVerificationStatus";
+import { VendorDashboard } from "./components/vendor/VendorDashboard";
+import { VendorProducts } from "./components/vendor/VendorProducts";
+import { VendorProductForm } from "./components/vendor/VendorProductForm";
+import { VendorProductPreview } from "./components/vendor/VendorProductPreview";
+import { VendorInventory } from "./components/vendor/VendorInventory";
+import { VendorOrders } from "./components/vendor/VendorOrders";
+import { VendorOrderDetail } from "./components/vendor/VendorOrderDetail";
+import { VendorRfqs } from "./components/vendor/VendorRfqs";
+import { VendorRfqDetail } from "./components/vendor/VendorRfqDetail";
+import { VendorQuotations } from "./components/vendor/VendorQuotations";
+import { VendorPayments } from "./components/vendor/VendorPayments";
+import { VendorSettlements } from "./components/vendor/VendorSettlements";
+import { VendorReviews } from "./components/vendor/VendorReviews";
+import { VendorNotifications } from "./components/vendor/VendorNotifications";
+import { VendorProfile } from "./components/vendor/VendorProfile";
+
+// Admin Architecture & Workspaces
+import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
+import { AdminLogin } from "./components/admin/AdminLogin";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
+import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
+import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPanel";
+
+function CustomerAppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const { authModalRequired, closeAuthModal } = useWishlist();
 
   return (
-    <div className="min-h-screen bg-city-pattern bg-cover bg-center bg-fixed text-slate-100 flex flex-col relative font-sans">
-      <div className="absolute inset-0 bg-gradient-to-b from-[#050b14]/90 via-[#0a1424]/92 to-[#050b14]/96 z-0 pointer-events-none" />
+    <div className="min-h-screen bg-[#F4F6FA] text-[#282926] flex flex-col relative font-sans">
+      <Header
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenCart={() => setIsCartOpen(true)}
+      />
 
-      <div className="relative z-10 flex flex-col min-h-screen">
-        <Header
-          onOpenAuth={() => setIsAuthOpen(true)}
-          onOpenCart={() => setIsCartOpen(true)}
-        />
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<CustomerHome />} />
+          <Route path="/products" element={<ProductListing />} />
+          <Route path="/products/:slug" element={<ProductDetails />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
 
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<CustomerHome />} />
-            <Route path="/products" element={<ProductListing />} />
-            <Route path="/products/:slug" element={<ProductDetails />} />
-            <Route path="/search" element={<SearchResults />} />
-            <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
+          {/* Customer Account Sub-Routes */}
+          <Route path="/account" element={<Account />} />
+          <Route path="/account/wishlist" element={<AccountWishlist />} />
+          <Route path="/account/b2b" element={<B2BQuotations />} />
+          <Route path="/account/addresses" element={<Addresses />} />
+          <Route path="/account/orders" element={<Orders />} />
+          <Route path="/account/orders/:id" element={<OrderDetails />} />
+          <Route path="/account/notifications" element={<Notifications />} />
+          <Route path="/account/reviews" element={<CustomerReviews />} />
+          <Route path="/account/preferences" element={<Preferences />} />
 
-            {/* Customer Account Sub-Routes */}
-            <Route path="/account" element={<Account />} />
-            <Route path="/account/wishlist" element={<AccountWishlist />} />
-            <Route path="/account/b2b" element={<B2BQuotations />} />
-            <Route path="/account/addresses" element={<Addresses />} />
-            <Route path="/account/orders" element={<Orders />} />
-            <Route path="/account/orders/:id" element={<OrderDetails />} />
-            <Route path="/account/notifications" element={<Notifications />} />
-            <Route path="/account/reviews" element={<CustomerReviews />} />
-            <Route path="/account/preferences" element={<Preferences />} />
+          <Route path="/seller" element={<Navigate to="/sell" replace />} />
+        </Routes>
+      </main>
 
-            {/* Vendor & Admin Placeholders (Preserved without breakage) */}
-            <Route
-              path="/seller"
-              element={
-                <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                  <div className="premium-panel p-8 rounded-3xl">
-                    <h2 className="text-2xl font-bold mb-2">
-                      GateMate Stockist & Vendor Hub
-                    </h2>
-                    <p className="text-slate-400 text-sm">
-                      Listing workflows & depot metrics.
-                    </p>
-                  </div>
-                </div>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-                  <div className="premium-panel p-8 rounded-3xl">
-                    <h2 className="text-2xl font-bold mb-2">
-                      GateMate Admin Portal
-                    </h2>
-                    <p className="text-slate-400 text-sm">
-                      Platform oversight, dispatch zones, & catalogue controls.
-                    </p>
-                  </div>
-                </div>
-              }
-            />
-          </Routes>
-        </main>
+      <Footer />
 
-        <Footer />
-      </div>
-
-      {/* Global Mobile Bottom Navigation Bar */}
       <MobileBottomNav
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
       />
 
-      {/* Drawer & Modal Overlays */}
       <CheckoutDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
@@ -133,11 +135,125 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <WishlistProvider>
-          <CartProvider>
-            <AppContent />
-          </CartProvider>
-        </WishlistProvider>
+        <VendorAuthProvider>
+          <AdminAuthProvider>
+            <WishlistProvider>
+              <CartProvider>
+                <Routes>
+                  {/* Public Password Reset Link Target */}
+                  <Route
+                    path="/reset-password"
+                    element={<ResetPasswordPage />}
+                  />
+
+                  {/* Public Vendor Portal Routes */}
+                  <Route path="/sell" element={<VendorLanding />} />
+                  <Route path="/vendor" element={<VendorLanding />} />
+                  <Route path="/vendor/register" element={<VendorRegister />} />
+                  <Route path="/vendor/login" element={<VendorLogin />} />
+                  <Route
+                    path="/vendor/guidelines"
+                    element={<VendorGuidelines />}
+                  />
+                  <Route path="/vendor/benefits" element={<VendorBenefits />} />
+                  <Route
+                    path="/vendor/onboarding"
+                    element={<VendorOnboarding />}
+                  />
+                  <Route
+                    path="/vendor/verification"
+                    element={<VendorVerificationStatus />}
+                  />
+
+                  {/* Protected Vendor Operations Terminal */}
+                  <Route
+                    path="/vendor"
+                    element={
+                      <VendorProtectedRoute>
+                        <VendorLayout />
+                      </VendorProtectedRoute>
+                    }
+                  >
+                    <Route path="dashboard" element={<VendorDashboard />} />
+                    <Route path="products" element={<VendorProducts />} />
+                    <Route
+                      path="products/new"
+                      element={<VendorProductForm />}
+                    />
+                    <Route
+                      path="products/:id"
+                      element={<VendorProductForm />}
+                    />
+                    <Route
+                      path="products/:id/preview"
+                      element={<VendorProductPreview />}
+                    />
+                    <Route path="inventory" element={<VendorInventory />} />
+                    <Route path="orders" element={<VendorOrders />} />
+                    <Route path="orders/:id" element={<VendorOrderDetail />} />
+                    <Route path="rfqs" element={<VendorRfqs />} />
+                    <Route path="rfqs/:id" element={<VendorRfqDetail />} />
+                    <Route path="quotations" element={<VendorQuotations />} />
+                    <Route path="payments" element={<VendorPayments />} />
+                    <Route path="settlements" element={<VendorSettlements />} />
+                    <Route path="reviews" element={<VendorReviews />} />
+                    <Route
+                      path="notifications"
+                      element={<VendorNotifications />}
+                    />
+                    <Route path="profile" element={<VendorProfile />} />
+                  </Route>
+
+                  {/* Admin Protected Workspaces */}
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route
+                    path="/admin"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminDashboard />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/dashboard"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminDashboard />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/vendor-reviews"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminVendorReviewPanel />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/product-reviews"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminProductReviewPanel />
+                      </AdminProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/attributes"
+                    element={
+                      <AdminProtectedRoute>
+                        <AdminAttributeReviewPanel />
+                      </AdminProtectedRoute>
+                    }
+                  />
+
+                  {/* Customer Storefront App */}
+                  <Route path="/*" element={<CustomerAppContent />} />
+                </Routes>
+              </CartProvider>
+            </WishlistProvider>
+          </AdminAuthProvider>
+        </VendorAuthProvider>
       </AuthProvider>
     </BrowserRouter>
   );

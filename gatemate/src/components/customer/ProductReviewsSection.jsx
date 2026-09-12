@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Star, ShieldCheck, MessageSquare, Plus } from "lucide-react";
+import { Star, ShieldCheck, MessageSquare, Plus, Info } from "lucide-react";
 import { reviewService } from "../../services/reviewService";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../AuthModal";
@@ -18,7 +18,6 @@ export const ProductReviewsSection = ({ product }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Eligibility & Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [eligibilityChecking, setEligibilityChecking] = useState(false);
@@ -72,17 +71,17 @@ export const ProductReviewsSection = ({ product }) => {
   };
 
   return (
-    <div className="premium-panel p-6 sm:p-8 rounded-3xl space-y-6 border border-white/10">
+    <div className="gm-panel p-6 sm:p-8 rounded-3xl space-y-6">
       {/* Top Header & Customer Rating Overview */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/10 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[#D9E2EA] pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <MessageSquare className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-black text-white">
+            <MessageSquare className="w-5 h-5 text-[#173885]" />
+            <h2 className="text-xl font-black text-[#173885]">
               Customer Reviews & Customer Ratings
             </h2>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[#606460]">
             Verified Customer Reviews and Product Ratings across Pune and
             Pimpri-Chinchwad.
           </p>
@@ -92,9 +91,9 @@ export const ProductReviewsSection = ({ product }) => {
           <button
             onClick={handleWriteReviewClick}
             disabled={eligibilityChecking}
-            className="gold-gradient-btn px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg active:scale-95 transition disabled:opacity-50"
+            className="btn-gm-primary px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95 transition disabled:opacity-50"
           >
-            <Plus className="w-4 h-4 text-slate-950" />
+            <Plus className="w-4 h-4 text-[#FEFEFE]" />
             <span>
               {eligibilityChecking ? "Verifying..." : "Write a Customer Review"}
             </span>
@@ -104,33 +103,33 @@ export const ProductReviewsSection = ({ product }) => {
 
       {/* Ineligibility or Feedback Alert */}
       {eligibilityNotice && (
-        <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
-          <InfoIcon className="w-4 h-4 shrink-0 text-amber-400" />
+        <div className="p-3.5 rounded-2xl bg-[#E3EBFA] border border-[#2E4D94]/30 text-[#2E4D94] text-xs flex items-center gap-2">
+          <Info className="w-4 h-4 shrink-0 text-[#2E4D94]" />
           <span>{eligibilityNotice}</span>
         </div>
       )}
 
       {/* Customer Ratings Breakdown Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 rounded-2xl bg-[#091526] border border-white/5 items-center">
-        <div className="text-center md:border-r border-white/10 md:pr-4">
-          <div className="text-4xl font-black text-white font-mono">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 rounded-2xl bg-[#F4F6FA] border border-[#D9E2EA] items-center">
+        <div className="text-center md:border-r border-[#D9E2EA] md:pr-4">
+          <div className="text-4xl font-black text-[#173885] font-mono">
             {reviewsData.averageRating || product.rating}
           </div>
-          <div className="flex justify-center text-amber-400 my-1">
+          <div className="flex justify-center text-[#3C7DDA] my-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
-                className="w-4 h-4 fill-current text-amber-400"
+                className="w-4 h-4 fill-current text-[#3C7DDA]"
               />
             ))}
           </div>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-[#606460] font-semibold">
             Overall Customer Rating ({reviewsData.totalCount} reviews)
           </p>
         </div>
 
         {/* Progress Bars */}
-        <div className="md:col-span-2 space-y-1.5 text-xs">
+        <div className="md:col-span-2 space-y-2 text-xs">
           {[5, 4, 3, 2, 1].map((stars) => {
             const count = reviewsData.ratingDistribution[stars] || 0;
             const percentage =
@@ -141,17 +140,17 @@ export const ProductReviewsSection = ({ product }) => {
                   : 15;
             return (
               <div key={stars} className="flex items-center gap-3">
-                <span className="w-7 text-[11px] font-bold text-slate-400 flex items-center gap-0.5">
+                <span className="w-7 text-[11px] font-bold text-[#282926] flex items-center gap-0.5">
                   {stars}{" "}
-                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <Star className="w-3 h-3 text-[#3C7DDA] fill-[#3C7DDA]" />
                 </span>
-                <div className="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
+                <div className="flex-1 h-2.5 rounded-full bg-[#D9E2EA] overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full"
+                    className="h-full bg-[#3C7DDA] rounded-full transition-all duration-500"
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
-                <span className="w-8 text-[10px] text-slate-400 font-mono text-right">
+                <span className="w-8 text-[10px] text-[#606460] font-mono text-right font-bold">
                   {count}
                 </span>
               </div>
@@ -167,49 +166,46 @@ export const ProductReviewsSection = ({ product }) => {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="premium-card p-5 rounded-2xl h-28 animate-pulse bg-white/5"
+                className="gm-card p-5 rounded-2xl h-28 animate-pulse bg-[#E4EEF3]"
               />
             ))}
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-xs text-slate-400">{error}</div>
+          <div className="p-8 text-center text-xs text-[#B43D20]">{error}</div>
         ) : reviewsData.reviews.length === 0 ? (
           <div className="p-10 text-center space-y-2">
-            <p className="text-xs text-slate-300">
+            <p className="text-xs font-bold text-[#282926]">
               No Customer Reviews submitted yet for this Product.
             </p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[#606460]">
               Be the first verified customer in Pune or PCMC to write a Customer
               Review.
             </p>
           </div>
         ) : (
           reviewsData.reviews.map((rev) => (
-            <div
-              key={rev.id}
-              className="premium-card p-5 rounded-2xl space-y-3 border border-white/5"
-            >
+            <div key={rev.id} className="gm-card p-5 rounded-2xl space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-amber-400/20 text-amber-400 font-bold flex items-center justify-center text-xs">
+                  <div className="w-8 h-8 rounded-full bg-[#E4EEF3] text-[#173885] font-bold flex items-center justify-center text-xs">
                     {rev.userName?.[0] || "C"}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-[#282926] flex items-center gap-2">
                       <span>{rev.userName}</span>
                       {rev.isVerifiedPurchase && (
-                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.2 rounded-full flex items-center gap-1 font-semibold">
+                        <span className="text-[10px] text-[#3F7D20] bg-[#E1F2D9] border border-[#3F7D20]/30 px-2 py-0.2 rounded-full flex items-center gap-1 font-semibold">
                           <ShieldCheck className="w-3 h-3" /> Verified Purchase
                         </span>
                       )}
                     </h4>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-[#6F8A92]">
                       {rev.userLocation}
                     </p>
                   </div>
                 </div>
 
-                <span className="text-[10px] text-slate-500">
+                <span className="text-[10px] text-[#6F8A92]">
                   {new Date(rev.createdAt).toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "short",
@@ -220,22 +216,22 @@ export const ProductReviewsSection = ({ product }) => {
 
               {/* Stars & Headline */}
               <div className="space-y-1">
-                <div className="flex text-amber-400">
+                <div className="flex text-[#3C7DDA]">
                   {Array(rev.rating)
                     .fill(0)
                     .map((_, i) => (
                       <Star
                         key={i}
-                        className="w-3.5 h-3.5 fill-current text-amber-400"
+                        className="w-3.5 h-3.5 fill-current text-[#3C7DDA]"
                       />
                     ))}
                 </div>
                 {rev.headline && (
-                  <h5 className="text-xs font-bold text-slate-200">
+                  <h5 className="text-xs font-bold text-[#282926]">
                     {rev.headline}
                   </h5>
                 )}
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-xs text-[#606460] leading-relaxed">
                   {rev.comment}
                 </p>
               </div>
@@ -246,7 +242,7 @@ export const ProductReviewsSection = ({ product }) => {
                   {rev.images.map((imgUrl, idx) => (
                     <div
                       key={idx}
-                      className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 bg-black"
+                      className="w-16 h-16 rounded-xl overflow-hidden border border-[#D9E2EA] bg-[#F4F6FA]"
                     >
                       <img
                         src={imgUrl}
@@ -282,17 +278,3 @@ export const ProductReviewsSection = ({ product }) => {
     </div>
   );
 };
-
-const InfoIcon = ({ className }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="16" x2="12" y2="12" />
-    <line x1="12" y1="8" x2="12.01" y2="8" />
-  </svg>
-);

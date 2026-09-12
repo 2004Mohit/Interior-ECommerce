@@ -90,21 +90,21 @@ export const ReviewFormModal = ({
         <button
           onClick={onClose}
           disabled={isSubmitting}
-          className="absolute top-5 right-5 text-slate-400 hover:text-white transition"
+          className="absolute top-5 right-5 text-slate-400 hover:text-dark transition"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-5 h-5 text-amber-400" />
-          <h3 className="text-xl font-black text-white">
+          <Sparkles className="w-5 h-5 text-dark-400" />
+          <h3 className="text-xl font-black text-dark">
             Write a Customer Review
           </h3>
         </div>
         <p className="text-xs text-slate-400 mb-4 truncate">
           Reviewing Product:{" "}
-          <span className="text-white font-semibold">{product.name}</span>
+          <span className="text-dark font-semibold">{product.name}</span>
         </p>
 
         {formError && (
@@ -134,13 +134,13 @@ export const ReviewFormModal = ({
                   <Star
                     className={`w-7 h-7 ${
                       (hoverRating || rating) >= star
-                        ? "text-amber-400 fill-amber-400"
+                        ? "text-dark-400 fill-dark-400"
                         : "text-slate-600"
                     }`}
                   />
                 </button>
               ))}
-              <span className="ml-2 text-xs font-bold text-amber-400">
+              <span className="ml-2 text-xs font-bold text-dark-400">
                 {rating === 5
                   ? "Exceptional"
                   : rating === 4
@@ -202,7 +202,7 @@ export const ReviewFormModal = ({
                   <button
                     type="button"
                     onClick={() => removeFile(i)}
-                    className="absolute top-1 right-1 bg-black/70 p-0.5 rounded text-white hover:text-rose-400"
+                    className="absolute top-1 right-1 bg-black/70 p-0.5 rounded text-dark hover:text-rose-400"
                     aria-label="Remove image"
                   >
                     <X className="w-3 h-3" />
@@ -211,7 +211,7 @@ export const ReviewFormModal = ({
               ))}
 
               {selectedFiles.length < 3 && (
-                <label className="w-16 h-16 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center text-slate-400 hover:text-amber-400 hover:border-amber-400 cursor-pointer transition">
+                <label className="w-16 h-16 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center text-slate-400 hover:text-dark-400 hover:border-dark-400 cursor-pointer transition">
                   <Upload className="w-4 h-4 mb-0.5" />
                   <span className="text-[9px] font-bold">Upload</span>
                   <input
@@ -251,7 +251,7 @@ export const ReviewFormModal = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 gold-gradient-btn py-3 rounded-xl text-xs font-bold transition disabled:opacity-50 text-slate-950"
+              className="flex-1 dark-gradient-btn py-3 rounded-xl text-xs font-bold transition disabled:opacity-50 text-slate-950"
             >
               {isSubmitting
                 ? "Verifying & Submitting..."

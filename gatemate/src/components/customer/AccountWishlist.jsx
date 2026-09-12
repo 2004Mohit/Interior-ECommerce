@@ -36,7 +36,7 @@ export const AccountWishlist = () => {
   if (!authLoading && !user) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
-        <h1 className="text-2xl font-black text-white">
+        <h1 className="text-2xl font-black text-dark">
           Saved Products Wishlist
         </h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -48,7 +48,7 @@ export const AccountWishlist = () => {
               <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
                 <Lock className="w-7 h-7" />
               </div>
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-dark">
                 Authentication Required
               </h2>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -57,7 +57,7 @@ export const AccountWishlist = () => {
               </p>
               <button
                 onClick={() => setAuthModalOpen(true)}
-                className="gold-gradient-btn px-6 py-3 rounded-xl text-xs font-bold shadow-lg"
+                className="dark-gradient-btn px-6 py-3 rounded-xl text-xs font-bold shadow-lg"
               >
                 Sign In to View Saved Products
               </button>
@@ -82,7 +82,7 @@ export const AccountWishlist = () => {
       {/* Header */}
       <div className="border-b border-white/10 pb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-white">
+          <h1 className="text-2xl font-black text-dark">
             Saved Products Wishlist
           </h1>
           <p className="text-xs text-slate-400">
@@ -95,7 +95,7 @@ export const AccountWishlist = () => {
         {wishlist.length > 0 && (
           <Link
             to="/products"
-            className="text-xs font-bold text-amber-400 hover:underline self-start sm:self-auto"
+            className="text-xs font-bold text-dark-400 hover:underline self-start sm:self-auto"
           >
             + Browse More Products
           </Link>
@@ -129,13 +129,13 @@ export const AccountWishlist = () => {
           ) : error ? (
             <div className="premium-panel p-12 rounded-3xl text-center space-y-3 max-w-md mx-auto">
               <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
-              <h3 className="text-sm font-bold text-white">
+              <h3 className="text-sm font-bold text-dark">
                 Error Loading Saved Products
               </h3>
               <p className="text-xs text-slate-400">{error}</p>
               <button
                 onClick={fetchWishlist}
-                className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
+                className="dark-gradient-btn px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Retry</span>
@@ -146,7 +146,7 @@ export const AccountWishlist = () => {
               <div className="w-16 h-16 rounded-2xl bg-slate-800 text-slate-600 flex items-center justify-center mx-auto border border-white/5">
                 <Heart className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-dark">
                 Your Saved Products List is Empty
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
@@ -155,7 +155,7 @@ export const AccountWishlist = () => {
               </p>
               <Link
                 to="/products"
-                className="gold-gradient-btn inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold shadow-lg"
+                className="dark-gradient-btn inline-flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-bold shadow-lg"
               >
                 <span>Discover Construction Products</span>
                 <ArrowRight className="w-4 h-4 text-slate-950" />
@@ -179,14 +179,14 @@ export const AccountWishlist = () => {
                       </Link>
 
                       {product.tag && (
-                        <span className="absolute top-2.5 left-2.5 bg-[#050b14]/90 px-2.5 py-0.5 rounded-md text-[10px] font-bold text-amber-300 border border-amber-400/30">
+                        <span className="absolute top-2.5 left-2.5 bg-[#050b14]/90 px-2.5 py-0.5 rounded-md text-[10px] font-bold text-dark-300 border border-dark-400/30">
                           {product.tag}
                         </span>
                       )}
 
                       <button
                         onClick={() => removeFromWishlist(product.id)}
-                        className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-[#050b14]/80 text-rose-400 hover:text-white hover:bg-rose-500/30 transition border border-white/10"
+                        className="absolute top-2.5 right-2.5 p-1.5 rounded-xl bg-[#050b14]/80 text-rose-400 hover:text-dark hover:bg-rose-500/30 transition border border-white/10"
                         title="Remove from saved products"
                         aria-label="Remove from saved products"
                       >
@@ -195,17 +195,17 @@ export const AccountWishlist = () => {
                     </div>
 
                     <div className="p-4 space-y-1">
-                      <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-dark-400 uppercase tracking-wider">
                         {product.category}
                       </span>
                       <Link to={`/products/${product.slug}`}>
-                        <h3 className="text-white font-bold text-xs line-clamp-1 group-hover:text-amber-300 transition-colors">
+                        <h3 className="text-dark font-bold text-xs line-clamp-1 group-hover:text-dark-300 transition-colors">
                           {product.name}
                         </h3>
                       </Link>
 
                       <div className="flex items-baseline gap-2 pt-1">
-                        <span className="text-sm font-black text-white font-mono">
+                        <span className="text-sm font-black text-dark font-mono">
                           ₹{product.price}
                         </span>
                         <span className="text-[10px] text-slate-400 font-semibold">
@@ -223,7 +223,7 @@ export const AccountWishlist = () => {
                   <div className="p-4 pt-0">
                     <button
                       onClick={() => handleMoveToCart(product)}
-                      className="w-full gold-gradient-btn py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
+                      className="w-full dark-gradient-btn py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
                       <span>Move to Bag</span>

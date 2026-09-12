@@ -1,28 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { AccountNav } from "./AccountNav";
 import {
   orderRepository,
   ORDER_LIFECYCLE_STATUS,
-  PAYMENT_STATUS,
 } from "../../services/orderRepository";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../AuthModal";
+import { ChevronRight, Zap, PackageX } from "lucide-react";
 import {
-  Package,
-  ChevronRight,
-  Zap,
-  ShieldCheck,
-  AlertCircle,
-  RotateCcw,
-  Clock,
-  CheckCircle2,
-  Lock,
-} from "lucide-react";
+  AuthRequiredStateView,
+  ErrorStateView,
+  EmptyStateView,
+} from "../common/StateViews";
 
 export const Orders = () => {
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,34 +45,22 @@ export const Orders = () => {
     }
   }, [user, authLoading]);
 
-  // Guest view protection
   if (!authLoading && !user) {
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
-        <h1 className="text-2xl font-black text-white">Order History</h1>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
+        <h1 className="text-xl sm:text-2xl font-black text-[#173885]">
+          My Orders
+        </h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
             <AccountNav />
           </div>
           <div className="md:col-span-3">
-            <div className="premium-panel p-12 rounded-3xl text-center space-y-4 max-w-md mx-auto">
-              <div className="w-12 h-12 rounded-2xl bg-amber-400/10 text-amber-400 flex items-center justify-center mx-auto border border-amber-400/20">
-                <Lock className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white">
-                Account Authentication Required
-              </h3>
-              <p className="text-xs text-slate-400">
-                Guests cannot access personal orders. Please log in to view your
-                order history and live tracking.
-              </p>
-              <button
-                onClick={() => setAuthModalOpen(true)}
-                className="gold-gradient-btn px-6 py-3 rounded-xl text-xs font-bold"
-              >
-                Sign In to View Orders
-              </button>
-            </div>
+            <AuthRequiredStateView
+              title="Sign In to View Orders"
+              description="Personal order history and 30-minute priority delivery tracking are private to verified accounts."
+              onOpenAuth={() => setAuthModalOpen(true)}
+            />
           </div>
         </div>
 
@@ -98,38 +79,26 @@ export const Orders = () => {
   const getOrderStatusBadge = (status) => {
     switch (status) {
       case ORDER_LIFECYCLE_STATUS.DELIVERED:
-        return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+        return "bg-[#E1F2D9] text-[#3F7D20] border-[#3F7D20]/30";
       case ORDER_LIFECYCLE_STATUS.OUT_FOR_DELIVERY:
-        return "bg-sky-500/15 text-sky-300 border-sky-500/30";
+        return "bg-[#E4EEF3] text-[#173885] border-[#9AAED4]/40";
       case ORDER_LIFECYCLE_STATUS.CANCELLED:
-        return "bg-rose-500/15 text-rose-300 border-rose-500/30";
+        return "bg-[#FBE3DE] text-[#B43D20] border-[#B43D20]/30";
       default:
-        return "bg-amber-500/15 text-amber-300 border-amber-500/30";
-    }
-  };
-
-  const getPaymentStatusBadge = (status) => {
-    switch (status) {
-      case PAYMENT_STATUS.SUCCESS:
-        return "text-emerald-400";
-      case PAYMENT_STATUS.FAILED:
-        return "text-rose-400";
-      case PAYMENT_STATUS.REFUNDED:
-        return "text-purple-400";
-      default:
-        return "text-amber-400";
+        return "bg-[#E3EBFA] text-[#2E4D94] border-[#2E4D94]/30";
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white">My Orders</h1>
-          <p className="text-xs text-slate-400">
-            Track live dispatch status, delivery timelines, and invoices.
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-24">
+      <div className="border-b border-[#D9E2EA] pb-4">
+        <h1 className="text-xl sm:text-2xl font-black text-[#173885]">
+          My Orders
+        </h1>
+        <p className="text-xs text-[#606460]">
+          Track live dispatch status, delivery timelines, and invoices in Pune &
+          PCMC.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
@@ -143,63 +112,45 @@ export const Orders = () => {
               {[1, 2].map((i) => (
                 <div
                   key={i}
-                  className="premium-panel p-6 rounded-3xl h-44 animate-pulse bg-white/5"
+                  className="gm-panel p-6 rounded-3xl h-40 animate-pulse bg-[#E4EEF3]"
                 />
               ))}
             </div>
           ) : error ? (
-            <div className="premium-panel p-12 rounded-3xl text-center space-y-3">
-              <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
-              <h3 className="text-sm font-bold text-white">
-                Error Loading Orders
-              </h3>
-              <p className="text-xs text-slate-400">{error}</p>
-              <button
-                onClick={fetchOrders}
-                className="gold-gradient-btn px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Retry</span>
-              </button>
-            </div>
+            <ErrorStateView
+              title="Error Loading Orders"
+              description={error}
+              onRetry={fetchOrders}
+            />
           ) : orders.length === 0 ? (
-            <div className="premium-panel p-16 rounded-3xl text-center space-y-4 max-w-md mx-auto">
-              <Package className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="text-lg font-bold text-white">
-                No orders placed yet
-              </h3>
-              <p className="text-xs text-slate-400">
-                You haven't placed any orders yet. Discover our authentic
-                Jodhpur pottery and gate security catalog.
-              </p>
-              <Link
-                to="/products"
-                className="gold-gradient-btn inline-block px-5 py-2.5 rounded-xl text-xs font-bold"
-              >
-                Start Shopping
-              </Link>
-            </div>
+            <EmptyStateView
+              icon={PackageX}
+              title="No Orders Found"
+              description="You haven't placed any orders yet. Discover our certified construction supplies catalogue."
+              actionLink="/products"
+              actionLabel="Discover Products"
+            />
           ) : (
             orders.map((order) => (
               <div
                 key={order.id}
-                className="premium-panel p-5 rounded-3xl space-y-4 border border-white/10 hover:border-amber-400/30 transition"
+                className="gm-panel p-4 sm:p-5 rounded-3xl space-y-3.5 border border-[#D9E2EA] hover:border-[#3C7DDA] transition"
               >
-                {/* Order Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D9E2EA] pb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-black text-amber-400">
+                      <span className="font-mono text-xs font-black text-[#173885]">
                         {order.id}
                       </span>
                       {order.isExpress30Min && (
-                        <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[9px] font-black px-1.5 py-0.2 rounded flex items-center gap-1">
+                        <span className="bg-[#3C7DDA] text-[#FEFEFE] text-[9px] font-black px-1.5 py-0.2 rounded flex items-center gap-1">
                           <Zap className="w-2.5 h-2.5 fill-current" /> 30-MIN
                           PRIORITY
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-[#606460] mt-0.5">
                       Placed on{" "}
                       {new Date(order.createdAt).toLocaleDateString("en-IN", {
                         day: "numeric",
@@ -209,36 +160,37 @@ export const Orders = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getOrderStatusBadge(order.orderStatus)}`}
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getOrderStatusBadge(order.orderStatus)}`}
                     >
                       {order.orderStatus.replace(/_/g, " ")}
                     </span>
                     <Link
                       to={`/account/orders/${order.id}`}
-                      className="p-1.5 rounded-xl bg-[#0c182b] text-slate-300 hover:text-white border border-white/5 transition"
+                      className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-xl bg-[#F4F6FA] text-[#282926] hover:text-[#3C7DDA] border border-[#D9E2EA] transition"
                       title="View Order Details"
+                      aria-label={`View details for order ${order.id}`}
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Link>
                   </div>
                 </div>
 
-                {/* Items preview */}
-                <div className="space-y-2.5">
+                {/* Items */}
+                <div className="space-y-2">
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
                       <img
                         src={item.img}
                         alt={item.name}
-                        className="w-12 h-12 object-cover rounded-xl bg-black shrink-0"
+                        className="w-12 h-12 object-cover rounded-xl bg-[#F4F6FA] shrink-0 border border-[#D9E2EA]"
                       />
-                      <div className="flex-1">
-                        <h4 className="text-xs font-bold text-white line-clamp-1">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-bold text-[#282926] truncate">
                           {item.name}
                         </h4>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-[#606460]">
                           Qty: {item.quantity} × ₹{item.price}
                         </span>
                       </div>
@@ -246,23 +198,19 @@ export const Orders = () => {
                   ))}
                 </div>
 
-                {/* Footer breakdown */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-white/5 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400">Payment:</span>
-                    <span
-                      className={`font-bold ${getPaymentStatusBadge(order.paymentStatus)}`}
-                    >
+                {/* Total */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-[#D9E2EA] text-xs">
+                  <div className="flex items-center gap-1.5 text-[#606460]">
+                    <span>Payment:</span>
+                    <strong className="text-[#282926]">
                       {order.paymentStatus}
-                    </span>
-                    <span className="text-slate-500">
-                      • {order.paymentMethod}
-                    </span>
+                    </strong>
+                    <span>({order.paymentMethod})</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400">Grand Total:</span>
-                    <span className="font-mono text-amber-400 font-black text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#606460]">Total:</span>
+                    <span className="font-mono text-[#173885] font-black text-sm">
                       ₹{order.totals?.grandTotal}
                     </span>
                   </div>

@@ -103,7 +103,7 @@ export const CustomerShop = () => {
               onClick={() => setSelectedCat(cat)}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
                 selectedCat === cat
-                  ? "bg-gradient-to-r from-sky-400 to-blue-600 text-white font-semibold"
+                  ? "bg-gradient-to-r from-sky-400 to-blue-600 text-dark font-semibold"
                   : "glass-card text-blue-100 hover:bg-white/20"
               }`}
             >
@@ -146,17 +146,17 @@ export const CustomerShop = () => {
               </div>
 
               <div className="p-4 flex flex-col flex-1">
-                <h3 className="text-white font-semibold text-base line-clamp-1 group-hover:text-cyan-300 transition-colors">
+                <h3 className="text-dark font-semibold text-base line-clamp-1 group-hover:text-cyan-300 transition-colors">
                   {product.name}
                 </h3>
 
-                <div className="flex items-center gap-1 mt-1 text-amber-300 text-xs">
+                <div className="flex items-center gap-1 mt-1 text-dark-300 text-xs">
                   <Star className="w-3.5 h-3.5 fill-current" />
                   <span>{product.rating}</span>
                 </div>
 
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
-                  <span className="text-xl font-bold text-white">
+                  <span className="text-xl font-bold text-dark">
                     ₹{product.price}
                   </span>
                   <button

@@ -7,13 +7,13 @@ import { ImageOff, Sparkles } from "lucide-react";
 
 export const ProductImage = ({
   src,
-  alt = "GateMate product",
-  aspectRatio = "aspect-square", // 'aspect-square' | 'aspect-4/3' | 'aspect-video' | 'aspect-16/9'
+  alt = "GateMate construction product",
+  aspectRatio = "aspect-square",
   className = "",
   imageClassName = "",
   width = 800,
   height = null,
-  priority = false, // If true, eager load with higher fetchpriority
+  priority = false,
   showShimmer = true,
 }) => {
   const [loaded, setLoaded] = useState(false);
@@ -22,25 +22,22 @@ export const ProductImage = ({
   const resolvedUrl = mediaService.getOptimizedImageUrl(src, { width, height });
 
   useEffect(() => {
-    // Reset state when src changes
     setLoaded(false);
     setError(false);
   }, [src]);
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#060e1a] ${aspectRatio} ${className}`}
+      className={`relative overflow-hidden bg-[#F4F6FA] ${aspectRatio} ${className}`}
     >
-      {/* Loading Skeleton / Shimmer */}
       {!loaded && !error && showShimmer && (
-        <div className="absolute inset-0 bg-slate-900/80 animate-pulse flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border border-amber-400/20 flex items-center justify-center text-amber-400/40">
+        <div className="absolute inset-0 bg-[#E4EEF3] animate-pulse flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border border-[#9AAED4]/40 flex items-center justify-center text-[#3C7DDA]">
             <Sparkles className="w-4 h-4" />
           </div>
         </div>
       )}
 
-      {/* Rendered Optimized Image */}
       {!error ? (
         <img
           src={resolvedUrl}
@@ -53,16 +50,15 @@ export const ProductImage = ({
             setError(true);
             setLoaded(true);
           }}
-          className={`w-full h-full object-cover transition-all duration-500 ${
+          className={`w-full h-full object-cover transition-all duration-300 ${
             loaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
           } ${imageClassName}`}
         />
       ) : (
-        /* Graceful Fallback Container on Broken/Unreachable Image */
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#070e1a] text-slate-500 p-3 text-center border border-white/5">
-          <ImageOff className="w-6 h-6 mb-1 text-slate-600" />
-          <span className="text-[10px] font-semibold text-slate-400">
-            Image Unavailable
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F4F6FA] text-[#6F8A92] p-3 text-center border border-[#D9E2EA]">
+          <ImageOff className="w-6 h-6 mb-1 text-[#6F8A92]" />
+          <span className="text-[10px] font-semibold">
+            Product Image Unavailable
           </span>
         </div>
       )}

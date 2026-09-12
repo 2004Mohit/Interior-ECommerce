@@ -1,85 +1,147 @@
 @import "tailwindcss";
 
 @theme {
-  /* Deep black-blue base */
-  --color-royal-950: #000000;
-  --color-royal-900: #04070d;
-  --color-royal-800: #0a1018;
-  --color-royal-700: #121b28;
-  --color-royal-600: #1b2a3d;
+  /* Primary Brand Colors */
+  --color-gm-deep-blue: #173885;
+  --color-gm-primary: #3c7dda;
+  --color-gm-primary-hover: #2f6ac4;
 
-  /* Icy blue accent (replaces gold) */
-  --color-gold-300: #bfdbfe;
-  --color-gold-400: #60a5fa;
-  --color-gold-500: #3b82f6;
-  --color-gold-600: #1d4ed8;
+  /* Supporting Blues */
+  --color-gm-sky-blue: #a5d6fa;
+  --color-gm-light-blue: #e4eef3;
+  --color-gm-secondary-blue: #9aaed4;
+  --color-gm-accent-blue: #67a2e9;
 
-  --background-image-city-pattern: url("/bg-gatemate.jpg");
+  /* Neutral Colors */
+  --color-gm-white: #fefefe;
+  --color-gm-page-bg: #f4f6fa;
+  --color-gm-text: #282926;
+  --color-gm-text-secondary: #606460;
+  --color-gm-text-muted: #6f8a92;
+  --color-gm-border: #d9e2ea;
+
+  /* Semantic Colors */
+  --color-gm-success: #3f7d20;
+  --color-gm-success-bg: #e1f2d9;
+  --color-gm-warning: #a66a08;
+  --color-gm-warning-bg: #fff0d5;
+  --color-gm-error: #b43d20;
+  --color-gm-error-bg: #fbe3de;
+  --color-gm-info: #2e4d94;
+  --color-gm-info-bg: #e3ebfa;
+
+  --font-sans:
+    "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #000000;
-  color: #f8fafc;
-  font-family:
-    "Inter",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
+  background-color: #f4f6fa;
+  color: #282926;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Premium Solid Surface Utilities */
-.premium-card {
-  background-color: #0a0e14;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Reusable Standardized Surfaces */
+.gm-card {
+  background-color: #fefefe;
+  border: 1px solid #d9e2ea;
   box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.6),
-    0 0 1px 1px rgba(255, 255, 255, 0.05);
+    0 1px 3px 0 rgba(23, 56, 133, 0.04),
+    0 1px 2px -1px rgba(23, 56, 133, 0.02);
 }
 
-.premium-card-hover {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+.gm-card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.premium-card-hover:hover {
-  transform: translateY(-3px);
-  border-color: rgba(96, 165, 250, 0.4);
+.gm-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: #3c7dda;
   box-shadow:
-    0 20px 35px -10px rgba(0, 0, 0, 0.8),
-    0 0 15px rgba(59, 130, 246, 0.15);
+    0 10px 20px -4px rgba(23, 56, 133, 0.08),
+    0 4px 6px -2px rgba(23, 56, 133, 0.03);
 }
 
-.premium-panel {
-  background-color: #04070d;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+.gm-panel {
+  background-color: #fefefe;
+  border: 1px solid #d9e2ea;
+  box-shadow: 0 4px 12px -2px rgba(23, 56, 133, 0.04);
 }
 
-.premium-input {
-  background-color: #000000;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+/* Inputs & Form Elements */
+.gm-input {
+  background-color: #fefefe;
+  border: 1px solid #d9e2ea;
+  color: #282926;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
-.premium-input:focus {
+.gm-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  border-color: #3c7dda;
+  box-shadow: 0 0 0 3px rgba(165, 214, 250, 0.5);
+}
+.gm-input::placeholder {
+  color: #6f8a92;
 }
 
-.gold-gradient-btn {
-  background: linear-gradient(135deg, #ffffff 0%, #3b82f6 100%);
-  color: #000000;
+/* Button System */
+.btn-gm-primary {
+  background-color: #3c7dda;
+  color: #fefefe;
   font-weight: 700;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(60, 125, 218, 0.25);
 }
-.gold-gradient-btn:hover {
-  background: linear-gradient(135deg, #bfdbfe 0%, #60a5fa 100%);
-  box-shadow: 0 6px 22px rgba(59, 130, 246, 0.5);
+.btn-gm-primary:hover {
+  background-color: #2f6ac4;
+  box-shadow: 0 4px 10px rgba(47, 106, 196, 0.35);
+}
+
+.btn-gm-secondary {
+  background-color: #fefefe;
+  color: #173885;
+  border: 1px solid #d9e2ea;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.btn-gm-secondary:hover {
+  background-color: #e4eef3;
+  border-color: #9aaed4;
+}
+
+.btn-gm-dark {
+  background-color: #173885;
+  color: #fefefe;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+.btn-gm-dark:hover {
+  background-color: #0f255c;
+}
+
+/* Reusable Badges */
+.badge-gm-info {
+  background-color: #e4eef3;
+  color: #173885;
+  border: 1px solid #d9e2ea;
+  font-weight: 600;
+}
+.badge-gm-success {
+  background-color: #e1f2d9;
+  color: #3f7d20;
+  font-weight: 700;
+}
+.badge-gm-warning {
+  background-color: #fff0d5;
+  color: #a66a08;
+  font-weight: 700;
+}
+.badge-gm-error {
+  background-color: #fbe3de;
+  color: #b43d20;
+  font-weight: 700;
 }
