@@ -45,7 +45,10 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
         onSuccess?.();
         onClose();
 
-        if (result.role === USER_ROLES.ADMIN) {
+        if (
+          result.role === USER_ROLES.ADMIN ||
+          result.user?.user_metadata?.role === "ADMIN"
+        ) {
           window.location.href = "/admin";
         } else if (result.role === USER_ROLES.VENDOR) {
           window.location.href = result.destination || "/vendor/dashboard";

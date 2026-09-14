@@ -102,13 +102,17 @@ export const VendorProfile = () => {
     setSubmitting(true);
     setError(null);
     try {
-      await vendorProfileChangeService.submitChangeRequest({
-        vendorId: profile.id,
-        requestedField: selectedField,
-        currentValue: getCurrentValueForField(selectedField),
-        requestedValue: requestedValue.trim(),
-        reason: reason.trim(),
-      });
+      const { data, error: err } = await supabase.rpc(
+        "vendor_submit_profile_change_request",
+        {
+          p_requested_field: selectedField,
+          p_current_value: { value: getCurrentValueForField(selectedField) },
+          p_requested_value: { value: requestedValue.trim() },
+          p_reason: reason.trim(),
+        },
+      );
+
+      if (err) throw err;
 
       setSuccessMsg(
         "Change request successfully submitted to Admin moderation queue.",

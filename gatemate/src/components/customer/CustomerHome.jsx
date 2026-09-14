@@ -43,13 +43,21 @@ export const CustomerHome = () => {
     setLoading(true);
     setError(null);
     try {
-      const [cats, bans, prods] = await Promise.all([
+      const [cats, bansRes, prods] = await Promise.all([
         productService.getCategories(),
-        productService.getPromotionalBanners(),
+        supabase
+          .from("marketing_banners")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true }),
         productService.getFeaturedProducts(),
       ]);
       setCategories(cats);
-      setBanners(bans);
+      setBanners(
+        bansRes.data && bansRes.data.length > 0
+          ? bansRes.data
+          : await productService.getPromotionalBanners(),
+      );
       setFeaturedProducts(prods);
     } catch (err) {
       setError(

@@ -25,6 +25,7 @@ import { Orders } from "./components/customer/Orders";
 import { OrderDetails } from "./components/customer/OrderDetails";
 import { Notifications } from "./components/customer/Notifications";
 import { CustomerReviews } from "./components/customer/CustomerReviews";
+import { Complaints } from "./components/customer/Complaints";
 import { Preferences } from "./components/customer/Preferences";
 import { AccountWishlist } from "./components/customer/AccountWishlist";
 import { B2BQuotations } from "./components/customer/B2BQuotations";
@@ -121,6 +122,7 @@ function CustomerAppContent() {
           <Route path="/account/orders/:id" element={<OrderDetails />} />
           <Route path="/account/notifications" element={<Notifications />} />
           <Route path="/account/reviews" element={<CustomerReviews />} />
+          <Route path="/account/complaints" element={<Complaints />} />
           <Route path="/account/preferences" element={<Preferences />} />
 
           <Route path="/seller" element={<Navigate to="/sell" replace />} />
