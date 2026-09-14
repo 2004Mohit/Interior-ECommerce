@@ -1,155 +1,134 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   Building2,
   User,
   MapPin,
   CreditCard,
-  ShieldCheck,
-  Zap,
-  Save,
+  Lock,
+  FileText,
+  PlusCircle,
+  Clock,
   CheckCircle2,
   AlertCircle,
-  Phone,
-  Mail,
-  Lock,
-  Edit2,
+  XCircle,
+  ChevronRight,
+  X,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
-import { vendorOnboardingService } from "../../services/vendorOnboardingService";
+import { vendorProfileChangeService } from "../../services/vendorProfileChangeService";
 import { SeoHead } from "../common/SeoHead";
+
+const PROTECTED_FIELDS = [
+  { key: "BUSINESS_NAME", label: "Legal Business Name" },
+  { key: "TRADE_NAME", label: "Trade Name" },
+  { key: "GSTIN", label: "GSTIN Number" },
+  { key: "PAN_NUMBER", label: "Business PAN" },
+  { key: "CONTACT_PERSON", label: "Managing Contact Person" },
+  { key: "EMAIL", label: "Registered Email" },
+  { key: "PHONE", label: "Primary Phone" },
+  { key: "YARD_ADDRESS", label: "Registered Physical Address" },
+  { key: "BANK_DETAILS", label: "Settlement Bank Account" },
+];
 
 export const VendorProfile = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
-
   const [profile, setProfile] = useState(null);
+  const [changeRequests, setChangeRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveNotice, setSaveNotice] = useState(null);
-  const [formError, setFormError] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Form State
-  const [formData, setFormData] = useState({
-    businessName: "",
-    tradeName: "",
-    contactPerson: "",
-    designation: "",
-    email: "",
-    phone: "",
-    gstin: "",
-    panNumber: "",
-    address: "",
-    locality: "",
-    city: "Pune",
-    pincode: "411028",
-    hasHeavyTrailerAccess: true,
-    isExpress30MinEnabled: true,
-    bankDetails: {
-      accountName: "",
-      accountNumber: "",
-      bankName: "",
-      ifscCode: "",
-    },
-  });
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedField, setSelectedField] = useState("BUSINESS_NAME");
+  const [requestedValue, setRequestedValue] = useState("");
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
 
-  const loadProfileData = async () => {
+  const loadData = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
-    const app = await vendorOnboardingService.getApplication(vendorId);
-    setProfile(app);
-    setFormData({
-      businessName:
-        app.businessDetails?.legalBusinessName ||
-        vendorUser?.businessName ||
-        "",
-      tradeName: app.businessDetails?.tradeName || "",
-      contactPerson:
-        app.ownerDetails?.primaryContactName || vendorUser?.contactPerson || "",
-      designation: app.ownerDetails?.designation || "Depot Manager",
-      email: app.ownerDetails?.email || vendorUser?.email || "",
-      phone: app.ownerDetails?.mobileNumber || "",
-      gstin: app.businessDetails?.gstin || "27AAAAA0000A1Z5",
-      panNumber: app.businessDetails?.panNumber || "AAAAA0000A",
-      address:
-        app.businessAddress?.depotAddressLine1 ||
-        "Plot 48, Hadapsar Industrial Estate",
-      locality: app.businessAddress?.locality || "Hadapsar",
-      city: app.businessAddress?.city || "Pune",
-      pincode: app.businessAddress?.pincode || "411028",
-      hasHeavyTrailerAccess:
-        app.businessAddress?.hasHeavyTrailerAccess !== false,
-      isExpress30MinEnabled: true,
-      bankDetails: {
-        accountName:
-          app.bankDetails?.bankAccountName ||
-          "Pune Mega Infrastructure Depot Pvt Ltd",
-        accountNumber: app.bankDetails?.accountNumber || "•••• •••• 5678",
-        bankName: app.bankDetails?.bankName || "HDFC Bank, Hadapsar Branch",
-        ifscCode: app.bankDetails?.ifscCode || "HDFC0001234",
-      },
-    });
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadProfileData();
-  }, [vendorId]);
-
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    setFormError(null);
-    setSaving(true);
-
     try {
-      await vendorOnboardingService.saveDraft(vendorId, {
-        businessDetails: {
-          legalBusinessName: formData.businessName,
-          tradeName: formData.tradeName,
-          gstin: formData.gstin,
-          panNumber: formData.panNumber,
-        },
-        ownerDetails: {
-          primaryContactName: formData.contactPerson,
-          designation: formData.designation,
-          email: formData.email,
-          mobileNumber: formData.phone,
-        },
-        businessAddress: {
-          depotAddressLine1: formData.address,
-          locality: formData.locality,
-          city: formData.city,
-          pincode: formData.pincode,
-          hasHeavyTrailerAccess: formData.hasHeavyTrailerAccess,
-        },
-      });
-
-      setSaveNotice(
-        "Business profile and dispatch settings updated successfully.",
-      );
-      setIsEditing(false);
-      setTimeout(() => setSaveNotice(null), 3000);
+      const { profile: p, changeRequests: cr } =
+        await vendorProfileChangeService.getVendorProfileWithRequests(
+          vendorUser.id,
+        );
+      setProfile(p);
+      setChangeRequests(cr);
     } catch (err) {
-      setFormError(err.message || "Failed to update profile.");
+      setError(err.message || "Unable to load profile data.");
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto py-8 space-y-4 animate-pulse font-sans">
-        <div className="h-6 bg-[#E4EEF3] rounded w-1/3" />
-        <div className="h-64 bg-[#FEFEFE] rounded-3xl border border-[#D9E2EA]" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    loadData();
+  }, [vendorUser?.id]);
+
+  const getCurrentValueForField = (fieldKey) => {
+    if (!profile) return "N/A";
+    switch (fieldKey) {
+      case "BUSINESS_NAME":
+        return profile.business_name;
+      case "TRADE_NAME":
+        return profile.trade_name || "Same as Legal Name";
+      case "GSTIN":
+        return profile.gstin;
+      case "PAN_NUMBER":
+        return profile.pan_number;
+      case "CONTACT_PERSON":
+        return profile.contact_person;
+      case "EMAIL":
+        return profile.email;
+      case "PHONE":
+        return profile.phone;
+      case "YARD_ADDRESS":
+        return `${profile.yard_address_line1}, ${profile.locality}, ${profile.city} - ${profile.pincode}`;
+      case "BANK_DETAILS":
+        return `${profile.bank_details?.bankName || "Bank"} - A/C ${profile.bank_details?.accountNumber || "Pending"}`;
+      default:
+        return "N/A";
+    }
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!reason.trim() || !requestedValue.trim()) {
+      setError("Please provide both the proposed value and justification.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await vendorProfileChangeService.submitChangeRequest({
+        vendorId: profile.id,
+        requestedField: selectedField,
+        currentValue: getCurrentValueForField(selectedField),
+        requestedValue: requestedValue.trim(),
+        reason: reason.trim(),
+      });
+
+      setSuccessMsg(
+        "Change request successfully submitted to Admin moderation queue.",
+      );
+      setIsModalOpen(false);
+      setRequestedValue("");
+      setReason("");
+      loadData();
+    } catch (err) {
+      setError(err.message || "Failed to submit change request.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto py-6 space-y-6 pb-24 font-sans">
+    <div className="space-y-6 pb-20 font-sans">
       <SeoHead
-        title="Depot Partner Profile | GateMate Vendor Portal"
-        description="Manage your verified construction depot business identity, contact escalations, and logistics settings."
+        title="Vendor Business Profile | GateMate Partner Terminal"
+        description="View protected legal identities, tax credentials, bank accounts, and submit verified change requests."
         canonicalUrl="/vendor/profile"
         noIndex={true}
       />
@@ -158,344 +137,365 @@ export const VendorProfile = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
         <div>
           <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-            Verified Stockist Partner
+            Verified Partner Entity
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
-            Depot Partner Profile
+            Vendor Business Profile
           </h1>
           <p className="text-xs text-[#606460]">
-            Review business credentials, managing contacts, and dispatch yard
-            parameters.
+            Core trust and identity credentials are protected. Submit an
+            official Change Request to modify verified parameters.
           </p>
         </div>
 
-        {!isEditing ? (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="btn-gm-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-            <span>Edit Profile</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsEditing(false)}
-            className="btn-gm-secondary px-4 py-2 rounded-xl text-xs font-bold self-start sm:self-auto"
-          >
-            Cancel Editing
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            setIsModalOpen(true);
+            setError(null);
+            setSuccessMsg(null);
+          }}
+          className="btn-gm-primary px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto shadow-xs"
+        >
+          <PlusCircle className="w-4 h-4 text-[#FEFEFE]" />
+          <span>Request Profile Change</span>
+        </button>
       </div>
 
-      {saveNotice && (
-        <div className="p-3.5 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-[#3F7D20]" />
-          <span>{saveNotice}</span>
+      {successMsg && (
+        <div className="p-4 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{successMsg}</span>
         </div>
       )}
 
-      {formError && (
-        <div className="p-3.5 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-[#B43D20]" />
-          <span>{formError}</span>
+      {error && (
+        <div className="p-4 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSaveProfile} className="space-y-6">
-        {/* 1. Legal Entity & GST Information */}
-        <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-4 shadow-xs">
-          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
+      {/* Protected Profile Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+        {/* Business Credentials */}
+        <div className="gm-panel p-5 rounded-2xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-2">
             <div className="flex items-center gap-2 text-[#173885] font-bold">
               <Building2 className="w-4 h-4 text-[#3C7DDA]" />
-              <h2 className="text-sm font-bold">
-                1. Legal Entity & Tax Identifiers
-              </h2>
+              <span>Legal Business Entity</span>
             </div>
-            <span className="badge-gm-success px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 font-bold">
-              <ShieldCheck className="w-3 h-3" /> GST Verified
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#6F8A92] font-semibold bg-[#F4F6FA] px-2 py-0.5 rounded-md">
+              <Lock className="w-3 h-3 text-[#6F8A92]" /> Protected
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="space-y-2 text-[#606460]">
             <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Legal Entity / Business Name
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={formData.businessName}
-                onChange={(e) =>
-                  setFormData({ ...formData, businessName: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs disabled:bg-[#F4F6FA]"
-              />
+              <strong className="text-[#282926]">Legal Name:</strong>{" "}
+              {profile?.business_name || "Verified Vendor"}
             </div>
-
             <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Trade / Yard Display Name
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={formData.tradeName}
-                onChange={(e) =>
-                  setFormData({ ...formData, tradeName: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs disabled:bg-[#F4F6FA]"
-              />
+              <strong className="text-[#282926]">Trade Name:</strong>{" "}
+              {profile?.trade_name || "N/A"}
             </div>
-
             <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                15-Digit GSTIN (Maharashtra)
-              </label>
-              <input
-                type="text"
-                disabled={true}
-                value={formData.gstin}
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold bg-[#F4F6FA]"
-              />
-              <span className="text-[10px] text-[#6F8A92] mt-0.5 block">
-                GSTIN modifications require administrative re-verification.
+              <strong className="text-[#282926]">Structure:</strong>{" "}
+              {profile?.business_type || "Proprietorship"}
+            </div>
+            <div>
+              <strong className="text-[#282926]">GSTIN:</strong>{" "}
+              <span className="font-mono font-bold text-[#173885]">
+                {profile?.gstin || "27AABCP1234F1Z5"}
               </span>
             </div>
-
             <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Company PAN
-              </label>
-              <input
-                type="text"
-                disabled={true}
-                value={formData.panNumber}
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold bg-[#F4F6FA]"
-              />
+              <strong className="text-[#282926]">PAN:</strong>{" "}
+              <span className="font-mono">
+                {profile?.pan_number || "AABCP1234F"}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* 2. Managing Contact & Escalations */}
-        <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-4 shadow-xs">
-          <div className="flex items-center gap-2 text-[#173885] font-bold border-b border-[#D9E2EA] pb-3">
-            <User className="w-4 h-4 text-[#3C7DDA]" />
-            <h2 className="text-sm font-bold">
-              2. Managing Contact & Escalations
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Contact Person Name
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={formData.contactPerson}
-                onChange={(e) =>
-                  setFormData({ ...formData, contactPerson: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs disabled:bg-[#F4F6FA]"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Designation
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={formData.designation}
-                onChange={(e) =>
-                  setFormData({ ...formData, designation: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs disabled:bg-[#F4F6FA]"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Official Business Email
-              </label>
-              <input
-                type="email"
-                disabled={!isEditing}
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs disabled:bg-[#F4F6FA]"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Primary Mobile Number
-              </label>
-              <input
-                type="tel"
-                disabled={!isEditing}
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold disabled:bg-[#F4F6FA]"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 3. Physical Yard & Logistics Parameters */}
-        <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-4 shadow-xs">
-          <div className="flex items-center gap-2 text-[#173885] font-bold border-b border-[#D9E2EA] pb-3">
-            <MapPin className="w-4 h-4 text-[#3C7DDA]" />
-            <h2 className="text-sm font-bold">
-              3. Physical Depot Yard & Logistics Access
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="sm:col-span-2">
-              <label className="font-bold text-[#282926] block mb-1">
-                Depot Plot / Street Address
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs disabled:bg-[#F4F6FA]"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                Locality
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={formData.locality}
-                onChange={(e) =>
-                  setFormData({ ...formData, locality: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs disabled:bg-[#F4F6FA]"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                City
-              </label>
-              <input
-                type="text"
-                disabled={true}
-                value={formData.city}
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs bg-[#F4F6FA]"
-              />
-            </div>
-
-            <div>
-              <label className="font-bold text-[#282926] block mb-1">
-                PIN Code
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={formData.pincode}
-                onChange={(e) =>
-                  setFormData({ ...formData, pincode: e.target.value })
-                }
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold disabled:bg-[#F4F6FA]"
-              />
-            </div>
-
-            <div className="flex items-center pt-5">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  disabled={!isEditing}
-                  checked={formData.hasHeavyTrailerAccess}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      hasHeavyTrailerAccess: e.target.checked,
-                    })
-                  }
-                  className="w-4 h-4 rounded accent-[#3C7DDA]"
-                />
-                <span className="text-xs font-semibold text-[#282926]">
-                  40-Ton Trailer Access
-                </span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Bank Settlement Configuration (Read-Only) */}
-        <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-4 shadow-xs">
-          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
+        {/* Contact Representative */}
+        <div className="gm-panel p-5 rounded-2xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-2">
             <div className="flex items-center gap-2 text-[#173885] font-bold">
-              <CreditCard className="w-4 h-4 text-[#3C7DDA]" />
-              <h2 className="text-sm font-bold">
-                4. Destination Settlement Bank Account
-              </h2>
+              <User className="w-4 h-4 text-[#3C7DDA]" />
+              <span>Contact Representative</span>
             </div>
-            <span className="text-[10px] text-[#6F8A92] font-semibold">
-              Direct NEFT/RTGS Batch Destination
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#6F8A92] font-semibold bg-[#F4F6FA] px-2 py-0.5 rounded-md">
+              <Lock className="w-3 h-3 text-[#6F8A92]" /> Protected
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#606460]">
+          <div className="space-y-2 text-[#606460]">
             <div>
-              <strong className="text-[#282926]">Account Name:</strong>{" "}
-              {formData.bankDetails.accountName}
+              <strong className="text-[#282926]">Contact Name:</strong>{" "}
+              {profile?.contact_person || "Managing Director"}
             </div>
             <div>
-              <strong className="text-[#282926]">Bank & Branch:</strong>{" "}
-              {formData.bankDetails.bankName}
+              <strong className="text-[#282926]">Designation:</strong>{" "}
+              {profile?.designation || "Proprietor"}
+            </div>
+            <div>
+              <strong className="text-[#282926]">Email:</strong>{" "}
+              {profile?.email || "depot@gatemate.in"}
+            </div>
+            <div>
+              <strong className="text-[#282926]">Phone:</strong>{" "}
+              <span className="font-mono font-bold text-[#173885]">
+                {profile?.phone || "9829012345"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Physical Address */}
+        <div className="gm-panel p-5 rounded-2xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-2">
+            <div className="flex items-center gap-2 text-[#173885] font-bold">
+              <MapPin className="w-4 h-4 text-[#3C7DDA]" />
+              <span>Registered Depot Yard</span>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#6F8A92] font-semibold bg-[#F4F6FA] px-2 py-0.5 rounded-md">
+              <Lock className="w-3 h-3 text-[#6F8A92]" /> Protected
+            </span>
+          </div>
+
+          <div className="space-y-2 text-[#606460]">
+            <div>
+              <strong className="text-[#282926]">Yard Address:</strong>{" "}
+              {profile?.yard_address_line1 || "Pune Industrial Area"}
+            </div>
+            <div>
+              <strong className="text-[#282926]">Locality:</strong>{" "}
+              {profile?.locality || "Hadapsar"}, {profile?.city || "Pune"}
+            </div>
+            <div>
+              <strong className="text-[#282926]">PIN Code:</strong>{" "}
+              <span className="font-mono font-bold text-[#173885]">
+                {profile?.pincode || "411028"}
+              </span>
+            </div>
+            <div>
+              <strong className="text-[#282926]">Heavy Trailer Access:</strong>{" "}
+              Confirmed (40-Ton Trailers)
+            </div>
+          </div>
+        </div>
+
+        {/* Settlement Bank Information */}
+        <div className="gm-panel p-5 rounded-2xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-3">
+          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-2">
+            <div className="flex items-center gap-2 text-[#173885] font-bold">
+              <CreditCard className="w-4 h-4 text-[#3C7DDA]" />
+              <span>Disbursal Bank Account</span>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#6F8A92] font-semibold bg-[#F4F6FA] px-2 py-0.5 rounded-md">
+              <Lock className="w-3 h-3 text-[#6F8A92]" /> Protected
+            </span>
+          </div>
+
+          <div className="space-y-2 text-[#606460]">
+            <div>
+              <strong className="text-[#282926]">Bank Name:</strong>{" "}
+              {profile?.bank_details?.bankName || "State Bank of India"}
+            </div>
+            <div>
+              <strong className="text-[#282926]">Account Name:</strong>{" "}
+              {profile?.bank_details?.bankAccountName || profile?.business_name}
             </div>
             <div>
               <strong className="text-[#282926]">Account Number:</strong>{" "}
-              <span className="font-mono font-bold">
-                {formData.bankDetails.accountNumber}
+              <span className="font-mono font-bold text-[#173885]">
+                {profile?.bank_details?.accountNumber || "••••••••1234"}
               </span>
             </div>
             <div>
               <strong className="text-[#282926]">IFSC Code:</strong>{" "}
-              <span className="font-mono font-bold text-[#173885]">
-                {formData.bankDetails.ifscCode}
+              <span className="font-mono">
+                {profile?.bank_details?.ifscCode || "SBIN0001234"}
               </span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Save CTA */}
-        {isEditing && (
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="btn-gm-secondary px-5 py-2.5 rounded-xl text-xs font-bold"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-gm-primary px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md disabled:opacity-50"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{saving ? "Saving..." : "Save Profile Changes"}</span>
-            </button>
+      {/* Change Requests History */}
+      <div className="gm-panel p-6 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-4">
+        <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-[#173885]" />
+            <h2 className="text-sm font-bold text-[#173885]">
+              Change Request Audit History
+            </h2>
+          </div>
+          <span className="text-xs text-[#6F8A92] font-mono">
+            {changeRequests.length} Total Requests
+          </span>
+        </div>
+
+        {changeRequests.length === 0 ? (
+          <p className="text-xs text-[#606460] py-4 text-center">
+            No profile change requests filed.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {changeRequests.map((req) => (
+              <div
+                key={req.id}
+                className="p-4 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs"
+              >
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-[#173885]">
+                      {req.requested_field}
+                    </span>
+                    <span
+                      className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        req.status === "APPROVED"
+                          ? "bg-[#E1F2D9] text-[#3F7D20]"
+                          : req.status === "REJECTED"
+                            ? "bg-[#FBE3DE] text-[#B43D20]"
+                            : "bg-[#FFF0D5] text-[#A66A08]"
+                      }`}
+                    >
+                      {req.status}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#6F8A92]">
+                      {new Date(req.created_at).toLocaleDateString("en-IN")}
+                    </span>
+                  </div>
+                  <p className="text-[#606460]">
+                    <strong>Reason:</strong> {req.reason}
+                  </p>
+                  {req.reviewer_notes && (
+                    <p className="text-[#173885]">
+                      <strong>Admin Note:</strong> {req.reviewer_notes}
+                    </p>
+                  )}
+                </div>
+
+                <div className="text-right text-[11px] font-mono shrink-0">
+                  <span className="text-[#B43D20] line-through block">
+                    {JSON.stringify(
+                      req.current_value?.value || req.current_value,
+                    )}
+                  </span>
+                  <span className="text-[#3F7D20] font-bold block">
+                    {JSON.stringify(
+                      req.requested_value?.value || req.requested_value,
+                    )}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
-      </form>
+      </div>
+
+      {/* Change Request Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FEFEFE] border border-[#D9E2EA] w-full max-w-lg p-6 sm:p-8 rounded-3xl relative shadow-2xl space-y-4">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-5 right-5 text-[#606460] hover:text-[#282926]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-xl font-black text-[#173885]">
+              Submit Profile Change Request
+            </h3>
+            <p className="text-xs text-[#606460]">
+              Specify the protected credential you wish to update along with
+              official justification.
+            </p>
+
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#282926] block mb-1">
+                  Target Field *
+                </label>
+                <select
+                  value={selectedField}
+                  onChange={(e) => setSelectedField(e.target.value)}
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-bold"
+                >
+                  {PROTECTED_FIELDS.map((f) => (
+                    <option key={f.key} value={f.key}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#282926] block mb-1">
+                  Current Active Value
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={getCurrentValueForField(selectedField)}
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs bg-[#F4F6FA] text-[#6F8A92]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#282926] block mb-1">
+                  Proposed New Value *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={requestedValue}
+                  onChange={(e) => setRequestedValue(e.target.value)}
+                  placeholder="Enter the proposed new parameter..."
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#282926] block mb-1">
+                  Business Justification *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Explain why this change is necessary..."
+                  className="w-full gm-input p-3 rounded-xl text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  disabled={submitting}
+                  className="btn-gm-secondary px-4 py-2 rounded-xl text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-gm-primary px-5 py-2 rounded-xl text-xs font-bold shadow-xs disabled:opacity-50"
+                >
+                  <span>
+                    {submitting ? "Submitting..." : "Submit to Admin"}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

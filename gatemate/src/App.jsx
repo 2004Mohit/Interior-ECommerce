@@ -64,6 +64,7 @@ import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
 import { AdminVendorDetailView } from "./components/admin/AdminVendorDetailView";
+import { AdminProfileChangeReviewView } from "./components/admin/AdminProfileChangeReviewView";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPanel";
 import { AdminAuditLogsView } from "./components/admin/AdminAuditLogsView";
@@ -225,6 +226,10 @@ export default function App() {
                     <Route
                       path="vendor-reviews"
                       element={<AdminVendorReviewPanel />}
+                    />
+                    <Route
+                      path="vendor-profile-changes"
+                      element={<AdminProfileChangeReviewView />}
                     />
                     <Route
                       path="product-reviews"
