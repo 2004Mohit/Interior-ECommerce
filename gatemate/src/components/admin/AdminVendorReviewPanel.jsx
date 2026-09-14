@@ -1,182 +1,287 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
-  ShieldCheck,
-  AlertCircle,
-  CheckCircle2,
-  ShieldAlert,
+  Users,
+  Search,
+  Filter,
   RotateCcw,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ArrowRight,
   Building2,
-  User,
+  MapPin,
+  Eye,
   FileText,
-  Send,
 } from "lucide-react";
-import {
-  vendorOnboardingService,
-  VENDOR_APPLICATION_STATUS,
-} from "../../services/vendorOnboardingService";
-import { useAuth } from "../../context/AuthContext";
+import { adminVendorService } from "../../services/adminVendorService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
 import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";
+import { SeoHead } from "../common/SeoHead";
+
+const STATUS_FILTERS = [
+  { label: "All Vendors", value: "ALL" },
+  { label: "Under Review", value: "UNDER_REVIEW" },
+  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Changes Requested", value: "CHANGES_REQUESTED" },
+  { label: "Approved", value: "APPROVED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "Draft", value: "DRAFT" },
+];
 
 export const AdminVendorReviewPanel = () => {
-  const { user } = useAuth();
-  const [application, setApplication] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
-  const [reviewerNotes, setReviewerNotes] = useState("");
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState(
-    VENDOR_APPLICATION_STATUS.APPROVED,
-  );
-  const [updating, setUpdating] = useState(false);
-  const [notice, setNotice] = useState(null);
+  const [error, setError] = useState(null);
 
-  const loadApp = async () => {
-    if (!user) return;
+  const loadData = async () => {
     setLoading(true);
-    const data = await vendorOnboardingService.getApplication(user.id);
-    setApplication(data);
-    setReviewerNotes(data.reviewerNotes || "");
-    setRejectionReason(data.rejectionReason || "");
-    setSelectedStatus(data.status || VENDOR_APPLICATION_STATUS.APPROVED);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadApp();
-  }, [user]);
-
-  const handleUpdateStatus = async (e) => {
-    e.preventDefault();
-    setUpdating(true);
-    setNotice(null);
+    setError(null);
     try {
-      const updated =
-        await vendorOnboardingService.updateVerificationReviewState(user.id, {
-          status: selectedStatus,
-          reviewerNotes,
-          rejectionReason:
-            selectedStatus === VENDOR_APPLICATION_STATUS.REJECTED
-              ? rejectionReason
-              : "",
-        });
-      setApplication(updated);
-      setNotice(`Vendor status updated to "${selectedStatus}".`);
+      const res = await adminVendorService.getVendorApplications({
+        search,
+        status: statusFilter,
+        limit: 100,
+      });
+      setApplications(res.applications);
+      setTotalCount(res.totalCount);
     } catch (err) {
-      console.error(err);
+      setError(err.message || "Failed to load vendor application queue.");
     } finally {
-      setUpdating(false);
+      setLoading(false);
     }
   };
 
-  if (loading)
-    return (
-      <div className="p-8 text-xs text-[#606460]">
-        Loading admin verification review panel...
-      </div>
-    );
+  useEffect(() => {
+    loadData();
+  }, [statusFilter]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    loadData();
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "APPROVED":
+        return (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30">
+            APPROVED
+          </span>
+        );
+      case "UNDER_REVIEW":
+        return (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30">
+            UNDER REVIEW
+          </span>
+        );
+      case "SUBMITTED":
+        return (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#E4EEF3] text-[#173885] border border-[#3C7DDA]/30">
+            SUBMITTED
+          </span>
+        );
+      case "CHANGES_REQUESTED":
+        return (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30">
+            CHANGES REQUESTED
+          </span>
+        );
+      case "REJECTED":
+        return (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30">
+            REJECTED
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-[#F4F6FA] text-[#606460] border border-[#D9E2EA]">
+            DRAFT
+          </span>
+        );
+    }
+  };
 
   return (
     <AdminPermissionGuard
       permission={ADMIN_PERMISSIONS.REVIEW_VENDOR_APPLICATIONS}
     >
-      <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
-        <div className="border-b border-[#D9E2EA] pb-4">
-          <h1 className="text-2xl font-black text-[#173885]">
-            Admin Vendor Verification Console
-          </h1>
-          <p className="text-xs text-[#606460]">
-            Manual reviewer controls for GateMate contractor onboarding
-            operations in Pune & PCMC.
-          </p>
+      <div className="space-y-6 pb-20 font-sans">
+        <SeoHead
+          title="Vendor Reviews & Onboarding Queue | GateMate Admin"
+          description="Review, inspect, approve, or reject vendor onboarding applications across Pune & PCMC."
+          canonicalUrl="/admin/vendor-reviews"
+          noIndex={true}
+        />
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
+          <div>
+            <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+              Stockist Network Verification
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
+              Vendor Onboarding & Verification
+            </h1>
+            <p className="text-xs text-[#606460]">
+              Inspect business identities, yard accessibility, and dispatch
+              readiness for regional vendors.
+            </p>
+          </div>
+
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="btn-gm-secondary px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            <RotateCcw
+              className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
+            />
+            <span>Refresh Queue</span>
+          </button>
         </div>
 
-        {notice && (
-          <div className="p-3.5 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#3F7D20]" />
-            <span>{notice}</span>
+        {/* Search & Filter Bar */}
+        <div className="gm-panel p-4 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="relative flex-1 max-w-md"
+          >
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6F8A92]" />
+            <input
+              type="text"
+              placeholder="Search by business name, email, phone, or application ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full gm-input pl-10 pr-20 py-2 rounded-xl text-xs"
+            />
+            <button
+              type="submit"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 btn-gm-primary px-3 py-1 rounded-lg text-xs font-bold"
+            >
+              Search
+            </button>
+          </form>
+
+          {/* Status Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+            <Filter className="w-3.5 h-3.5 text-[#6F8A92] shrink-0 mr-1" />
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setStatusFilter(f.value)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition ${
+                  statusFilter === f.value
+                    ? "bg-[#173885] text-[#FEFEFE] shadow-xs"
+                    : "bg-[#F4F6FA] text-[#606460] hover:bg-[#E4EEF3] hover:text-[#173885]"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <div className="p-4 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Reviewer State Action Form */}
-        <form
-          onSubmit={handleUpdateStatus}
-          className="gm-panel p-6 rounded-3xl border border-[#D9E2EA] space-y-4"
-        >
-          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
-            <h2 className="text-sm font-bold text-[#173885]">
-              Update Verification Decision
+        {/* Application Cards / Queue List */}
+        {loading ? (
+          <div className="space-y-3 animate-pulse">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="h-28 bg-[#FEFEFE] rounded-2xl border border-[#D9E2EA]"
+              />
+            ))}
+          </div>
+        ) : applications.length === 0 ? (
+          <div className="gm-panel p-12 rounded-3xl border border-[#D9E2EA] text-center space-y-2 bg-[#FEFEFE]">
+            <Users className="w-10 h-10 text-[#6F8A92] mx-auto" />
+            <h2 className="text-base font-bold text-[#173885]">
+              No Vendor Applications Found
             </h2>
-            <span className="text-xs text-[#606460] font-mono">
-              Current: <strong>{application?.status}</strong>
-            </span>
+            <p className="text-xs text-[#606460]">
+              No applications match your search query or filter selection.
+            </p>
           </div>
+        ) : (
+          <div className="space-y-3">
+            {applications.map((app) => {
+              const bName =
+                app.business_details?.legalBusinessName ||
+                app.business_details?.tradeName ||
+                "Unnamed Vendor Depot";
+              const location = `${app.business_address?.locality || "Pune"}, ${app.business_address?.city || "Maharashtra"}`;
+              const contact =
+                app.ownerDetails?.primaryContactName || "Authorized Contact";
+              const email = app.ownerDetails?.email || "No email provided";
+              const phone = app.ownerDetails?.mobileNumber || "No phone";
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-[#282926] block mb-1">
-                Target Verification Status *
-              </label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full gm-input px-3 py-2 rounded-xl text-xs font-bold"
-              >
-                <option value={VENDOR_APPLICATION_STATUS.UNDER_REVIEW}>
-                  UNDER REVIEW
-                </option>
-                <option value={VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED}>
-                  CHANGES REQUESTED
-                </option>
-                <option value={VENDOR_APPLICATION_STATUS.APPROVED}>
-                  APPROVED (Active Seller)
-                </option>
-                <option value={VENDOR_APPLICATION_STATUS.REJECTED}>
-                  REJECTED (Declined)
-                </option>
-              </select>
-            </div>
+              return (
+                <div
+                  key={app.id}
+                  className="gm-panel p-5 rounded-2xl border border-[#D9E2EA] bg-[#FEFEFE] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:border-[#3C7DDA] transition shadow-2xs"
+                >
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-bold text-sm text-[#173885]">
+                        {bName}
+                      </span>
+                      {getStatusBadge(app.status)}
+                      <span className="text-[10px] font-mono text-[#6F8A92] bg-[#F4F6FA] px-2 py-0.5 rounded-md">
+                        ID: {app.id.slice(0, 8)}...
+                      </span>
+                    </div>
 
-            <div>
-              <label className="text-xs font-semibold text-[#282926] block mb-1">
-                Reviewer Feedback Notes
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Please upload a clearer copy of GST certificate REG-06."
-                value={reviewerNotes}
-                onChange={(e) => setReviewerNotes(e.target.value)}
-                className="w-full gm-input px-3 py-2 rounded-xl text-xs"
-              />
-            </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#606460]">
+                      <span className="flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-[#3C7DDA]" />
+                        <span>{contact}</span>
+                      </span>
+                      <span>•</span>
+                      <span>{email}</span>
+                      <span>•</span>
+                      <span className="font-mono font-bold text-[#173885]">
+                        {phone}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-[#3C7DDA]" />
+                        <span>{location}</span>
+                      </span>
+                    </div>
+
+                    {app.reviewer_notes && (
+                      <p className="text-[11px] text-[#A66A08] bg-[#FFF0D5] px-2.5 py-1 rounded-lg inline-block">
+                        <strong>Review Note:</strong> {app.reviewer_notes}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                    <Link
+                      to={`/admin/vendors/${app.id}`}
+                      className="btn-gm-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-[#FEFEFE]" />
+                      <span>Inspect Application</span>
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          {selectedStatus === VENDOR_APPLICATION_STATUS.REJECTED && (
-            <div>
-              <label className="text-xs font-semibold text-[#B43D20] block mb-1">
-                Formal Rejection Reason *
-              </label>
-              <textarea
-                rows={2}
-                required
-                placeholder="State reason why registration does not meet primary distributor standards..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full gm-input p-3 rounded-xl text-xs"
-              />
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={updating}
-            className="btn-gm-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>
-              {updating ? "Saving Review Decision..." : "Save Review Decision"}
-            </span>
-          </button>
-        </form>
+        )}
       </div>
     </AdminPermissionGuard>
   );
