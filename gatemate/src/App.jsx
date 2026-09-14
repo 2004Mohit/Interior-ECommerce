@@ -70,6 +70,9 @@ import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPa
 import { AdminCategoryListView } from "./components/admin/AdminCategoryListView";
 import { AdminCategoryEditView } from "./components/admin/AdminCategoryEditView";
 import { AdminInventoryView } from "./components/admin/AdminInventoryView";
+import { AdminOrderListView } from "./components/admin/AdminOrderListView";
+import { AdminOrderDetailView } from "./components/admin/AdminOrderDetailView";
+import { AdminDeliveryConsoleView } from "./components/admin/AdminDeliveryConsoleView";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminAuditLogsView } from "./components/admin/AdminAuditLogsView";
 
@@ -256,6 +259,15 @@ export default function App() {
                       element={<AdminCategoryEditView />}
                     />
                     <Route path="inventory" element={<AdminInventoryView />} />
+                    <Route path="orders" element={<AdminOrderListView />} />
+                    <Route
+                      path="orders/:id"
+                      element={<AdminOrderDetailView />}
+                    />
+                    <Route
+                      path="delivery"
+                      element={<AdminDeliveryConsoleView />}
+                    />
                     <Route
                       path="attributes"
                       element={<AdminAttributeReviewPanel />}
