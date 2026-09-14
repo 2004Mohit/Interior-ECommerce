@@ -134,14 +134,13 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
 
-    // When email confirmation is ON, session is null until user confirms via email
+    // Email Confirmation is ON: data.user exists but data.session is null
     if (data.user && !data.session) {
       setLoading(false);
       return {
         user: data.user,
         session: null,
         requiresEmailConfirmation: true,
-        message: `A verification link has been sent to ${cleanEmail}. Please verify your email before logging in.`,
       };
     }
 

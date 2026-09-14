@@ -18,7 +18,7 @@ import { ForgotPasswordModal } from "./common/ForgotPasswordModal";
 export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
   const { loginWithPassword, registerWithEmailPassword } = useAuth();
 
-  const [authView, setAuthView] = useState("SIGN_IN"); // 'SIGN_IN' | 'SIGN_UP'
+  const [authView, setAuthView] = useState("SIGN_IN");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -28,7 +28,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [infoMessage, setInfoMessage] = useState(null);
+  const [confirmationNotice, setConfirmationNotice] = useState(null);
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   if (!isOpen) return null;
@@ -37,7 +37,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setInfoMessage(null);
+    setConfirmationNotice(null);
 
     try {
       const result = await loginWithPassword(email, password);
@@ -52,8 +52,13 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
         }
       }
     } catch (err) {
-      // Display the exact error message from Supabase
-      setError(err?.message || "Invalid email or password. Please try again.");
+      if (err?.message?.toLowerCase().includes("email not confirmed")) {
+        setError(
+          "Your email has not been verified yet. Please check your inbox and click the verification link.",
+        );
+      } else {
+        setError(err?.message || "Invalid email or password.");
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +67,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
   const handleSignUp = async (e) => {
     e.preventDefault();
     setError(null);
-    setInfoMessage(null);
+    setConfirmationNotice(null);
 
     const cleanPhone = phone.trim().replace(/\D/g, "");
     if (!/^\d{10}$/.test(cleanPhone)) {
@@ -96,8 +101,8 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
         result?.requiresEmailConfirmation ||
         (result?.user && !result?.session)
       ) {
-        setInfoMessage(
-          `Verification email sent to ${email}! Please check your inbox and click the confirmation link to activate your account.`,
+        setConfirmationNotice(
+          `Verification email sent to ${email}! Please check your inbox and click the confirmation link to activate your account before logging in.`,
         );
         setAuthView("SIGN_IN");
       } else if (result?.session) {
@@ -126,7 +131,6 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             <X className="w-5 h-5" />
           </button>
 
-          {/* Heading */}
           <div className="text-center space-y-1 mb-5">
             <h3 className="text-2xl font-black text-[#173885]">
               {authView === "SIGN_IN"
@@ -140,14 +144,13 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             </p>
           </div>
 
-          {/* Tab Switcher */}
           <div className="flex rounded-xl bg-[#F4F6FA] p-1 border border-[#D9E2EA] mb-5">
             <button
               type="button"
               onClick={() => {
                 setAuthView("SIGN_IN");
                 setError(null);
-                setInfoMessage(null);
+                setConfirmationNotice(null);
               }}
               className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
                 authView === "SIGN_IN"
@@ -162,7 +165,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
               onClick={() => {
                 setAuthView("SIGN_UP");
                 setError(null);
-                setInfoMessage(null);
+                setConfirmationNotice(null);
               }}
               className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition ${
                 authView === "SIGN_UP"
@@ -174,10 +177,10 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
             </button>
           </div>
 
-          {infoMessage && (
-            <div className="p-3.5 rounded-xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>{infoMessage}</span>
+          {confirmationNotice && (
+            <div className="p-3.5 rounded-xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs mb-4 flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{confirmationNotice}</span>
             </div>
           )}
 
@@ -263,6 +266,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                   onClick={() => {
                     setAuthView("SIGN_UP");
                     setError(null);
+                    setConfirmationNotice(null);
                   }}
                   className="text-[#3C7DDA] font-bold hover:underline"
                 >
@@ -406,6 +410,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
                   onClick={() => {
                     setAuthView("SIGN_IN");
                     setError(null);
+                    setConfirmationNotice(null);
                   }}
                   className="text-[#3C7DDA] font-bold hover:underline"
                 >

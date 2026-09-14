@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { roleService, USER_ROLES } from "../services/roleService";
 
 const VendorAuthContext = createContext({});
 
@@ -95,6 +96,31 @@ export const VendorAuthProvider = ({ children }) => {
             "Please enter both your registered vendor email and password.",
         },
       };
+    }
+
+    // =========================================================================
+    // ADMIN CHECK: Authenticate with Supabase to check for ADMIN role
+    // =========================================================================
+    try {
+      const { data: supaData, error: supaError } =
+        await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+      if (!supaError && supaData?.user) {
+        const detectedRole = await roleService.resolveUserRole(supaData.user);
+        if (detectedRole === USER_ROLES.ADMIN) {
+          setLoading(false);
+          return {
+            user: supaData.user,
+            error: null,
+            destination: "/admin",
+          };
+        }
+      }
+    } catch {
+      // If Supabase check fails or user is not in Supabase, continue with vendor login flow
     }
 
     // Demo account whitelist fallback
