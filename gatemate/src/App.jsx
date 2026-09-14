@@ -73,6 +73,15 @@ import { AdminInventoryView } from "./components/admin/AdminInventoryView";
 import { AdminOrderListView } from "./components/admin/AdminOrderListView";
 import { AdminOrderDetailView } from "./components/admin/AdminOrderDetailView";
 import { AdminDeliveryConsoleView } from "./components/admin/AdminDeliveryConsoleView";
+import { AdminRfqListView } from "./components/admin/AdminRfqListView";
+import { AdminRfqDetailView } from "./components/admin/AdminRfqDetailView";
+import { AdminQuotationsMasterView } from "./components/admin/AdminQuotationsMasterView";
+import { AdminPaymentsView } from "./components/admin/AdminPaymentsView";
+import { AdminCommissionsView } from "./components/admin/AdminCommissionsView";
+import { AdminSettlementsView } from "./components/admin/AdminSettlementsView";
+import { AdminCustomerListView } from "./components/admin/AdminCustomerListView";
+import { AdminCustomerDetailView } from "./components/admin/AdminCustomerDetailView";
+import { AdminCustomerOrdersView } from "./components/admin/AdminCustomerOrdersView";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminAuditLogsView } from "./components/admin/AdminAuditLogsView";
 
@@ -267,6 +276,33 @@ export default function App() {
                     <Route
                       path="delivery"
                       element={<AdminDeliveryConsoleView />}
+                    />
+                    <Route path="rfqs" element={<AdminRfqListView />} />
+                    <Route path="rfqs/:id" element={<AdminRfqDetailView />} />
+                    <Route
+                      path="quotations"
+                      element={<AdminQuotationsMasterView />}
+                    />
+                    <Route path="payments" element={<AdminPaymentsView />} />
+                    <Route
+                      path="commissions"
+                      element={<AdminCommissionsView />}
+                    />
+                    <Route
+                      path="settlements"
+                      element={<AdminSettlementsView />}
+                    />
+                    <Route
+                      path="customers"
+                      element={<AdminCustomerListView />}
+                    />
+                    <Route
+                      path="customers/:id"
+                      element={<AdminCustomerDetailView />}
+                    />
+                    <Route
+                      path="customer-orders"
+                      element={<AdminCustomerOrdersView />}
                     />
                     <Route
                       path="attributes"
