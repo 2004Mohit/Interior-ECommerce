@@ -58,7 +58,8 @@ import { VendorReviews } from "./components/vendor/VendorReviews";
 import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
 
-// Admin Protected Workspaces
+// Admin Protected Workspaces & Layout
+import { AdminLayout } from "./components/admin/AdminLayout";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
@@ -205,42 +206,25 @@ export default function App() {
                     path="/admin"
                     element={
                       <AdminProtectedRoute>
-                        <AdminDashboard />
+                        <AdminLayout />
                       </AdminProtectedRoute>
                     }
-                  />
-                  <Route
-                    path="/admin/dashboard"
-                    element={
-                      <AdminProtectedRoute>
-                        <AdminDashboard />
-                      </AdminProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/vendor-reviews"
-                    element={
-                      <AdminProtectedRoute>
-                        <AdminVendorReviewPanel />
-                      </AdminProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/product-reviews"
-                    element={
-                      <AdminProtectedRoute>
-                        <AdminProductReviewPanel />
-                      </AdminProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/attributes"
-                    element={
-                      <AdminProtectedRoute>
-                        <AdminAttributeReviewPanel />
-                      </AdminProtectedRoute>
-                    }
-                  />
+                  >
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route
+                      path="vendor-reviews"
+                      element={<AdminVendorReviewPanel />}
+                    />
+                    <Route
+                      path="product-reviews"
+                      element={<AdminProductReviewPanel />}
+                    />
+                    <Route
+                      path="attributes"
+                      element={<AdminAttributeReviewPanel />}
+                    />
+                  </Route>
 
                   {/* Customer Storefront App */}
                   <Route path="/*" element={<CustomerAppContent />} />

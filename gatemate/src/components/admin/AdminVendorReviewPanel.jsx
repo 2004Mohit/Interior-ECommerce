@@ -15,6 +15,8 @@ import {
   VENDOR_APPLICATION_STATUS,
 } from "../../services/vendorOnboardingService";
 import { useAuth } from "../../context/AuthContext";
+import { AdminPermissionGuard } from "./AdminPermissionGuard";
+import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";
 
 export const AdminVendorReviewPanel = () => {
   const { user } = useAuth();
@@ -74,104 +76,108 @@ export const AdminVendorReviewPanel = () => {
     );
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
-      <div className="border-b border-[#D9E2EA] pb-4">
-        <h1 className="text-2xl font-black text-[#173885]">
-          Admin Vendor Verification Console
-        </h1>
-        <p className="text-xs text-[#606460]">
-          Manual reviewer controls for GateMate contractor onboarding operations
-          in Pune & PCMC.
-        </p>
-      </div>
-
-      {notice && (
-        <div className="p-3.5 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-[#3F7D20]" />
-          <span>{notice}</span>
-        </div>
-      )}
-
-      {/* Reviewer State Action Form */}
-      <form
-        onSubmit={handleUpdateStatus}
-        className="gm-panel p-6 rounded-3xl border border-[#D9E2EA] space-y-4"
-      >
-        <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
-          <h2 className="text-sm font-bold text-[#173885]">
-            Update Verification Decision
-          </h2>
-          <span className="text-xs text-[#606460] font-mono">
-            Current: <strong>{application?.status}</strong>
-          </span>
+    <AdminPermissionGuard
+      permission={ADMIN_PERMISSIONS.REVIEW_VENDOR_APPLICATIONS}
+    >
+      <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
+        <div className="border-b border-[#D9E2EA] pb-4">
+          <h1 className="text-2xl font-black text-[#173885]">
+            Admin Vendor Verification Console
+          </h1>
+          <p className="text-xs text-[#606460]">
+            Manual reviewer controls for GateMate contractor onboarding
+            operations in Pune & PCMC.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              Target Verification Status *
-            </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full gm-input px-3 py-2 rounded-xl text-xs font-bold"
-            >
-              <option value={VENDOR_APPLICATION_STATUS.UNDER_REVIEW}>
-                UNDER REVIEW
-              </option>
-              <option value={VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED}>
-                CHANGES REQUESTED
-              </option>
-              <option value={VENDOR_APPLICATION_STATUS.APPROVED}>
-                APPROVED (Active Seller)
-              </option>
-              <option value={VENDOR_APPLICATION_STATUS.REJECTED}>
-                REJECTED (Declined)
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-[#282926] block mb-1">
-              Reviewer Feedback Notes
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Please upload a clearer copy of GST certificate REG-06."
-              value={reviewerNotes}
-              onChange={(e) => setReviewerNotes(e.target.value)}
-              className="w-full gm-input px-3 py-2 rounded-xl text-xs"
-            />
-          </div>
-        </div>
-
-        {selectedStatus === VENDOR_APPLICATION_STATUS.REJECTED && (
-          <div>
-            <label className="text-xs font-semibold text-[#B43D20] block mb-1">
-              Formal Rejection Reason *
-            </label>
-            <textarea
-              rows={2}
-              required
-              placeholder="State reason why registration does not meet primary distributor standards..."
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="w-full gm-input p-3 rounded-xl text-xs"
-            />
+        {notice && (
+          <div className="p-3.5 rounded-2xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#3F7D20]" />
+            <span>{notice}</span>
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={updating}
-          className="btn-gm-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+        {/* Reviewer State Action Form */}
+        <form
+          onSubmit={handleUpdateStatus}
+          className="gm-panel p-6 rounded-3xl border border-[#D9E2EA] space-y-4"
         >
-          <Send className="w-3.5 h-3.5" />
-          <span>
-            {updating ? "Saving Review Decision..." : "Save Review Decision"}
-          </span>
-        </button>
-      </form>
-    </div>
+          <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
+            <h2 className="text-sm font-bold text-[#173885]">
+              Update Verification Decision
+            </h2>
+            <span className="text-xs text-[#606460] font-mono">
+              Current: <strong>{application?.status}</strong>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-[#282926] block mb-1">
+                Target Verification Status *
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full gm-input px-3 py-2 rounded-xl text-xs font-bold"
+              >
+                <option value={VENDOR_APPLICATION_STATUS.UNDER_REVIEW}>
+                  UNDER REVIEW
+                </option>
+                <option value={VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED}>
+                  CHANGES REQUESTED
+                </option>
+                <option value={VENDOR_APPLICATION_STATUS.APPROVED}>
+                  APPROVED (Active Seller)
+                </option>
+                <option value={VENDOR_APPLICATION_STATUS.REJECTED}>
+                  REJECTED (Declined)
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-[#282926] block mb-1">
+                Reviewer Feedback Notes
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Please upload a clearer copy of GST certificate REG-06."
+                value={reviewerNotes}
+                onChange={(e) => setReviewerNotes(e.target.value)}
+                className="w-full gm-input px-3 py-2 rounded-xl text-xs"
+              />
+            </div>
+          </div>
+
+          {selectedStatus === VENDOR_APPLICATION_STATUS.REJECTED && (
+            <div>
+              <label className="text-xs font-semibold text-[#B43D20] block mb-1">
+                Formal Rejection Reason *
+              </label>
+              <textarea
+                rows={2}
+                required
+                placeholder="State reason why registration does not meet primary distributor standards..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="w-full gm-input p-3 rounded-xl text-xs"
+              />
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={updating}
+            className="btn-gm-primary px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>
+              {updating ? "Saving Review Decision..." : "Save Review Decision"}
+            </span>
+          </button>
+        </form>
+      </div>
+    </AdminPermissionGuard>
   );
 };
