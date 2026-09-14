@@ -59,7 +59,8 @@ import { VendorReviews } from "./components/vendor/VendorReviews";
 import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
 
-// Admin Protected Workspaces & Layout
+// Admin Views & Architecture
+import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
@@ -80,6 +81,7 @@ import { AdminQuotationsMasterView } from "./components/admin/AdminQuotationsMas
 import { AdminPaymentsView } from "./components/admin/AdminPaymentsView";
 import { AdminCommissionsView } from "./components/admin/AdminCommissionsView";
 import { AdminSettlementsView } from "./components/admin/AdminSettlementsView";
+import { AdminStaffView } from "./components/admin/AdminStaffView";
 import { AdminCustomerListView } from "./components/admin/AdminCustomerListView";
 import { AdminCustomerDetailView } from "./components/admin/AdminCustomerDetailView";
 import { AdminCustomerOrdersView } from "./components/admin/AdminCustomerOrdersView";
@@ -171,6 +173,9 @@ export default function App() {
                     path="/reset-password"
                     element={<ResetPasswordPage />}
                   />
+
+                  {/* Public Admin Entry Route */}
+                  <Route path="/admin/login" element={<AdminLogin />} />
 
                   {/* Public Vendor Portal Entry Routes */}
                   <Route path="/sell" element={<VendorLanding />} />
@@ -299,6 +304,7 @@ export default function App() {
                       path="settlements"
                       element={<AdminSettlementsView />}
                     />
+                    <Route path="staff" element={<AdminStaffView />} />
                     <Route
                       path="customers"
                       element={<AdminCustomerListView />}

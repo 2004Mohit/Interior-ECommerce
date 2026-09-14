@@ -18,8 +18,8 @@ import {
   Bell,
   Image,
   Tag,
-  FileCode,
   ShieldAlert,
+  UserPlus,
   LogOut,
   X,
 } from "lucide-react";
@@ -40,16 +40,22 @@ export const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
           permission: ADMIN_PERMISSIONS.VIEW_DASHBOARD,
         },
         {
-          to: "/admin/vendor-reviews",
+          to: "/admin/vendors",
           label: "Vendor Onboarding",
           icon: Store,
           permission: ADMIN_PERMISSIONS.REVIEW_VENDOR_APPLICATIONS,
         },
         {
-          to: "/admin/product-reviews",
+          to: "/admin/products",
           label: "Product Approvals",
           icon: Package,
           permission: ADMIN_PERMISSIONS.REVIEW_PRODUCTS,
+        },
+        {
+          to: "/admin/categories",
+          label: "Category Management",
+          icon: Layers,
+          permission: ADMIN_PERMISSIONS.MANAGE_CATEGORIES,
         },
         {
           to: "/admin/attributes",
@@ -110,6 +116,11 @@ export const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
       title: "Reputation & Governance",
       links: [
         {
+          to: "/admin/staff",
+          label: "Admin Staff & Members",
+          icon: UserPlus,
+        },
+        {
           to: "/admin/customers",
           label: "Customer Accounts",
           icon: Users,
@@ -144,12 +155,6 @@ export const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
           label: "Coupons & Bulk Deals",
           icon: Tag,
           permission: ADMIN_PERMISSIONS.MANAGE_PROMOTIONS,
-        },
-        {
-          to: "/admin/content",
-          label: "Quality Guidelines CMS",
-          icon: FileCode,
-          permission: ADMIN_PERMISSIONS.MANAGE_CONTENT,
         },
         {
           to: "/admin/audit-logs",

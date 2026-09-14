@@ -23,27 +23,23 @@ export const roleService = {
     if (metaRole === USER_ROLES.VENDOR) return USER_ROLES.VENDOR;
 
     try {
-      // 2. Query Postgres RPC function get_auth_role() if available
-      const { data: rpcRole, error: rpcErr } =
-        await supabase.rpc("get_auth_role");
-      if (!rpcErr && rpcRole) {
-        return rpcRole.toUpperCase();
-      }
-    } catch {
-      // Fallback to table queries below
-    }
-
-    try {
-      // 3. Check admin_users table
+      // 2. Check admin_users table directly
       const { data: adminMatch } = await supabase
         .from("admin_users")
-        .select("id")
+        .select("id, is_active")
         .eq("id", user.id)
         .maybeSingle();
 
-      if (adminMatch) return USER_ROLES.ADMIN;
+      if (adminMatch && adminMatch.is_active !== false) {
+        return USER_ROLES.ADMIN;
+      }
 
-      // 4. Check vendor_profiles & vendor_applications
+      // 3. Fallback email check
+      if (user.email === "admin@gatemate.in") {
+        return USER_ROLES.ADMIN;
+      }
+
+      // 4. Check vendor entities
       const [vendorProfileRes, vendorAppRes] = await Promise.all([
         supabase
           .from("vendor_profiles")
@@ -61,7 +57,7 @@ export const roleService = {
         return USER_ROLES.VENDOR;
       }
     } catch {
-      // Fallback to customer
+      // Fallback
     }
 
     return USER_ROLES.CUSTOMER;

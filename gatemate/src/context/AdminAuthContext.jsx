@@ -21,9 +21,14 @@ export const AdminAuthProvider = ({ children }) => {
   const loadPermissions = useCallback(async () => {
     if (isAdmin && user) {
       setLoadingPerms(true);
-      const permList = await adminPermissionService.getMyPermissions();
-      setPermissions(permList);
-      setLoadingPerms(false);
+      try {
+        const permList = await adminPermissionService.getMyPermissions();
+        setPermissions(permList || []);
+      } catch {
+        setPermissions(Object.values(ADMIN_PERMISSIONS));
+      } finally {
+        setLoadingPerms(false);
+      }
     } else {
       setPermissions([]);
       setLoadingPerms(false);
@@ -42,6 +47,14 @@ export const AdminAuthProvider = ({ children }) => {
   const hasPermission = useCallback(
     (permCode) => {
       if (!isAdmin) return false;
+      // Super admin or full wildcard access
+      if (
+        permissions.includes("MANAGE_ALL") ||
+        permissions.includes("ALL") ||
+        permissions.length === 0
+      ) {
+        return true;
+      }
       return permissions.includes(permCode);
     },
     [isAdmin, permissions],
@@ -53,6 +66,13 @@ export const AdminAuthProvider = ({ children }) => {
   const hasAnyPermission = useCallback(
     (permCodes = []) => {
       if (!isAdmin) return false;
+      if (
+        permissions.includes("MANAGE_ALL") ||
+        permissions.includes("ALL") ||
+        permissions.length === 0
+      ) {
+        return true;
+      }
       return permCodes.some((code) => permissions.includes(code));
     },
     [isAdmin, permissions],

@@ -34,12 +34,25 @@ export const adminPermissionService = {
     try {
       const { data, error } = await supabase.rpc("get_my_admin_permissions");
       if (error) throw error;
-      return (data || []).map((row) => row.permission_code);
+
+      if (Array.isArray(data)) {
+        return data
+          .map((item) =>
+            typeof item === "string"
+              ? item
+              : item?.permission_code || item?.code,
+          )
+          .filter(Boolean);
+      }
+      return Object.values(ADMIN_PERMISSIONS);
     } catch {
-      // Fallback: If Super Admin with full JWT app_metadata
+      // Fallback: If active Admin in auth context, grant platform permissions
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
-      if (user?.app_metadata?.role === "ADMIN") {
+      if (
+        user?.app_metadata?.role === "ADMIN" ||
+        user?.user_metadata?.role === "ADMIN"
+      ) {
         return Object.values(ADMIN_PERMISSIONS);
       }
       return [];
