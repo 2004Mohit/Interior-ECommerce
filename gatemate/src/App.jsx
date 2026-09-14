@@ -58,9 +58,8 @@ import { VendorReviews } from "./components/vendor/VendorReviews";
 import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
 
-// Admin Architecture & Workspaces
+// Admin Protected Workspaces
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
-import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
@@ -140,29 +139,20 @@ export default function App() {
             <WishlistProvider>
               <CartProvider>
                 <Routes>
-                  {/* Public Password Reset Link Target */}
+                  {/* Public Password Reset Target */}
                   <Route
                     path="/reset-password"
                     element={<ResetPasswordPage />}
                   />
 
-                  {/* Public Vendor Portal Routes */}
+                  {/* Public Vendor Portal Entry Routes */}
                   <Route path="/sell" element={<VendorLanding />} />
                   <Route path="/vendor" element={<VendorLanding />} />
                   <Route path="/vendor/register" element={<VendorRegister />} />
                   <Route path="/vendor/login" element={<VendorLogin />} />
                   <Route
-                    path="/vendor/guidelines"
-                    element={<VendorGuidelines />}
-                  />
-                  <Route path="/vendor/benefits" element={<VendorBenefits />} />
-                  <Route
                     path="/vendor/onboarding"
                     element={<VendorOnboarding />}
-                  />
-                  <Route
-                    path="/vendor/verification"
-                    element={<VendorVerificationStatus />}
                   />
 
                   {/* Protected Vendor Operations Terminal */}
@@ -201,11 +191,16 @@ export default function App() {
                       path="notifications"
                       element={<VendorNotifications />}
                     />
+                    <Route
+                      path="verification"
+                      element={<VendorVerificationStatus />}
+                    />
+                    <Route path="guidelines" element={<VendorGuidelines />} />
+                    <Route path="benefits" element={<VendorBenefits />} />
                     <Route path="profile" element={<VendorProfile />} />
                   </Route>
 
-                  {/* Admin Protected Workspaces */}
-                  <Route path="/admin/login" element={<AdminLogin />} />
+                  {/* Protected Admin Console Workspaces */}
                   <Route
                     path="/admin"
                     element={

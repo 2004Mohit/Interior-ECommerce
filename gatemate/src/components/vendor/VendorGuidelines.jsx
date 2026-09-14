@@ -3,175 +3,164 @@ import { Link } from "react-router-dom";
 import {
   ShieldCheck,
   FileCheck,
-  Zap,
-  AlertTriangle,
-  Clock,
-  Scale,
-  Ban,
   CheckCircle2,
+  Zap,
+  Truck,
+  AlertCircle,
+  Scale,
   Building2,
+  BookOpen,
   ArrowRight,
-  FileText,
-  Check,
+  ArrowLeft,
 } from "lucide-react";
+import { useVendorAuth } from "../../context/VendorAuthContext";
 import { VendorPublicHeader } from "./VendorPublicHeader";
 import { Footer } from "../Footer";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorGuidelines = () => {
-  const guidelines = [
+  const { isVendorAuthenticated } = useVendorAuth();
+
+  const standards = [
     {
-      id: "rule-1",
-      title: "1. Business Registration & Contact Accuracy",
-      icon: Building2,
-      points: [
-        "Vendors must maintain valid, verified business entity credentials and an active 15-character GSTIN registered in Maharashtra (State Code 27) for local operations.",
-        "Primary contact details, dispatch manager phone numbers, and physical warehouse/depot addresses must remain accurate and reachable during stated working hours.",
-      ],
-    },
-    {
-      id: "rule-2",
-      title: "2. Legitimate Construction Products Only",
+      title: "Mandatory Primary Material Certification",
+      desc: "All listed Cement, TMT Steel, CPVC Pipes, and AAC Blocks must have authentic manufacturer mill test certificates (e.g., IS 1489 for PPC Cement, IS 1786 for Fe 550D Rebars). Secondary or uncertified rerolled stock is strictly prohibited.",
       icon: ShieldCheck,
-      points: [
-        "Only legitimate construction products, industrial hardware, electrical supplies, plumbing systems, and structural building supplies are permitted.",
-        "Products must adhere to Indian Standards (BIS/ISI, Fe 550D, IS 1489, IS 1786, IS 4985) and be sourced directly from authorized manufacturers or certified primary stockists.",
-      ],
     },
     {
-      id: "rule-3",
-      title: "3. Accurate Technical Specifications & Pricing",
-      icon: FileCheck,
-      points: [
-        "Product listings must accurately state structural grades, diameters, dimensions, units of measurement (Bag, Piece, Brass, Can), and Minimum Order Quantities (MOQ).",
-        "Listed prices must reflect genuine commercial unit rates inclusive of applicable GST. Hidden surcharges or misleading price reductions are strictly prohibited.",
-      ],
-    },
-    {
-      id: "rule-4",
-      title: "4. Inventory Accuracy & Real-Time Stock Updates",
-      icon: Scale,
-      points: [
-        "Vendors are obligated to maintain accurate digital stock levels matching physical depot availability.",
-        'Mark products as "Out of Stock" immediately when physical inventory is depleted to prevent customer order cancellations.',
-      ],
-    },
-    {
-      id: "rule-5",
-      title: "5. Prompt Order Acceptance & Dispatch Preparation",
-      icon: Clock,
-      points: [
-        "Incoming site orders must be accepted or rejected within 10 minutes of placement during operational depot hours.",
-        "Products must be inspected, bundled, and staged for vehicle loading within the promised turnaround schedule.",
-      ],
-    },
-    {
-      id: "rule-6",
-      title: "6. 30-Minute Priority Delivery Eligibility & Protocol",
+      title: "30-Minute Priority Dispatch SLA",
+      desc: "Vendors opting into the 30-minute priority delivery badge must keep fast-moving SKUs staged for immediate driver loading and ensure packaging is completed within 8 minutes of order confirmation.",
       icon: Zap,
-      points: [
-        "30-minute priority dispatch is restricted to eligible products and designated delivery corridors in Pune & PCMC.",
-        "Vendors must never enable or promise 30-minute delivery if vehicle loading or staging cannot be executed within 10 minutes.",
-        "Operating hours must be strictly configured to prevent customer expectations of 30-minute delivery outside active dispatch hours.",
-      ],
     },
     {
-      id: "rule-7",
-      title: "7. Legal, Tax & e-Way Bill Compliance",
-      icon: FileText,
-      points: [
-        "Every dispatch must accompany a valid GST Tax Invoice and e-Way Bill for consignments exceeding statutory thresholds.",
-        "Vendors are solely responsible for remitting collected taxes and issuing GST input tax credit (ITC) compliant invoices.",
-      ],
+      title: "Accurate Weighment & Measurement Compliance",
+      desc: "Aggregates, M-Sand, and structural steel must comply with standard brass and metric ton weighbridge slips. GateMate conducts random unannounced physical depot audits across Pune & PCMC.",
+      icon: Scale,
     },
     {
-      id: "rule-8",
-      title: "8. Prohibited, Fraudulent & Counterfeit Products",
-      icon: Ban,
-      points: [
-        "Zero tolerance for counterfeit cement brands, secondary re-rolled non-standard steel rebars, expired chemical admixtures, or misleading product descriptions.",
-        "Violations result in immediate vendor suspension, forfeiture of pending settlements, and referral to commercial regulatory authorities.",
-      ],
+      title: "Safe Loading & Trailer Access Requirements",
+      desc: "Heavy commercial consignments (40-ton trailer drops) require clear depot yard loading docks, proper safety rigging, and certified loading cranes.",
+      icon: Truck,
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-[#F4F6FA] text-[#282926] flex flex-col font-sans">
+  const content = (
+    <div className="space-y-8 pb-16 font-sans">
       <SeoHead
-        title="Vendor Quality & Dispatch Guidelines | GateMate Construction Marketplace"
-        description="Comprehensive operational rules, technical quality standards, 30-minute delivery fulfillment requirements, and tax compliance guidelines for GateMate stockist partners."
+        title="Vendor Quality Guidelines & Fulfillment SLAs | GateMate"
+        description="Official GateMate stockist compliance guidelines, dispatch SLAs, and quality standards for Pune and PCMC construction supply depots."
         canonicalUrl="/vendor/guidelines"
       />
 
-      <VendorPublicHeader />
-
-      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-12">
-        {/* Header */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <span className="badge-gm-info px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-            Operational Code of Conduct
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
+        <div>
+          <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+            Quality & Operations Protocol
           </span>
-          <h1 className="text-3xl sm:text-4xl font-black text-[#173885] tracking-tight">
-            Vendor Quality & Dispatch Guidelines
+          <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
+            Vendor Quality & Fulfillment Guidelines
           </h1>
-          <p className="text-xs sm:text-sm text-[#606460] leading-relaxed">
-            These standards ensure safety, structural compliance, and prompt
-            fulfillment for construction sites across Pune and Pimpri-Chinchwad.
+          <p className="text-xs text-[#606460]">
+            Operational standards for verified stockists, building supply
+            depots, and distributors in Pune & PCMC.
           </p>
         </div>
 
-        {/* Core Principles Grid */}
-        <div className="space-y-6">
-          {guidelines.map((g) => {
-            const Icon = g.icon;
-            return (
-              <div
-                key={g.id}
-                className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] space-y-3.5"
-              >
-                <div className="flex items-center gap-3 border-b border-[#D9E2EA] pb-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#E4EEF3] border border-[#9AAED4]/40 flex items-center justify-center text-[#173885] shrink-0">
-                    <Icon className="w-5 h-5 text-[#173885]" />
-                  </div>
-                  <h2 className="text-base font-bold text-[#173885]">
-                    {g.title}
-                  </h2>
-                </div>
+        {isVendorAuthenticated ? (
+          <Link
+            to="/vendor/dashboard"
+            className="btn-gm-secondary px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Terminal Dashboard</span>
+          </Link>
+        ) : (
+          <Link
+            to="/vendor/register"
+            className="btn-gm-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
+          >
+            <span>Register as Vendor</span>
+            <ArrowRight className="w-3.5 h-3.5 text-[#FEFEFE]" />
+          </Link>
+        )}
+      </div>
 
-                <ul className="space-y-2 text-xs text-[#606460] leading-relaxed">
-                  {g.points.map((pt, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-[#3F7D20] shrink-0 mt-0.5" />
-                      <span>{pt}</span>
-                    </li>
-                  ))}
-                </ul>
+      {/* Core Standards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {standards.map((s, idx) => {
+          const Icon = s.icon;
+          return (
+            <div
+              key={idx}
+              className="gm-panel p-6 rounded-3xl border border-[#D9E2EA] space-y-3 bg-[#FEFEFE] shadow-xs"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-[#E4EEF3] text-[#173885] flex items-center justify-center">
+                <Icon className="w-5 h-5 text-[#173885]" />
               </div>
-            );
-          })}
-        </div>
+              <h2 className="text-sm font-bold text-[#173885]">{s.title}</h2>
+              <p className="text-xs text-[#606460] leading-relaxed">{s.desc}</p>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Policy Summary Callout */}
-        <div className="gm-card p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#E4EEF3]/40 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-1 text-center md:text-left">
-            <h3 className="text-sm font-bold text-[#173885]">
-              Questions Regarding Compliance?
+      {/* Detailed Operational Sections */}
+      <div className="gm-panel p-6 sm:p-8 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-6 shadow-xs">
+        <h2 className="text-base font-bold text-[#173885] border-b border-[#D9E2EA] pb-3">
+          Detailed Dispatch & Settlement Policies
+        </h2>
+
+        <div className="space-y-4 text-xs text-[#282926]">
+          <div className="space-y-1">
+            <h3 className="font-bold text-[#173885]">
+              1. E-Way Bill & GST Invoicing Protocol
             </h3>
-            <p className="text-xs text-[#606460]">
-              Our contractor and vendor onboarding desk is available to assist
-              with product categorizations and batch test documentation.
+            <p className="text-[#606460] leading-relaxed">
+              Every dispatched commercial consignment must be accompanied by a
+              valid tax invoice generated with the buyer’s registered GSTIN and
+              an active E-Way bill when consignment value exceeds ₹50,000.
             </p>
           </div>
-          <Link
-            to="/vendor/onboarding"
-            className="btn-gm-primary px-6 py-3 rounded-xl text-xs font-bold shrink-0 flex items-center gap-2"
-          >
-            <span>Proceed to Onboarding</span>
-            <ArrowRight className="w-4 h-4 text-[#FEFEFE]" />
-          </Link>
-        </div>
-      </main>
 
+          <div className="space-y-1">
+            <h3 className="font-bold text-[#173885]">
+              2. Product Subtotal Commission Model (5%)
+            </h3>
+            <p className="text-[#606460] leading-relaxed">
+              GateMate deducts a flat 5% platform service fee solely on the
+              Product Subtotal. Freight logistics, packaging fees, and taxes are
+              excluded from commission deductions.
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="font-bold text-[#173885]">
+              3. Direct NEFT/RTGS Bank Settlements
+            </h3>
+            <p className="text-[#606460] leading-relaxed">
+              Payments for completed and delivered site orders are settled
+              directly into the vendor’s verified bank account on a structured
+              weekly cycle with transparent UTR records.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // If vendor is logged in, render inside Dashboard workspace without public header/footer
+  if (isVendorAuthenticated) {
+    return content;
+  }
+
+  // If visitor is public/guest, render with public landing header and footer
+  return (
+    <div className="min-h-screen bg-[#F4F6FA] text-[#282926] flex flex-col font-sans">
+      <VendorPublicHeader />
+      <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {content}
+      </main>
       <Footer />
     </div>
   );

@@ -6,7 +6,8 @@ import {
   ArrowRight,
   AlertCircle,
   UserPlus,
-  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import { ForgotPasswordModal } from "../common/ForgotPasswordModal";
@@ -18,6 +19,7 @@ export const VendorLogin = () => {
 
   const [email, setEmail] = useState("depot@punemegaconstruct.in");
   const [password, setPassword] = useState("password123");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isNotRegistered, setIsNotRegistered] = useState(false);
@@ -152,13 +154,25 @@ export const VendorLogin = () => {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-[#6F8A92]" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full gm-input pl-10 pr-3.5 py-2.5 rounded-xl text-xs"
+                  className="w-full gm-input pl-10 pr-10 py-2.5 rounded-xl text-xs"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-[#6F8A92] hover:text-[#282926]"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             </div>
 
