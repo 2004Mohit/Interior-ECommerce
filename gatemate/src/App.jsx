@@ -65,8 +65,11 @@ import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
 import { AdminVendorDetailView } from "./components/admin/AdminVendorDetailView";
 import { AdminProfileChangeReviewView } from "./components/admin/AdminProfileChangeReviewView";
-import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
+import { AdminProductManagementView } from "./components/admin/AdminProductManagementView";
 import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPanel";
+import { AdminCategoryListView } from "./components/admin/AdminCategoryListView";
+import { AdminCategoryEditView } from "./components/admin/AdminCategoryEditView";
+import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminAuditLogsView } from "./components/admin/AdminAuditLogsView";
 
 function CustomerAppContent() {
@@ -232,8 +235,24 @@ export default function App() {
                       element={<AdminProfileChangeReviewView />}
                     />
                     <Route
+                      path="products"
+                      element={<AdminProductManagementView />}
+                    />
+                    <Route
                       path="product-reviews"
                       element={<AdminProductReviewPanel />}
+                    />
+                    <Route
+                      path="categories"
+                      element={<AdminCategoryListView />}
+                    />
+                    <Route
+                      path="categories/new"
+                      element={<AdminCategoryEditView />}
+                    />
+                    <Route
+                      path="categories/:id"
+                      element={<AdminCategoryEditView />}
                     />
                     <Route
                       path="attributes"
