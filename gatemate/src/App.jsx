@@ -65,6 +65,7 @@ import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { AdminVendorReviewPanel } from "./components/admin/AdminVendorReviewPanel";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPanel";
+import { AdminAuditLogsView } from "./components/admin/AdminAuditLogsView";
 
 function CustomerAppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -201,7 +202,7 @@ export default function App() {
                     <Route path="profile" element={<VendorProfile />} />
                   </Route>
 
-                  {/* Protected Admin Console Workspaces */}
+                  {/* Protected Admin Console Workspaces with AdminLayout */}
                   <Route
                     path="/admin"
                     element={
@@ -224,6 +225,7 @@ export default function App() {
                       path="attributes"
                       element={<AdminAttributeReviewPanel />}
                     />
+                    <Route path="audit-logs" element={<AdminAuditLogsView />} />
                   </Route>
 
                   {/* Customer Storefront App */}
