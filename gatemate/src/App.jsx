@@ -69,6 +69,7 @@ import { AdminProductManagementView } from "./components/admin/AdminProductManag
 import { AdminProductReviewPanel } from "./components/admin/AdminProductReviewPanel";
 import { AdminCategoryListView } from "./components/admin/AdminCategoryListView";
 import { AdminCategoryEditView } from "./components/admin/AdminCategoryEditView";
+import { AdminInventoryView } from "./components/admin/AdminInventoryView";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminAuditLogsView } from "./components/admin/AdminAuditLogsView";
 
@@ -254,6 +255,7 @@ export default function App() {
                       path="categories/:id"
                       element={<AdminCategoryEditView />}
                     />
+                    <Route path="inventory" element={<AdminInventoryView />} />
                     <Route
                       path="attributes"
                       element={<AdminAttributeReviewPanel />}
