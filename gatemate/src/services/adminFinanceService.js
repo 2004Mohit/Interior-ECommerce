@@ -2,7 +2,7 @@ import { supabase } from "../lib/supabaseClient";
 
 export const adminFinanceService = {
   /**
-   * Fetches payment transactions (Cashfree online payments & POD orders)
+   * Fetches payment transactions (Cashfree & Pay on Delivery)
    */
   async getPaymentTransactions({
     search = "",
@@ -18,11 +18,10 @@ export const adminFinanceService = {
         id,
         grand_total,
         item_subtotal,
-        tax_total,
+        tax_amount,
         delivery_fee,
         payment_status,
         payment_method,
-        payment_reference,
         created_at,
         vendor_profiles:vendor_id (
           id,
@@ -57,9 +56,8 @@ export const adminFinanceService = {
       const q = search.trim().toLowerCase();
       processed = processed.filter((t) => {
         const oId = String(t.id || "").toLowerCase();
-        const ref = String(t.payment_reference || "").toLowerCase();
         const vName = String(t.vendor?.business_name || "").toLowerCase();
-        return oId.includes(q) || ref.includes(q) || vName.includes(q);
+        return oId.includes(q) || vName.includes(q);
       });
     }
 
@@ -163,7 +161,6 @@ export const adminFinanceService = {
     if (pendingTxRes.error) throw pendingTxRes.error;
     if (pastSettlementsRes.error) throw pastSettlementsRes.error;
 
-    // Group pending transactions by vendor
     const vendorMap = {};
     (vendorsRes.data || []).forEach((v) => {
       vendorMap[v.id] = {
@@ -192,6 +189,8 @@ export const adminFinanceService = {
       pendingBatches,
       pastSettlements: (pastSettlementsRes.data || []).map((s) => ({
         ...s,
+        batch_reference_id: s.id,
+        bank_reference_utr: s.utr_number,
         vendor: Array.isArray(s.vendor_profiles)
           ? s.vendor_profiles[0]
           : s.vendor_profiles,

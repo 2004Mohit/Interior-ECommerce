@@ -172,113 +172,71 @@ export const vendorFinancialService = {
   },
 
   /**
-   * Retrieves full transaction ledger entries for a vendor.
+   * Fetches transactions for a specific vendor or all vendors if no vendorId is provided.
    */
-  async getTransactions(vendorId = "vnd-pune-001") {
-    await new Promise((resolve) => setTimeout(resolve, 80));
+  async getTransactions(vendorId = null, limit = 50) {
+    let query = supabase
+      .from("vendor_transactions")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-    try {
-      const { data, error } = await supabase
-        .from("vendor_transactions")
-        .select("*")
-        .eq("vendor_id", vendorId)
-        .order("created_at", { ascending: false });
-
-      if (data && !error && data.length > 0) {
-        return data;
-      }
-    } catch (e) {
-      console.warn("Supabase query fallback for vendor transactions", e);
+    // Only apply vendor_id filter if a valid non-mock UUID is provided
+    if (vendorId && vendorId !== "vnd-pune-001" && vendorId.length === 36) {
+      query = query.eq("vendor_id", vendorId);
     }
 
-    const localRaw = localStorage.getItem(
-      `${VENDOR_FINANCIALS_KEY}${vendorId}`,
-    );
-    if (localRaw) {
-      try {
-        return JSON.parse(localRaw);
-      } catch (e) {
-        console.error("Error parsing local transactions", e);
-      }
-    }
-
-    localStorage.setItem(
-      `${VENDOR_FINANCIALS_KEY}${vendorId}`,
-      JSON.stringify(SEED_TRANSACTIONS),
-    );
-    return SEED_TRANSACTIONS;
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   },
 
   /**
-   * Retrieves summary metrics: Net Gross, Total Commission, Settled, and Pending Clearance.
+   * Fetches financial ledger summary metrics.
    */
-  async getFinancialSummary(vendorId = "vnd-pune-001") {
-    const txns = await this.getTransactions(vendorId);
+  async getFinancialSummary(vendorId = null) {
+    const transactions = await this.getTransactions(vendorId, 200);
 
-    let grossProductSubtotal = 0;
-    let totalPlatformCommission = 0;
-    let totalVendorEarnings = 0;
-    let settledDisbursedAmount = 0;
-    let pendingSettlementAmount = 0;
-
-    txns.forEach((t) => {
-      grossProductSubtotal += t.productSubtotal;
-      totalPlatformCommission += t.commissionAmount;
-      totalVendorEarnings += t.vendorPayableAmount;
-
-      if (t.settlementStatus === SETTLEMENT_STATUS.PROCESSED) {
-        settledDisbursedAmount += t.vendorPayableAmount;
-      } else {
-        pendingSettlementAmount += t.vendorPayableAmount;
-      }
-    });
+    const grossVolume = transactions.reduce(
+      (sum, t) => sum + Number(t.product_subtotal || 0),
+      0,
+    );
+    const totalCommission = transactions.reduce(
+      (sum, t) => sum + Number(t.commission_amount || 0),
+      0,
+    );
+    const pendingSettlement = transactions
+      .filter((t) => t.settlement_status === "PENDING")
+      .reduce((sum, t) => sum + Number(t.vendor_payable_amount || 0), 0);
+    const settledAmount = transactions
+      .filter((t) => t.settlement_status === "SETTLED")
+      .reduce((sum, t) => sum + Number(t.vendor_payable_amount || 0), 0);
 
     return {
-      grossProductSubtotal,
-      totalPlatformCommission,
-      totalVendorEarnings,
-      settledDisbursedAmount,
-      pendingSettlementAmount,
-      transactionCount: txns.length,
-      commissionRateLabel: "5% on Product Subtotal",
+      grossVolume,
+      totalCommission,
+      pendingSettlement,
+      settledAmount,
+      totalOrders: transactions.length,
     };
   },
 
   /**
-   * Retrieves settled bank batch records with UTR references.
+   * Fetches settlement batches.
    */
-  async getSettlementBatches(vendorId = "vnd-pune-001") {
-    await new Promise((resolve) => setTimeout(resolve, 80));
+  async getSettlements(vendorId = null, limit = 50) {
+    let query = supabase
+      .from("vendor_settlements")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-    try {
-      const { data, error } = await supabase
-        .from("vendor_settlement_batches")
-        .select("*")
-        .eq("vendor_id", vendorId)
-        .order("created_at", { ascending: false });
-
-      if (data && !error && data.length > 0) {
-        return data;
-      }
-    } catch (e) {
-      console.warn("Supabase query fallback for settlement batches", e);
+    if (vendorId && vendorId !== "vnd-pune-001" && vendorId.length === 36) {
+      query = query.eq("vendor_id", vendorId);
     }
 
-    const localRaw = localStorage.getItem(
-      `${VENDOR_SETTLEMENTS_KEY}${vendorId}`,
-    );
-    if (localRaw) {
-      try {
-        return JSON.parse(localRaw);
-      } catch (e) {
-        console.error("Error parsing local settlements", e);
-      }
-    }
-
-    localStorage.setItem(
-      `${VENDOR_SETTLEMENTS_KEY}${vendorId}`,
-      JSON.stringify(SEED_SETTLEMENT_BATCHES),
-    );
-    return SEED_SETTLEMENT_BATCHES;
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   },
 };

@@ -11,11 +11,12 @@ import {
   Clock,
   Search,
   Bell,
-  AlertCircle,
+  HardHat,
   RotateCcw,
   Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "../../lib/supabaseClient";
 import { productService } from "../../services/productService";
 import { ProductCard } from "./ProductCard";
 import { ProductCardSkeleton } from "../ProductCardSkeleton";
@@ -43,25 +44,42 @@ export const CustomerHome = () => {
     setLoading(true);
     setError(null);
     try {
-      const [cats, bansRes, prods] = await Promise.all([
-        productService.getCategories(),
-        supabase
-          .from("marketing_banners")
-          .select("*")
-          .eq("is_active", true)
-          .order("display_order", { ascending: true }),
-        productService.getFeaturedProducts(),
+      // 1. Fetch categories
+      const catsPromise = productService.getCategories().catch(() => []);
+
+      // 2. Fetch banners with fallback
+      const bannersPromise = supabase
+        .from("marketing_banners")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .then(async (res) => {
+          if (res.data && res.data.length > 0) return res.data;
+          return (
+            (await productService.getPromotionalBanners().catch(() => [])) || []
+          );
+        })
+        .catch(async () => {
+          return (
+            (await productService.getPromotionalBanners().catch(() => [])) || []
+          );
+        });
+
+      // 3. Fetch featured products
+      const prodsPromise = productService.getFeaturedProducts().catch(() => []);
+
+      const [cats, bans, prods] = await Promise.all([
+        catsPromise,
+        bannersPromise,
+        prodsPromise,
       ]);
-      setCategories(cats);
-      setBanners(
-        bansRes.data && bansRes.data.length > 0
-          ? bansRes.data
-          : await productService.getPromotionalBanners(),
-      );
-      setFeaturedProducts(prods);
+
+      setCategories(cats || []);
+      setBanners(bans || []);
+      setFeaturedProducts(prods || []);
     } catch (err) {
       setError(
-        "Unable to load construction catalogue. Please check your connection.",
+        "Site logistics link interrupted. Our dispatch network is synchronizing depot inventory across Pune & PCMC.",
       );
     } finally {
       setLoading(false);
@@ -74,9 +92,12 @@ export const CustomerHome = () => {
 
   useEffect(() => {
     if (user?.id) {
-      notificationService.getNotifications(user.id).then((list) => {
-        setUnreadAlerts(list.filter((n) => !n.isRead));
-      });
+      notificationService
+        .getNotifications(user.id)
+        .then((list) => {
+          setUnreadAlerts((list || []).filter((n) => !n.isRead));
+        })
+        .catch(() => {});
     }
   }, [user]);
 
@@ -112,7 +133,7 @@ export const CustomerHome = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 pb-24">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 pb-24 font-sans">
       {/* SEO Meta */}
       <SeoHead
         title="GateMate | Hyperlocal Construction Products Marketplace in Pune & PCMC"
@@ -121,7 +142,7 @@ export const CustomerHome = () => {
         structuredData={organizationSchema}
       />
 
-      {/* 1. PRIORITY 1: SEARCH & HERO CORE PROMISE */}
+      {/* 1. SEARCH & HERO CORE PROMISE */}
       <div className="text-center space-y-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#E4EEF3] border border-[#9AAED4]/40 text-[#173885] text-xs font-bold tracking-wide">
           <Sparkles className="w-3.5 h-3.5 text-[#3C7DDA]" />
@@ -184,16 +205,26 @@ export const CustomerHome = () => {
         </form>
       </div>
 
+      {/* Structured Fallback State */}
       {error && (
-        <div className="gm-panel p-6 rounded-3xl text-center space-y-3 max-w-md mx-auto">
-          <AlertCircle className="w-8 h-8 text-[#B43D20] mx-auto" />
-          <p className="text-xs text-[#606460]">{error}</p>
+        <div className="gm-panel p-8 rounded-3xl border border-[#D9E2EA] text-center space-y-4 max-w-lg mx-auto bg-[#FEFEFE] shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-[#E4EEF3] text-[#173885] flex items-center justify-center mx-auto border border-[#D9E2EA]">
+            <HardHat className="w-6 h-6" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-[#173885]">
+              Depot Feed Temporarily Offline
+            </h3>
+            <p className="text-xs text-[#606460] leading-relaxed max-w-md mx-auto">
+              {error}
+            </p>
+          </div>
           <button
             onClick={loadHomeCatalog}
-            className="btn-gm-secondary px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
+            className="btn-gm-primary px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 shadow-xs"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Retry</span>
+            <RotateCcw className="w-3.5 h-3.5 text-[#FEFEFE]" />
+            <span>Reconnect to Catalogue</span>
           </button>
         </div>
       )}
@@ -213,7 +244,9 @@ export const CustomerHome = () => {
               <div className="space-y-3.5 text-left max-w-2xl">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#3C7DDA]/30 text-[#A5D6FA] text-xs font-bold uppercase tracking-wider border border-[#A5D6FA]/30">
                   <Tag className="w-3.5 h-3.5" />
-                  {banners[activeBannerIdx].badge}
+                  {banners[activeBannerIdx].badge ||
+                    banners[activeBannerIdx].banner_type ||
+                    "FEATURED"}
                 </div>
                 <h2 className="text-2xl sm:text-4xl font-extrabold text-[#FEFEFE] leading-tight">
                   {banners[activeBannerIdx].title}
@@ -223,15 +256,27 @@ export const CustomerHome = () => {
                 </p>
                 <div className="pt-2 flex items-center gap-4">
                   <Link
-                    to={banners[activeBannerIdx].link}
+                    to={
+                      banners[activeBannerIdx].target_url ||
+                      banners[activeBannerIdx].link ||
+                      "/products"
+                    }
                     className="btn-gm-primary px-6 py-3 rounded-xl text-sm flex items-center gap-2 transition"
                   >
-                    <span>{banners[activeBannerIdx].cta}</span>
+                    <span>
+                      {banners[activeBannerIdx].cta_text ||
+                        banners[activeBannerIdx].cta ||
+                        "Explore Now"}
+                    </span>
                     <ChevronRight className="w-4 h-4 text-[#FEFEFE]" />
                   </Link>
-                  <span className="text-[#A5D6FA] font-extrabold text-sm sm:text-base bg-[#0F255C] px-3.5 py-2 rounded-xl border border-[#3C7DDA]/30">
-                    {banners[activeBannerIdx].discount}
-                  </span>
+                  {(banners[activeBannerIdx].discount ||
+                    banners[activeBannerIdx].category_slug) && (
+                    <span className="text-[#A5D6FA] font-extrabold text-sm sm:text-base bg-[#0F255C] px-3.5 py-2 rounded-xl border border-[#3C7DDA]/30">
+                      {banners[activeBannerIdx].discount ||
+                        `Category: ${banners[activeBannerIdx].category_slug}`}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -254,7 +299,7 @@ export const CustomerHome = () => {
         </div>
       )}
 
-      {/* 2. PRIORITY 2: CONSTRUCTION PRODUCT CATEGORIES */}
+      {/* 2. CONSTRUCTION PRODUCT CATEGORIES */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
@@ -285,13 +330,13 @@ export const CustomerHome = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {categories.map((cat) => (
-              <CategoryCard key={cat.id} category={cat} />
+              <CategoryCard key={cat.id || cat.slug} category={cat} />
             ))}
           </div>
         )}
       </div>
 
-      {/* 3. PRIORITY 3: FEATURED CONSTRUCTION PRODUCTS */}
+      {/* 3. FEATURED CONSTRUCTION PRODUCTS */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -421,7 +466,7 @@ export const CustomerHome = () => {
         </Link>
       </div>
 
-      {/* 6. VENDOR STOREFRONT ENTRY BANNER - STRICTLY FOR GUEST USERS */}
+      {/* 6. VENDOR STOREFRONT ENTRY BANNER */}
       {!user && (
         <div className="gm-panel p-8 rounded-3xl border border-[#9AAED4]/40 flex flex-col md:flex-row items-center justify-between gap-6 bg-[#FEFEFE]">
           <div className="space-y-1.5 text-center md:text-left">
