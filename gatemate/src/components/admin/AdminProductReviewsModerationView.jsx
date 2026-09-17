@@ -245,7 +245,7 @@ export const AdminProductReviewsModerationView = () => {
                     </span>
                     <span>•</span>
                     <Link
-                      to={`/admin/customers/${rev.customer_id}`}
+                      to={`/admin/customers/${rev.user_id}`}
                       className="text-[#3C7DDA] hover:underline font-bold"
                     >
                       View Customer Account

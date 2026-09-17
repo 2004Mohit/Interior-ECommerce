@@ -87,9 +87,6 @@ import { AdminCustomerDetailView } from "./components/admin/AdminCustomerDetailV
 import { AdminCustomerOrdersView } from "./components/admin/AdminCustomerOrdersView";
 import { AdminProductReviewsModerationView } from "./components/admin/AdminProductReviewsModerationView";
 import { AdminComplaintsView } from "./components/admin/AdminComplaintsView";
-import { AdminNotificationsView } from "./components/admin/AdminNotificationsView";
-import { AdminBannersView } from "./components/admin/AdminBannersView";
-import { AdminPromotionsView } from "./components/admin/AdminPromotionsView";
 import { AdminAttributeReviewPanel } from "./components/admin/AdminAttributeReviewPanel";
 import { AdminAuditLogsView } from "./components/admin/AdminAuditLogsView";
 
@@ -324,15 +321,6 @@ export default function App() {
                     <Route
                       path="complaints"
                       element={<AdminComplaintsView />}
-                    />
-                    <Route
-                      path="notifications"
-                      element={<AdminNotificationsView />}
-                    />
-                    <Route path="banners" element={<AdminBannersView />} />
-                    <Route
-                      path="promotions"
-                      element={<AdminPromotionsView />}
                     />
                     <Route
                       path="attributes"

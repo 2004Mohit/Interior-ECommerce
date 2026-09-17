@@ -20,6 +20,8 @@ import {
   Lock,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
+import { uploadService } from "../../services/uploadService";
+import { fileOptimizer } from "../../utils/fileOptimizer";
 import {
   vendorOnboardingService,
   VENDOR_APPLICATION_STATUS,
@@ -269,17 +271,26 @@ export const VendorOnboarding = () => {
     setFormError(null);
 
     try {
-      const result = await vendorOnboardingService.uploadVerificationDocument(
+      // 1. Enforce 5 MB original limit and 1 MB final limit with readability checks
+      await fileOptimizer.validateVerificationDocument(file);
+
+      // 2. Upload securely to private Supabase Storage bucket 'vendor-verification-docs'
+      const result = await uploadService.uploadVendorDocument(
         vendorUser.id,
         docType,
         file,
+        (status) => {
+          // Optional status tracking if needed
+          console.log(status);
+        },
       );
+
       setFormData((prev) => ({
         ...prev,
         verificationDocuments: {
           ...prev.verificationDocuments,
-          [`${docType}Url`]: result.storagePath,
-          [`${docType}Name`]: result.fileName,
+          [`${docType}Url`]: result.path,
+          [`${docType}Name`]: file.name,
         },
       }));
     } catch (err) {

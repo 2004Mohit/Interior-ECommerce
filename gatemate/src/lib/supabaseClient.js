@@ -7,10 +7,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Missing Supabase environment variables in .env file.");
 }
 
-/**
- * Custom Tab-Isolated Storage Adapter
- * Uses window.sessionStorage so login state is isolated strictly to the active browser tab.
- */
 const tabScopedStorage = {
   getItem: (key) => {
     try {
@@ -40,12 +36,26 @@ const tabScopedStorage = {
   },
 };
 
+// Standard Customer/Vendor Client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Isolate session persistence strictly to the active tab
     storage: tabScopedStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+  },
+});
+
+// Dedicated Isolated Admin Client (Prevents portal cross-contamination)
+export const adminSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: {
+      getItem: (key) => tabScopedStorage.getItem(`admin_${key}`),
+      setItem: (key, value) => tabScopedStorage.setItem(`admin_${key}`, value),
+      removeItem: (key) => tabScopedStorage.removeItem(`admin_${key}`),
+    },
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
   },
 });

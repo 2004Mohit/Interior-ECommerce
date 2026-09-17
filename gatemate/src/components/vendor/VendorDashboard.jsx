@@ -207,10 +207,11 @@ export const VendorDashboard = () => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-black text-[#173885] font-mono">
-              {metrics.todayOrdersCount}
+              {metrics?.todayOrdersCount || 0}
             </div>
             <span className="text-[10px] text-[#606460] mt-0.5 block">
-              ₹{metrics.todayOrdersAmount.toLocaleString("en-IN")} booked today
+              ₹{Number(metrics?.todayOrdersAmount || 0).toLocaleString("en-IN")}{" "}
+              booked today
             </span>
           </div>
         </Link>
@@ -253,7 +254,10 @@ export const VendorDashboard = () => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-black text-[#173885] font-mono">
-              ₹{metrics.grossSales.toLocaleString("en-IN")}
+              ₹
+              {Number(metrics?.grossVolume || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+              })}
             </div>
             <span className="text-[10px] text-[#606460] mt-0.5 block">
               Total Product Subtotals
@@ -276,7 +280,10 @@ export const VendorDashboard = () => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-black text-[#3F7D20] font-mono">
-              ₹{metrics.netRevenue.toLocaleString("en-IN")}
+              ₹
+              {Number(metrics?.netRevenue || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+              })}
             </div>
             <span className="text-[10px] text-[#3F7D20] font-semibold mt-0.5 block">
               After 5% platform commission
@@ -349,7 +356,11 @@ export const VendorDashboard = () => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-black text-[#173885] font-mono">
-              ₹{metrics.pendingSettlements.toLocaleString("en-IN")}
+              ₹
+              {Number(metrics?.pendingSettlements || 0).toLocaleString(
+                "en-IN",
+                { minimumFractionDigits: 2 },
+              )}
             </div>
             <span className="text-[10px] text-[#606460] mt-0.5 block">
               Awaiting weekly bank disbursal

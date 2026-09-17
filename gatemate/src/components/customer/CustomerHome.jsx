@@ -47,32 +47,10 @@ export const CustomerHome = () => {
       // 1. Fetch categories
       const catsPromise = productService.getCategories().catch(() => []);
 
-      // 2. Fetch banners with fallback
-      const bannersPromise = supabase
-        .from("marketing_banners")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
-        .then(async (res) => {
-          if (res.data && res.data.length > 0) return res.data;
-          return (
-            (await productService.getPromotionalBanners().catch(() => [])) || []
-          );
-        })
-        .catch(async () => {
-          return (
-            (await productService.getPromotionalBanners().catch(() => [])) || []
-          );
-        });
-
       // 3. Fetch featured products
       const prodsPromise = productService.getFeaturedProducts().catch(() => []);
 
-      const [cats, bans, prods] = await Promise.all([
-        catsPromise,
-        bannersPromise,
-        prodsPromise,
-      ]);
+      const [cats, prods] = await Promise.all([catsPromise, prodsPromise]);
 
       setCategories(cats || []);
       setBanners(bans || []);

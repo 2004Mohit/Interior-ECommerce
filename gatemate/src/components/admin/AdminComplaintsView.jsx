@@ -314,7 +314,7 @@ export const AdminComplaintsView = () => {
                     </span>
                   )}
                   <Link
-                    to={`/admin/customers/${c.customer_id}`}
+                    to={`/admin/customers/${c.user_id}`}
                     className="text-[#3C7DDA] hover:underline"
                   >
                     View Customer Profile

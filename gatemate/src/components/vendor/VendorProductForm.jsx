@@ -14,7 +14,9 @@ import {
   ChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
+import { fileOptimizer } from "../../utils/fileOptimizer";
 import { useVendorAuth } from "../../context/VendorAuthContext";
+import { uploadService } from "../../services/uploadService";
 import {
   vendorProductService,
   PRODUCT_APPROVAL_STATUS,
@@ -57,6 +59,7 @@ export const VendorProductForm = () => {
   const [loading, setLoading] = useState(isEditing);
   const [savingAction, setSavingAction] = useState(null); // 'draft' | 'submit'
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [optimizationStatus, setOptimizationStatus] = useState("");
   const [formError, setFormError] = useState(null);
   const [successNotice, setSuccessNotice] = useState(null);
   const [imageUploadError, setImageUploadError] = useState(null);
@@ -126,9 +129,12 @@ export const VendorProductForm = () => {
   };
 
   // Upload image to Supabase Storage and add to product image gallery
+  // Optimized image selection and upload flow
   const handleImageUpload = async (e) => {
     setImageUploadError(null);
+    setOptimizationStatus("");
     const files = Array.from(e.target.files || []);
+
     if (files.length + formData.images.length > 5) {
       setImageUploadError("Maximum 5 product photographs allowed per listing.");
       return;
@@ -138,17 +144,29 @@ export const VendorProductForm = () => {
     try {
       const vendorId = vendorUser?.id || "vnd-pune-001";
       for (const file of files) {
+        // 1. Client-side optimization (Resize, WebP conversion, size checks)
+        const optimizedFile = await fileOptimizer.optimizeProductImage(
+          file,
+          (status) => {
+            setOptimizationStatus(status);
+          },
+        );
+
+        // 2. Upload optimized file using existing media service
         const uploaded = await productMediaService.uploadProductImage(
           vendorId,
-          file,
+          optimizedFile,
         );
+
         setFormData((prev) => ({
           ...prev,
           images: [...prev.images, uploaded.url],
         }));
       }
+      setOptimizationStatus("Image optimized and uploaded successfully.");
     } catch (err) {
-      setImageUploadError(err.message || "Image upload failed.");
+      setImageUploadError(err.message || "Image optimization failed.");
+      setOptimizationStatus("");
     } finally {
       setIsUploadingImage(false);
     }
@@ -695,6 +713,13 @@ export const VendorProductForm = () => {
           {imageUploadError && (
             <div className="p-3 rounded-xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs">
               {imageUploadError}
+            </div>
+          )}
+
+          {/* Live Optimization Status Banner */}
+          {optimizationStatus && (
+            <div className="p-3 rounded-xl bg-[#E4EEF3] border border-[#3C7DDA]/30 text-[#173885] text-xs font-bold flex items-center gap-2">
+              <span>{optimizationStatus}</span>
             </div>
           )}
 

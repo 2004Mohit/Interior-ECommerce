@@ -17,7 +17,7 @@ import {
   X,
   MessageSquare,
 } from "lucide-react";
-import { adminCustomerService } from "../../services/adminCustomerService";
+import { adminContentService } from "../../services/adminContentService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
 import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";
 import { SeoHead } from "../common/SeoHead";
@@ -38,7 +38,7 @@ export const AdminCustomerDetailView = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await adminCustomerService.getCustomerDetails(id);
+      const res = await adminContentService.getCustomerDetails(id);
       setData(res);
     } catch (err) {
       setError(err.message || "Failed to load customer profile details.");
@@ -63,7 +63,7 @@ export const AdminCustomerDetailView = () => {
 
     try {
       const nextSuspendState = !data.profile.isSuspended;
-      await adminCustomerService.toggleSuspension(
+      await adminContentService.toggleSuspension(
         id,
         nextSuspendState,
         suspendReason,

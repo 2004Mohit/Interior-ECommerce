@@ -1,21 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Layers,
   PlusCircle,
   Search,
-  Filter,
   RotateCcw,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   Edit3,
   Trash2,
   GitMerge,
-  Check,
   X,
   Building2,
-  HelpCircle,
-  Tag,
 } from "lucide-react";
 import { adminAttributeService } from "../../services/adminAttributeService";
 import { adminCatalogueService } from "../../services/adminCatalogueService";
@@ -58,9 +53,10 @@ export const AdminAttributeReviewPanel = () => {
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
       const [cats, attrs, sugs] = await Promise.all([
         adminCatalogueService.getCategories(),
@@ -69,21 +65,27 @@ export const AdminAttributeReviewPanel = () => {
           categorySlug: selectedCategory,
         }),
       ]);
-      setCategories(cats);
-      setAttributes(attrs);
-      setSuggestions(sugs);
+
+      setCategories(Array.isArray(cats) ? cats : []);
+      setAttributes(Array.isArray(attrs) ? attrs : []);
+      setSuggestions(Array.isArray(sugs) ? sugs : []);
     } catch (err) {
-      setError(err.message || "Failed to load category attributes.");
+      setError(err?.message || "Failed to load category attributes.");
+      setCategories([]);
+      setAttributes([]);
+      setSuggestions([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory]);
 
   useEffect(() => {
     loadData();
-  }, [selectedCategory]);
+  }, [loadData]);
 
   const openCreateModal = () => {
+    setError(null);
+    setActionSuccess(null);
     setEditingAttr("NEW");
     setAttrForm({
       name: "",
@@ -99,6 +101,8 @@ export const AdminAttributeReviewPanel = () => {
   };
 
   const openEditModal = (attr) => {
+    setError(null);
+    setActionSuccess(null);
     setEditingAttr(attr);
     setAttrForm({
       id: attr.id,
@@ -117,6 +121,17 @@ export const AdminAttributeReviewPanel = () => {
     e.preventDefault();
     if (!attrForm.name.trim() || !attrForm.category_slug) {
       setError("Attribute Name and Category are required.");
+      return;
+    }
+
+    if (
+      attrForm.type === "select" &&
+      !attrForm.allowed_values
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean).length
+    ) {
+      setError("Allowed Values are required for a dropdown attribute.");
       return;
     }
 
@@ -143,7 +158,7 @@ export const AdminAttributeReviewPanel = () => {
 
       setActionSuccess(`Attribute "${attrForm.name}" saved successfully.`);
       setEditingAttr(null);
-      loadData();
+      await loadData();
     } catch (err) {
       setError(err.message || "Failed to save attribute.");
     } finally {
@@ -170,7 +185,7 @@ export const AdminAttributeReviewPanel = () => {
       );
       setMergeSource(null);
       setMergeTargetId("");
-      loadData();
+      await loadData();
     } catch (err) {
       setError(err.message || "Merge failed.");
     } finally {
@@ -188,7 +203,7 @@ export const AdminAttributeReviewPanel = () => {
     try {
       await adminAttributeService.deleteAttribute(attr.id);
       setActionSuccess(`Attribute "${attr.name}" deleted.`);
-      loadData();
+      await loadData();
     } catch (err) {
       setError(err.message || "Failed to delete attribute.");
     }
@@ -211,7 +226,7 @@ export const AdminAttributeReviewPanel = () => {
       setActiveSuggestion(null);
       setReviewerNotes("");
       setMergeTargetName("");
-      loadData();
+      await loadData();
     } catch (err) {
       setError(err.message || "Failed to process suggestion.");
     } finally {

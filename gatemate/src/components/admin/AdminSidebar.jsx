@@ -16,8 +16,6 @@ import {
   Star,
   MessageSquareWarning,
   Bell,
-  Image,
-  Tag,
   ShieldAlert,
   UserPlus,
   LogOut,
@@ -137,24 +135,6 @@ export const AdminSidebar = ({ isMobileOpen, onCloseMobile }) => {
           label: "Contractor Disputes",
           icon: MessageSquareWarning,
           permission: ADMIN_PERMISSIONS.MANAGE_COMPLAINTS,
-        },
-        {
-          to: "/admin/notifications",
-          label: "Broadcast System",
-          icon: Bell,
-          permission: ADMIN_PERMISSIONS.MANAGE_NOTIFICATIONS,
-        },
-        {
-          to: "/admin/banners",
-          label: "Hero Promos & Banners",
-          icon: Image,
-          permission: ADMIN_PERMISSIONS.MANAGE_BANNERS,
-        },
-        {
-          to: "/admin/promotions",
-          label: "Coupons & Bulk Deals",
-          icon: Tag,
-          permission: ADMIN_PERMISSIONS.MANAGE_PROMOTIONS,
         },
         {
           to: "/admin/audit-logs",

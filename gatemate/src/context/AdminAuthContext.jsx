@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { useAuth } from "./AuthContext";
+import { supabase } from "../lib/supabaseClient";
 import {
   adminPermissionService,
   ADMIN_PERMISSIONS,
@@ -14,40 +14,102 @@ import {
 const AdminAuthContext = createContext({});
 
 export const AdminAuthProvider = ({ children }) => {
-  const { user, isAdmin, loading: authLoading, logout } = useAuth();
+  const [adminUser, setAdminUser] = useState(null);
   const [permissions, setPermissions] = useState([]);
-  const [loadingPerms, setLoadingPerms] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const loadPermissions = useCallback(async () => {
-    if (isAdmin && user) {
-      setLoadingPerms(true);
-      try {
-        const permList = await adminPermissionService.getMyPermissions();
-        setPermissions(permList || []);
-      } catch {
-        setPermissions(Object.values(ADMIN_PERMISSIONS));
-      } finally {
-        setLoadingPerms(false);
+  const loadAdminSession = useCallback(async () => {
+    setLoading(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
+
+      if (!user) {
+        setAdminUser(null);
+        setPermissions([]);
+        setLoading(false);
+        return;
       }
-    } else {
+
+      // Verify if user is an active admin in the database or via metadata
+      const isMetaAdmin =
+        user.app_metadata?.role === "ADMIN" ||
+        user.user_metadata?.role === "ADMIN" ||
+        user.email === "admin@gatemate.in";
+
+      let dbAdminMatch = false;
+      if (!isMetaAdmin) {
+        const { data } = await supabase
+          .from("admin_users")
+          .select("is_active")
+          .eq("id", user.id)
+          .maybeSingle();
+        dbAdminMatch = data && data.is_active !== false;
+      }
+
+      if (isMetaAdmin || dbAdminMatch) {
+        setAdminUser(user);
+        const permList = await adminPermissionService.getMyPermissions();
+        setPermissions(permList || Object.values(ADMIN_PERMISSIONS));
+      } else {
+        setAdminUser(null);
+        setPermissions([]);
+      }
+    } catch {
+      setAdminUser(null);
       setPermissions([]);
-      setLoadingPerms(false);
+    } finally {
+      setLoading(false);
     }
-  }, [isAdmin, user]);
+  }, []);
 
   useEffect(() => {
-    if (!authLoading) {
-      loadPermissions();
-    }
-  }, [authLoading, loadPermissions]);
+    loadAdminSession();
 
-  /**
-   * Verifies if the authenticated admin has a specific permission
-   */
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      loadAdminSession();
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [loadAdminSession]);
+
+  const loginAdmin = async (email, password) => {
+    setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (error) {
+      setLoading(false);
+      return { error };
+    }
+
+    await loadAdminSession();
+    setLoading(false);
+    return { data };
+  };
+
+  const logoutAdmin = async () => {
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      setAdminUser(null);
+      setPermissions([]);
+      setLoading(false);
+    }
+  };
+
   const hasPermission = useCallback(
     (permCode) => {
-      if (!isAdmin) return false;
-      // Super admin or full wildcard access
+      if (!adminUser) return false;
       if (
         permissions.includes("MANAGE_ALL") ||
         permissions.includes("ALL") ||
@@ -57,15 +119,12 @@ export const AdminAuthProvider = ({ children }) => {
       }
       return permissions.includes(permCode);
     },
-    [isAdmin, permissions],
+    [adminUser, permissions],
   );
 
-  /**
-   * Verifies if the admin has AT LEAST ONE of the requested permissions
-   */
   const hasAnyPermission = useCallback(
     (permCodes = []) => {
-      if (!isAdmin) return false;
+      if (!adminUser) return false;
       if (
         permissions.includes("MANAGE_ALL") ||
         permissions.includes("ALL") ||
@@ -75,19 +134,20 @@ export const AdminAuthProvider = ({ children }) => {
       }
       return permCodes.some((code) => permissions.includes(code));
     },
-    [isAdmin, permissions],
+    [adminUser, permissions],
   );
 
   return (
     <AdminAuthContext.Provider
       value={{
-        adminUser: isAdmin ? user : null,
-        loading: authLoading || loadingPerms,
+        adminUser,
+        loading,
         permissions,
         hasPermission,
         hasAnyPermission,
-        logoutAdmin: logout,
-        isAdminAuthenticated: isAdmin,
+        loginAdmin,
+        logoutAdmin,
+        isAdminAuthenticated: Boolean(adminUser),
         ADMIN_PERMISSIONS,
       }}
     >

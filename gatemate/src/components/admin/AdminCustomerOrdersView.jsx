@@ -10,7 +10,7 @@ import {
   Eye,
   DollarSign,
 } from "lucide-react";
-import { adminCustomerService } from "../../services/adminCustomerService";
+import { adminContentService } from "../../services/adminContentService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
 import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";
 import { SeoHead } from "../common/SeoHead";
@@ -27,7 +27,7 @@ export const AdminCustomerOrdersView = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await adminCustomerService.getCustomerOrdersLedger({
+      const res = await adminContentService.getCustomerOrdersLedger({
         search,
         status: statusFilter,
         limit: 100,
