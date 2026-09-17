@@ -129,6 +129,71 @@ export const adminCatalogueService = {
   },
 
   /**
+   * Uploads a compressed category image to Supabase Storage.
+   *
+   * The component is responsible for compressing/resizing the image.
+   * This method only handles the Storage upload and returns the
+   * public URL.
+   */
+  async uploadCategoryImage(file, slug) {
+    if (!file) {
+      throw new Error("Category image is required.");
+    }
+
+    if (!slug?.trim()) {
+      throw new Error("Category slug is required before uploading an image.");
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error("Only JPG, PNG, and WebP images are allowed.");
+    }
+
+    // Final compressed image should normally be well below this limit.
+    // This is a second safety check before Storage upload.
+    const maxUploadSize = 350 * 1024;
+
+    if (file.size > maxUploadSize) {
+      throw new Error("Compressed category image must be smaller than 350 KB.");
+    }
+
+    const safeSlug = slug
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/(^-|-$)/g, "");
+
+    const filePath = `categories/${safeSlug}-${crypto.randomUUID()}.webp`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("category-images")
+      .upload(filePath, file, {
+        cacheControl: "31536000",
+        contentType: "image/webp",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("category-images").getPublicUrl(filePath);
+
+    if (!publicUrl) {
+      throw new Error("Failed to generate category image URL.");
+    }
+
+    return {
+      publicUrl,
+      filePath,
+    };
+  },
+
+  /**
    * Saves or updates a category via RPC
    */
   async saveCategory(payload) {
@@ -139,14 +204,10 @@ export const adminCatalogueService = {
       p_image_url: payload.image_url?.trim() || null,
       p_display_order: Number(payload.display_order) || 0,
       p_is_active: Boolean(payload.is_active),
-      p_meta_title: payload.meta_title?.trim() || null,
-      p_meta_description: payload.meta_description?.trim() || null,
-      p_meta_keywords: Array.isArray(payload.meta_keywords)
-        ? payload.meta_keywords
-        : [],
     });
 
     if (error) throw error;
+
     return data;
   },
 
@@ -160,6 +221,7 @@ export const adminCatalogueService = {
     });
 
     if (error) throw error;
+
     return data;
   },
 

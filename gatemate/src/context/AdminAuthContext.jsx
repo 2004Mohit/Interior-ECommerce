@@ -20,44 +20,55 @@ export const AdminAuthProvider = ({ children }) => {
 
   const loadAdminSession = useCallback(async () => {
     setLoading(true);
+
     try {
       const {
         data: { session },
+        error: sessionError,
       } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
       const user = session?.user;
 
       if (!user) {
         setAdminUser(null);
         setPermissions([]);
-        setLoading(false);
         return;
       }
 
-      // Verify if user is an active admin in the database or via metadata
-      const isMetaAdmin =
-        user.app_metadata?.role === "ADMIN" ||
-        user.user_metadata?.role === "ADMIN" ||
-        user.email === "admin@gatemate.in";
+      /*
+       * IMPORTANT:
+       * Admin status is determined by the database RPC.
+       *
+       * We do NOT trust:
+       * - user_metadata
+       * - app_metadata
+       * - email address
+       * - frontend hardcoded values
+       */
+      const { data: role, error: roleError } =
+        await supabase.rpc("get_auth_role");
 
-      let dbAdminMatch = false;
-      if (!isMetaAdmin) {
-        const { data } = await supabase
-          .from("admin_users")
-          .select("is_active")
-          .eq("id", user.id)
-          .maybeSingle();
-        dbAdminMatch = data && data.is_active !== false;
+      if (roleError) {
+        throw roleError;
       }
 
-      if (isMetaAdmin || dbAdminMatch) {
-        setAdminUser(user);
-        const permList = await adminPermissionService.getMyPermissions();
-        setPermissions(permList || Object.values(ADMIN_PERMISSIONS));
-      } else {
+      if (role !== "ADMIN") {
         setAdminUser(null);
         setPermissions([]);
+        return;
       }
-    } catch {
+
+      const permList = await adminPermissionService.getMyPermissions();
+
+      setAdminUser(user);
+      setPermissions(permList);
+    } catch (error) {
+      console.error("Admin session verification failed:", error);
+
       setAdminUser(null);
       setPermissions([]);
     } finally {
@@ -70,7 +81,7 @@ export const AdminAuthProvider = ({ children }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((_event, _session) => {
       loadAdminSession();
     });
 
@@ -81,23 +92,59 @@ export const AdminAuthProvider = ({ children }) => {
 
   const loginAdmin = async (email, password) => {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
 
-    if (error) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      /*
+       * Verify that the authenticated account is actually
+       * registered as an active GateMate Admin.
+       */
+      const { data: role, error: roleError } =
+        await supabase.rpc("get_auth_role");
+
+      if (roleError) {
+        await supabase.auth.signOut();
+
+        return {
+          error: {
+            message: "Unable to verify administrator access.",
+          },
+        };
+      }
+
+      if (role !== "ADMIN") {
+        await supabase.auth.signOut();
+
+        return {
+          error: {
+            message:
+              "This account does not have GateMate administrator access.",
+          },
+        };
+      }
+
+      const permList = await adminPermissionService.getMyPermissions();
+
+      setAdminUser(data.user);
+      setPermissions(permList);
+
+      return { data };
+    } finally {
       setLoading(false);
-      return { error };
     }
-
-    await loadAdminSession();
-    setLoading(false);
-    return { data };
   };
 
   const logoutAdmin = async () => {
     setLoading(true);
+
     try {
       await supabase.auth.signOut();
     } finally {
@@ -110,14 +157,12 @@ export const AdminAuthProvider = ({ children }) => {
   const hasPermission = useCallback(
     (permCode) => {
       if (!adminUser) return false;
-      if (
+
+      return (
         permissions.includes("MANAGE_ALL") ||
         permissions.includes("ALL") ||
-        permissions.length === 0
-      ) {
-        return true;
-      }
-      return permissions.includes(permCode);
+        permissions.includes(permCode)
+      );
     },
     [adminUser, permissions],
   );
@@ -125,13 +170,11 @@ export const AdminAuthProvider = ({ children }) => {
   const hasAnyPermission = useCallback(
     (permCodes = []) => {
       if (!adminUser) return false;
-      if (
-        permissions.includes("MANAGE_ALL") ||
-        permissions.includes("ALL") ||
-        permissions.length === 0
-      ) {
+
+      if (permissions.includes("MANAGE_ALL") || permissions.includes("ALL")) {
         return true;
       }
+
       return permCodes.some((code) => permissions.includes(code));
     },
     [adminUser, permissions],

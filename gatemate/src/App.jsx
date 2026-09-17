@@ -60,7 +60,6 @@ import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
 
 // Admin Views & Architecture
-import { AdminLogin } from "./components/admin/AdminLogin";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import { AdminProtectedRoute } from "./components/admin/AdminProtectedRoute";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
@@ -170,9 +169,6 @@ export default function App() {
                     path="/reset-password"
                     element={<ResetPasswordPage />}
                   />
-
-                  {/* Public Admin Entry Route */}
-                  <Route path="/admin/login" element={<AdminLogin />} />
 
                   {/* Public Vendor Portal Entry Routes */}
                   <Route path="/sell" element={<VendorLanding />} />

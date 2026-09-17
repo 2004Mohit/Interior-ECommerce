@@ -16,46 +16,33 @@ const tabScopedStorage = {
       return null;
     }
   },
+
   setItem: (key, value) => {
     try {
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(key, value);
       }
-    } catch (e) {
-      console.warn("Unable to write to sessionStorage:", e);
+    } catch (error) {
+      console.warn("Unable to write to sessionStorage:", error);
     }
   },
+
   removeItem: (key) => {
     try {
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem(key);
       }
-    } catch (e) {
-      console.warn("Unable to remove from sessionStorage:", e);
+    } catch {
+      return null;
     }
   },
 };
 
-// Standard Customer/Vendor Client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: tabScopedStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-  },
-});
-
-// Dedicated Isolated Admin Client (Prevents portal cross-contamination)
-export const adminSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: {
-      getItem: (key) => tabScopedStorage.getItem(`admin_${key}`),
-      setItem: (key, value) => tabScopedStorage.setItem(`admin_${key}`, value),
-      removeItem: (key) => tabScopedStorage.removeItem(`admin_${key}`),
-    },
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
   },
 });

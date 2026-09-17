@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Layers,
@@ -7,9 +7,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Image,
-  Globe,
-  Tag,
+  Upload,
+  X,
 } from "lucide-react";
+
+import { supabase } from "../../lib/supabaseClient";
 import { adminCatalogueService } from "../../services/adminCatalogueService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
 import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";
@@ -27,15 +29,16 @@ export const AdminCategoryEditView = () => {
     image_url: "",
     display_order: 0,
     is_active: true,
-    meta_title: "",
-    meta_description: "",
-    meta_keywords: "",
   });
 
   const [loading, setLoading] = useState(!isNew);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [imageProcessing, setImageProcessing] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!isNew) {
@@ -49,12 +52,8 @@ export const AdminCategoryEditView = () => {
             image_url: cat.image_url || "",
             display_order: cat.display_order || 0,
             is_active: Boolean(cat.is_active),
-            meta_title: cat.meta_title || "",
-            meta_description: cat.meta_description || "",
-            meta_keywords: Array.isArray(cat.meta_keywords)
-              ? cat.meta_keywords.join(", ")
-              : "",
           });
+          setImagePreview(cat.image_url || "");
         })
         .catch((err) =>
           setError(err.message || "Failed to load category details."),
@@ -63,8 +62,133 @@ export const AdminCategoryEditView = () => {
     }
   }, [id, isNew]);
 
+  const compressCategoryImage = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const img = new window.Image();
+
+        img.onload = () => {
+          const MAX_SIZE = 800;
+
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+            reject(new Error("Could not process the selected image."));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error("Could not compress the selected image."));
+                return;
+              }
+
+              if (blob.size > 350 * 1024) {
+                reject(
+                  new Error(
+                    "The processed image is still larger than 350 KB. Please choose a simpler image.",
+                  ),
+                );
+                return;
+              }
+
+              const compressedFile = new File(
+                [blob],
+                `${Date.now()}-category.webp`,
+                {
+                  type: "image/webp",
+                  lastModified: Date.now(),
+                },
+              );
+
+              resolve(compressedFile);
+            },
+            "image/webp",
+            0.82,
+          );
+        };
+
+        img.onerror = () => {
+          reject(new Error("The selected image could not be read."));
+        };
+
+        img.src = reader.result;
+      };
+
+      reader.onerror = () => {
+        reject(new Error("The selected image could not be read."));
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+  const handleImageSelect = async (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setError(null);
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError("Only JPG, PNG, and WebP images are allowed.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Original category image must be smaller than 2 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      setImageProcessing(true);
+
+      const compressedFile = await compressCategoryImage(file);
+
+      setSelectedImage(compressedFile);
+
+      const previewUrl = URL.createObjectURL(compressedFile);
+      setImagePreview(previewUrl);
+    } catch (err) {
+      setError(err.message || "Failed to process category image.");
+      setSelectedImage(null);
+      setImagePreview("");
+      e.target.value = "";
+    } finally {
+      setImageProcessing(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!formData.name.trim() || !formData.slug.trim()) {
       setError("Category Name and Slug are required.");
       return;
@@ -72,25 +196,64 @@ export const AdminCategoryEditView = () => {
 
     setSubmitting(true);
     setError(null);
+    setSuccess(null);
+
+    let uploadedImagePath = null;
+
     try {
-      const keywordsArray = formData.meta_keywords
-        ? formData.meta_keywords
-            .split(",")
-            .map((k) => k.trim())
-            .filter(Boolean)
-        : [];
+      let imageUrl = formData.image_url || "";
+
+      /*
+       * Upload only when the admin selected a new image.
+       */
+      if (selectedImage) {
+        setSuccess("Uploading category image...");
+
+        const uploadResult = await adminCatalogueService.uploadCategoryImage(
+          selectedImage,
+          formData.slug,
+        );
+
+        imageUrl = uploadResult.publicUrl;
+        uploadedImagePath = uploadResult.filePath;
+      }
+
+      setSuccess("Saving category...");
 
       await adminCatalogueService.saveCategory({
         ...formData,
-        meta_keywords: keywordsArray,
+        image_url: imageUrl,
       });
 
       setSuccess(`Category "${formData.name}" saved successfully.`);
+
       setTimeout(() => navigate("/admin/categories"), 1200);
     } catch (err) {
+      /*
+       * If the image upload succeeded but category saving failed,
+       * remove the newly uploaded file so we don't create an
+       * orphaned Storage object.
+       */
+      if (uploadedImagePath) {
+        await supabase.storage
+          .from("category-images")
+          .remove([uploadedImagePath])
+          .catch(() => {});
+      }
+
       setError(err.message || "Failed to save category.");
+      setSuccess(null);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -99,7 +262,7 @@ export const AdminCategoryEditView = () => {
       <div className="max-w-3xl mx-auto space-y-6 pb-24 font-sans">
         <SeoHead
           title={`${isNew ? "Create" : "Edit"} Category | GateMate Admin`}
-          description="Manage construction category specifications, ordering, and search engine optimization metadata."
+          description="Manage construction category details, ordering, and marketplace visibility."
           canonicalUrl={`/admin/categories/${id}`}
           noIndex={true}
         />
@@ -120,8 +283,8 @@ export const AdminCategoryEditView = () => {
                   : `Edit Category: ${formData.name}`}
               </h1>
               <p className="text-xs text-[#606460]">
-                Configure taxonomy parameters, display order, and marketplace
-                SEO indexing.
+                Configure category details, display order, and marketplace
+                visibility.
               </p>
             </div>
           </div>
@@ -267,62 +430,6 @@ export const AdminCategoryEditView = () => {
                     <span>Active in Marketplace Storefront</span>
                   </label>
                 </div>
-              </div>
-            </div>
-
-            {/* SEO Metadata Card */}
-            <div className="gm-panel p-6 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] space-y-4 shadow-2xs">
-              <div className="flex items-center gap-2 border-b border-[#D9E2EA] pb-3 text-xs font-bold text-[#173885]">
-                <Globe className="w-4 h-4 text-[#3C7DDA]" />
-                <span>Search Engine Optimization (SEO)</span>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#282926] block mb-1">
-                  Meta Title
-                </label>
-                <input
-                  type="text"
-                  placeholder="Buy Ready-Mix Concrete in Pune | GateMate Express Delivery"
-                  value={formData.meta_title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, meta_title: e.target.value })
-                  }
-                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#282926] block mb-1">
-                  Meta Description
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Order certified construction products with 30-minute priority dispatch across Pune..."
-                  value={formData.meta_description}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      meta_description: e.target.value,
-                    })
-                  }
-                  className="w-full gm-input p-3 rounded-xl text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[#282926] block mb-1">
-                  Meta Keywords (Comma-separated)
-                </label>
-                <input
-                  type="text"
-                  placeholder="ready-mix concrete, M25 concrete, construction supply pune, transit mixer"
-                  value={formData.meta_keywords}
-                  onChange={(e) =>
-                    setFormData({ ...formData, meta_keywords: e.target.value })
-                  }
-                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
-                />
               </div>
             </div>
 

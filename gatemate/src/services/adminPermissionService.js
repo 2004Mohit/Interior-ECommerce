@@ -25,34 +25,28 @@ export const ADMIN_PERMISSIONS = {
 };
 
 export const adminPermissionService = {
-  /**
-   * Loads all active permissions for the currently authenticated admin
-   */
   async getMyPermissions() {
     try {
       const { data, error } = await supabase.rpc("get_my_admin_permissions");
-      if (error) throw error;
 
-      if (Array.isArray(data)) {
-        return data
-          .map((item) =>
-            typeof item === "string"
-              ? item
-              : item?.permission_code || item?.code,
-          )
-          .filter(Boolean);
+      if (error) {
+        console.error("Failed to load admin permissions:", error.message);
+
+        return [];
       }
-      return Object.values(ADMIN_PERMISSIONS);
-    } catch {
-      // Fallback: If active Admin in auth context, grant platform permissions
-      const { data: sessionData } = await supabase.auth.getSession();
-      const user = sessionData?.session?.user;
-      if (
-        user?.app_metadata?.role === "ADMIN" ||
-        user?.user_metadata?.role === "ADMIN"
-      ) {
-        return Object.values(ADMIN_PERMISSIONS);
+
+      if (!Array.isArray(data)) {
+        return [];
       }
+
+      return data
+        .map((item) =>
+          typeof item === "string" ? item : item?.permission_code || item?.code,
+        )
+        .filter(Boolean);
+    } catch (error) {
+      console.error("Unexpected error loading admin permissions:", error);
+
       return [];
     }
   },
