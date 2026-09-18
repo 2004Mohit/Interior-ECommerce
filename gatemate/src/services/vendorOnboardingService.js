@@ -94,51 +94,62 @@ export const vendorOnboardingService = {
       );
     }
 
-    try {
-      const { data, error } = await supabase
-        .from("vendor_applications")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from("vendor_applications")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-      if (data && !error) {
-        return {
-          id: data.id,
-          userId: data.user_id,
-          status: data.status,
-          currentStep: data.current_step || 1,
-          reviewerNotes: data.reviewer_notes || "",
-          reviewedAt: data.reviewed_at,
-          reviewedBy: data.reviewed_by,
-          rejectionReason: data.rejection_reason || "",
-          changesRequestedItems: data.changes_requested_items || [],
-          businessDetails:
-            data.business_details || DEFAULT_APPLICATION_DATA.businessDetails,
-          ownerDetails:
-            data.owner_details || DEFAULT_APPLICATION_DATA.ownerDetails,
-          businessAddress:
-            data.business_address || DEFAULT_APPLICATION_DATA.businessAddress,
-          productCategories: data.product_categories || [],
-          verificationDocuments:
-            data.verification_documents ||
-            DEFAULT_APPLICATION_DATA.verificationDocuments,
-          bankDetails:
-            data.bank_details || DEFAULT_APPLICATION_DATA.bankDetails,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          submittedAt: data.submitted_at,
-        };
-      }
-    } catch (e) {
-      console.warn("Supabase query fallback to local application cache", e);
+    if (error) {
+      console.error("Failed to load vendor application:", error);
+
+      throw new Error(`Unable to load vendor application: ${error.message}`);
     }
 
+    if (data) {
+      return {
+        id: data.id,
+        userId: data.user_id,
+        status: data.status,
+        currentStep: data.current_step || 1,
+        reviewerNotes: data.reviewer_notes || "",
+        reviewedAt: data.reviewed_at,
+        reviewedBy: data.reviewed_by,
+        rejectionReason: data.rejection_reason || "",
+        changesRequestedItems: data.changes_requested_items || [],
+
+        businessDetails:
+          data.business_details || DEFAULT_APPLICATION_DATA.businessDetails,
+
+        ownerDetails:
+          data.owner_details || DEFAULT_APPLICATION_DATA.ownerDetails,
+
+        businessAddress:
+          data.business_address || DEFAULT_APPLICATION_DATA.businessAddress,
+
+        productCategories: data.product_categories || [],
+
+        verificationDocuments:
+          data.verification_documents ||
+          DEFAULT_APPLICATION_DATA.verificationDocuments,
+
+        bankDetails: data.bank_details || DEFAULT_APPLICATION_DATA.bankDetails,
+
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        submittedAt: data.submitted_at,
+      };
+    }
+
+    // No database record yet.
+    // It is safe to create a local initial draft.
     const local = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
+
     if (local) {
       try {
         return JSON.parse(local);
       } catch (err) {
-        console.error("Error reading cached application", err);
+        console.warn("Invalid cached vendor application:", err);
       }
     }
 
@@ -178,10 +189,9 @@ export const vendorOnboardingService = {
         });
 
       if (error) {
-        return {
-          storagePath: filePath,
-          fileName: file.name,
-        };
+        console.error("Verification document upload failed:", error);
+
+        throw new Error(`Document upload failed: ${error.message}`);
       }
 
       return {
@@ -197,9 +207,14 @@ export const vendorOnboardingService = {
   },
 
   async saveDraft(userId, partialData, targetStep) {
-    if (!userId) throw new Error("AUTH_REQUIRED");
+    if (!userId) {
+      throw new Error(
+        "AUTH_REQUIRED: Please sign in to save your vendor application.",
+      );
+    }
 
     const currentApp = await this.getApplication(userId);
+
     const updatedApp = {
       ...currentApp,
       ...partialAppMerge(currentApp, partialData),
@@ -207,38 +222,66 @@ export const vendorOnboardingService = {
       updatedAt: new Date().toISOString(),
     };
 
-    try {
-      await supabase.from("vendor_applications").upsert({
-        user_id: userId,
-        status: updatedApp.status,
-        current_step: updatedApp.currentStep,
-        business_details: updatedApp.businessDetails,
-        owner_details: updatedApp.ownerDetails,
-        business_address: updatedApp.businessAddress,
-        product_categories: updatedApp.productCategories,
-        verification_documents: updatedApp.verificationDocuments,
-        bank_details: updatedApp.bankDetails,
-        updated_at: updatedApp.updatedAt,
-      });
-    } catch (e) {
-      console.warn("Draft persisted locally", e);
+    const { data, error } = await supabase
+      .from("vendor_applications")
+      .upsert(
+        {
+          user_id: userId,
+          status: updatedApp.status,
+          current_step: updatedApp.currentStep,
+          business_details: updatedApp.businessDetails,
+          owner_details: updatedApp.ownerDetails,
+          business_address: updatedApp.businessAddress,
+          product_categories: updatedApp.productCategories,
+          verification_documents: updatedApp.verificationDocuments,
+          bank_details: updatedApp.bankDetails,
+          updated_at: updatedApp.updatedAt,
+        },
+        {
+          onConflict: "user_id",
+        },
+      )
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Vendor application draft save failed:", error);
+      throw new Error(`Unable to save vendor application: ${error.message}`);
     }
 
+    const persisted = {
+      ...updatedApp,
+      id: data.id,
+      userId: data.user_id,
+      status: data.status,
+      currentStep: data.current_step,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+
+    // Cache only after Supabase successfully persisted the data.
     localStorage.setItem(
       `${STORAGE_PREFIX}${userId}`,
-      JSON.stringify(updatedApp),
+      JSON.stringify(persisted),
     );
-    return updatedApp;
+
+    return persisted;
   },
 
   async submitApplication(userId, finalData) {
-    if (!userId) throw new Error("AUTH_REQUIRED");
+    if (!userId) {
+      throw new Error(
+        "AUTH_REQUIRED: Please sign in to submit your vendor application.",
+      );
+    }
 
     const currentApp = await this.getApplication(userId);
+
     const finalized = {
       ...currentApp,
       ...partialAppMerge(currentApp, finalData),
       status: VENDOR_APPLICATION_STATUS.SUBMITTED,
+      currentStep: 6,
       reviewerNotes: "",
       rejectionReason: "",
       changesRequestedItems: [],
@@ -246,32 +289,54 @@ export const vendorOnboardingService = {
       updatedAt: new Date().toISOString(),
     };
 
-    try {
-      await supabase.from("vendor_applications").upsert({
-        user_id: userId,
-        status: VENDOR_APPLICATION_STATUS.SUBMITTED,
-        current_step: 6,
-        reviewer_notes: "",
-        rejection_reason: "",
-        changes_requested_items: [],
-        business_details: finalized.businessDetails,
-        owner_details: finalized.ownerDetails,
-        business_address: finalized.businessAddress,
-        product_categories: finalized.productCategories,
-        verification_documents: finalized.verificationDocuments,
-        bank_details: finalized.bankDetails,
-        submitted_at: finalized.submittedAt,
-        updated_at: finalized.updatedAt,
-      });
-    } catch (e) {
-      console.warn("Persisted submission locally", e);
+    const { data, error } = await supabase
+      .from("vendor_applications")
+      .upsert(
+        {
+          user_id: userId,
+          status: VENDOR_APPLICATION_STATUS.SUBMITTED,
+          current_step: 6,
+          reviewer_notes: "",
+          rejection_reason: null,
+          changes_requested_items: [],
+          business_details: finalized.businessDetails,
+          owner_details: finalized.ownerDetails,
+          business_address: finalized.businessAddress,
+          product_categories: finalized.productCategories,
+          verification_documents: finalized.verificationDocuments,
+          bank_details: finalized.bankDetails,
+          submitted_at: finalized.submittedAt,
+          updated_at: finalized.updatedAt,
+        },
+        {
+          onConflict: "user_id",
+        },
+      )
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Vendor application submission failed:", error);
+      throw new Error(`Unable to submit vendor application: ${error.message}`);
     }
+
+    const persisted = {
+      ...finalized,
+      id: data.id,
+      userId: data.user_id,
+      status: data.status,
+      currentStep: data.current_step,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      submittedAt: data.submitted_at,
+    };
 
     localStorage.setItem(
       `${STORAGE_PREFIX}${userId}`,
-      JSON.stringify(finalized),
+      JSON.stringify(persisted),
     );
-    return finalized;
+
+    return persisted;
   },
 
   async updateVerificationReviewState(
@@ -283,7 +348,12 @@ export const vendorOnboardingService = {
       changesRequestedItems = [],
     },
   ) {
+    if (!userId) {
+      throw new Error("AUTH_REQUIRED");
+    }
+
     const currentApp = await this.getApplication(userId);
+
     const updated = {
       ...currentApp,
       status,
@@ -294,22 +364,44 @@ export const vendorOnboardingService = {
       updatedAt: new Date().toISOString(),
     };
 
-    try {
-      await supabase.from("vendor_applications").upsert({
-        user_id: userId,
+    const { data, error } = await supabase
+      .from("vendor_applications")
+      .update({
         status,
         reviewer_notes: reviewerNotes,
-        rejection_reason: rejectionReason,
+        rejection_reason: rejectionReason || null,
         changes_requested_items: changesRequestedItems,
         reviewed_at: updated.reviewedAt,
         updated_at: updated.updatedAt,
-      });
-    } catch (e) {
-      console.warn("Review status persisted locally", e);
+      })
+      .eq("user_id", userId)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("Vendor review state update failed:", error);
+      throw new Error(
+        `Unable to update vendor application status: ${error.message}`,
+      );
     }
 
-    localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(updated));
-    return updated;
+    const persisted = {
+      ...updated,
+      id: data.id,
+      userId: data.user_id,
+      status: data.status,
+      currentStep: data.current_step,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      submittedAt: data.submitted_at,
+    };
+
+    localStorage.setItem(
+      `${STORAGE_PREFIX}${userId}`,
+      JSON.stringify(persisted),
+    );
+
+    return persisted;
   },
 };
 

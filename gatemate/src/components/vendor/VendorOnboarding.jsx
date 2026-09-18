@@ -347,7 +347,7 @@ export const VendorOnboarding = () => {
             Stockist Partner Registration
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
-            V
+            Vendor Onboarding
           </h1>
           <p className="text-xs text-[#606460]">
             Complete your depot profile to list construction products and
