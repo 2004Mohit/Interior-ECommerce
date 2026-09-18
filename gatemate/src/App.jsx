@@ -34,6 +34,7 @@ import { B2BQuotations } from "./components/customer/B2BQuotations";
 import { ResetPasswordPage } from "./components/common/ResetPasswordPage";
 
 // Vendor Views & Architecture
+import { VendorEmailVerificationCallback } from "./components/vendor/VendorEmailVerificationCallback";
 import { VendorLayout } from "./components/vendor/VendorLayout";
 import { VendorProtectedRoute } from "./components/vendor/VendorProtectedRoute";
 import { VendorLanding } from "./components/vendor/VendorLanding";
@@ -169,17 +170,19 @@ export default function App() {
                     path="/reset-password"
                     element={<ResetPasswordPage />}
                   />
-
                   {/* Public Vendor Portal Entry Routes */}
                   <Route path="/sell" element={<VendorLanding />} />
                   <Route path="/vendor" element={<VendorLanding />} />
                   <Route path="/vendor/register" element={<VendorRegister />} />
                   <Route path="/vendor/login" element={<VendorLogin />} />
                   <Route
+                    path="/vendor/auth/callback"
+                    element={<VendorEmailVerificationCallback />}
+                  />
+                  <Route
                     path="/vendor/onboarding"
                     element={<VendorOnboarding />}
                   />
-
                   {/* Protected Vendor Operations Terminal */}
                   <Route
                     path="/vendor"
@@ -224,7 +227,6 @@ export default function App() {
                     <Route path="benefits" element={<VendorBenefits />} />
                     <Route path="profile" element={<VendorProfile />} />
                   </Route>
-
                   {/* Protected Admin Console Workspaces with AdminLayout */}
                   <Route
                     path="/admin"
@@ -324,7 +326,6 @@ export default function App() {
                     />
                     <Route path="audit-logs" element={<AdminAuditLogsView />} />
                   </Route>
-
                   {/* Customer Storefront App */}
                   <Route path="/*" element={<CustomerAppContent />} />
                 </Routes>

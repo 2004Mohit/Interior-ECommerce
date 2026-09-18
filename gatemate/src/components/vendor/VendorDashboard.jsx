@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   Zap,
@@ -20,6 +20,7 @@ import {
   Eye,
   ChevronRight,
 } from "lucide-react";
+
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import { vendorDashboardService } from "../../services/vendorDashboardService";
 import { vendorOrderStateMachine } from "../../services/vendorOrderStateMachine";
@@ -29,39 +30,90 @@ import { StockAdjustmentModal } from "./StockAdjustmentModal";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorDashboard = () => {
-  const { vendorUser } = useVendorAuth();
+  const navigate = useNavigate();
+
+  const { vendorUser, loading: authLoading } = useVendorAuth();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [adjustingProduct, setAdjustingProduct] = useState(null);
 
-  const loadDashboard = async () => {
-    if (!vendorUser?.id) return;
+  const loadDashboard = useCallback(async () => {
+    /*
+     * Wait until Supabase authentication has finished
+     * restoring the session.
+     */
+    if (authLoading) {
+      return;
+    }
+
+    /*
+     * No authenticated user.
+     */
+    if (!vendorUser?.id) {
+      setLoading(false);
+
+      navigate("/vendor/login", {
+        replace: true,
+      });
+
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
     try {
+      /*
+       * vendorDashboardService resolves:
+       *
+       * auth.users.id
+       *       ↓
+       * vendor_profiles.id
+       *
+       * No hardcoded vendor ID is used.
+       */
       const res = await vendorDashboardService.getDashboardOverview();
+
       setData(res);
     } catch (err) {
-      setError(err.message || "Failed to load dashboard metrics.");
+      const message = err?.message || "Failed to load vendor dashboard.";
+
+      /*
+       * A missing vendor profile means the vendor has not
+       * yet reached the approved vendor state.
+       *
+       * This is an application state, not a broken dashboard.
+       */
+      if (message.toLowerCase().includes("vendor profile not found")) {
+        navigate("/vendor/verification", {
+          replace: true,
+        });
+
+        return;
+      }
+
+      console.error("Vendor dashboard loading failed:", err);
+
+      setError(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [authLoading, vendorUser?.id, navigate]);
 
   useEffect(() => {
-    if (vendorUser?.id) {
-      loadDashboard();
-    } else {
-      setLoading(false);
-    }
-  }, [vendorUser?.id]);
+    loadDashboard();
+  }, [loadDashboard]);
 
-  if (loading) {
+  /*
+   * AUTHENTICATION LOADING
+   */
+  if (authLoading || loading) {
     return (
       <div className="space-y-6 pb-24 font-sans animate-pulse">
         <div className="h-6 bg-[#E4EEF3] rounded w-1/4" />
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <div
@@ -70,43 +122,47 @@ export const VendorDashboard = () => {
             />
           ))}
         </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="h-64 bg-[#FEFEFE] rounded-3xl border border-[#D9E2EA]" />
+
           <div className="h-64 bg-[#FEFEFE] rounded-3xl border border-[#D9E2EA]" />
         </div>
       </div>
     );
   }
 
+  /*
+   * If there is somehow no user after auth loading,
+   * send them back to vendor login.
+   */
   if (!vendorUser) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-4 font-sans">
-        <AlertCircle className="w-12 h-12 text-[#B43D20] mx-auto" />
-        <h2 className="text-xl font-black text-[#173885]">
-          Authentication Required
-        </h2>
-        <p className="text-xs text-[#606460]">
-          Please sign in to access your vendor dashboard.
-        </p>
-      </div>
-    );
+    return null;
   }
 
+  /*
+   * Dashboard error OTHER than missing vendor profile.
+   */
   if (error || !data) {
     return (
       <div className="max-w-2xl mx-auto py-16 text-center space-y-4 font-sans">
         <AlertCircle className="w-12 h-12 text-[#B43D20] mx-auto" />
+
         <h2 className="text-xl font-black text-[#173885]">
           Dashboard Unavailable
         </h2>
+
         <p className="text-xs text-[#606460]">
           {error || "Unable to connect to vendor operational services."}
         </p>
+
         <button
+          type="button"
           onClick={loadDashboard}
           className="btn-gm-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold"
         >
           <RotateCcw className="w-4 h-4 text-[#FEFEFE]" />
+
           <span>Retry Loading</span>
         </button>
       </div>
