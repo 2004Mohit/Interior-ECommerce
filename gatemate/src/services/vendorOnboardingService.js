@@ -12,7 +12,6 @@ export const VENDOR_APPLICATION_STATUS = {
 export const vendorOnboardingService = {
   /**
    * Fetch the vendor application for a specific Supabase Auth user UUID.
-   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
    */
   async getApplication(userId) {
     if (!userId) {
@@ -32,14 +31,29 @@ export const vendorOnboardingService = {
       throw new Error(`Unable to load vendor application: ${error.message}`);
     }
 
-    return data;
+    if (!data) {
+      return null;
+    }
+
+    // Convert database snake_case into the camelCase structure
+    // expected by VendorOnboarding.jsx.
+    return {
+      ...data,
+
+      businessDetails: data.business_details || {},
+      ownerDetails: data.owner_details || {},
+      businessAddress: data.business_address || {},
+      productCategories: Array.isArray(data.product_categories)
+        ? data.product_categories
+        : [],
+      verificationDocuments: data.verification_documents || {},
+      bankDetails: data.bank_details || {},
+      currentStep: data.current_step || 1,
+    };
   },
 
   /**
-   * Save or update an onboarding draft application for a user.
-   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
-   * @param {Object} formData - The current onboarding form data state
-   * @param {number|string} step - Current onboarding step
+   * Save or update an onboarding draft application.
    */
   async saveDraft(userId, formData, step) {
     if (!userId) {
@@ -48,21 +62,32 @@ export const vendorOnboardingService = {
       );
     }
 
-    // Check if an application already exists for this user
-    const existing = await this.getApplication(userId).catch(() => null);
+    const existing = await this.getApplication(userId);
 
     const payload = {
       user_id: userId,
-      form_data: formData,
-      current_step: step,
+
+      current_step: Number(step) || 1,
+
+      business_details: formData.businessDetails || {},
+      owner_details: formData.ownerDetails || {},
+      business_address: formData.businessAddress || {},
+      product_categories: Array.isArray(formData.productCategories)
+        ? formData.productCategories
+        : [],
+      verification_documents: formData.verificationDocuments || {},
+      bank_details: formData.bankDetails || {},
+
       status:
-        existing?.status === APPLICATION_STATUS.SUBMITTED
-          ? APPLICATION_STATUS.SUBMITTED
-          : APPLICATION_STATUS.DRAFT,
+        existing?.status === VENDOR_APPLICATION_STATUS.SUBMITTED
+          ? VENDOR_APPLICATION_STATUS.SUBMITTED
+          : VENDOR_APPLICATION_STATUS.DRAFT,
+
       updated_at: new Date().toISOString(),
     };
 
     let query;
+
     if (existing?.id) {
       query = supabase
         .from("vendor_applications")
@@ -73,7 +98,7 @@ export const vendorOnboardingService = {
     } else {
       query = supabase
         .from("vendor_applications")
-        .insert([payload])
+        .insert(payload)
         .select()
         .single();
     }
@@ -85,13 +110,11 @@ export const vendorOnboardingService = {
       throw new Error(`Unable to save draft: ${error.message}`);
     }
 
-    return data;
+    return this.normalizeApplication(data);
   },
 
   /**
    * Submit the vendor application for admin review.
-   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
-   * @param {Object} formData - Finalized form data for submission
    */
   async submitApplication(userId, formData) {
     if (!userId) {
@@ -100,17 +123,30 @@ export const vendorOnboardingService = {
       );
     }
 
-    const existing = await this.getApplication(userId).catch(() => null);
+    const existing = await this.getApplication(userId);
 
     const payload = {
       user_id: userId,
-      form_data: formData,
-      status: APPLICATION_STATUS.SUBMITTED,
+
+      current_step: 6,
+
+      business_details: formData.businessDetails || {},
+      owner_details: formData.ownerDetails || {},
+      business_address: formData.businessAddress || {},
+      product_categories: Array.isArray(formData.productCategories)
+        ? formData.productCategories
+        : [],
+      verification_documents: formData.verificationDocuments || {},
+      bank_details: formData.bankDetails || {},
+
+      status: VENDOR_APPLICATION_STATUS.SUBMITTED,
+
       submitted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     let query;
+
     if (existing?.id) {
       query = supabase
         .from("vendor_applications")
@@ -121,7 +157,7 @@ export const vendorOnboardingService = {
     } else {
       query = supabase
         .from("vendor_applications")
-        .insert([payload])
+        .insert(payload)
         .select()
         .single();
     }
@@ -133,14 +169,11 @@ export const vendorOnboardingService = {
       throw new Error(`Unable to submit application: ${error.message}`);
     }
 
-    return data;
+    return this.normalizeApplication(data);
   },
 
   /**
-   * Update verification review state (typically used in admin workflows, but preserved if called here).
-   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
-   * @param {string} status - New application status
-   * @param {string} reviewerNotes - Notes from reviewer
+   * Update verification review state.
    */
   async updateVerificationReviewState(userId, status, reviewerNotes = "") {
     if (!userId) {
@@ -167,6 +200,31 @@ export const vendorOnboardingService = {
       );
     }
 
-    return data;
+    return this.normalizeApplication(data);
+  },
+
+  /**
+   * Convert Supabase database format to the format
+   * used by the React onboarding component.
+   */
+  normalizeApplication(data) {
+    if (!data) {
+      return null;
+    }
+
+    return {
+      ...data,
+
+      businessDetails: data.business_details || {},
+      ownerDetails: data.owner_details || {},
+      businessAddress: data.business_address || {},
+      productCategories: Array.isArray(data.product_categories)
+        ? data.product_categories
+        : [],
+      verificationDocuments: data.verification_documents || {},
+      bankDetails: data.bank_details || {},
+
+      currentStep: data.current_step || 1,
+    };
   },
 };

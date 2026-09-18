@@ -70,7 +70,7 @@ export const vendorDashboardService = {
           vendorFinancialService.getFinancialSummary(),
           vendorInventoryService.getInventory(),
           vendorRfqService.getVendorRfqs(),
-          vendorProductService.getVendorProducts(),
+          vendorProductService.getVendorProducts(vendorId),
         ],
       );
 

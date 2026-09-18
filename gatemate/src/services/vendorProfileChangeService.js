@@ -2,41 +2,104 @@ import { supabase } from "../lib/supabaseClient";
 
 export const vendorProfileChangeService = {
   /**
-   * Fetches the vendor's profile and active change request history
+   * Fetch vendor profile and change request history.
+   *
+   * IMPORTANT:
+   * vendorUserId = auth.users.id
+   * vendor_profiles.user_id = auth.users.id
+   * vendor_profiles.id = vendor profile ID
    */
-  async getVendorProfileWithRequests(vendorId) {
-    const [profileRes, requestsRes] = await Promise.all([
-      supabase.from("vendor_profiles").select("*").eq("id", vendorId).single(),
-      supabase
-        .from("vendor_profile_change_requests")
-        .select("*")
-        .eq("vendor_id", vendorId)
-        .order("created_at", { ascending: false }),
-    ]);
+  async getVendorProfileWithRequests(vendorUserId) {
+    if (!vendorUserId) {
+      throw new Error("Vendor user ID is required.");
+    }
 
-    if (profileRes.error) throw profileRes.error;
+    // First resolve the vendor profile using the Auth user ID.
+    const { data: profile, error: profileError } = await supabase
+      .from("vendor_profiles")
+      .select("*")
+      .eq("user_id", vendorUserId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Failed to fetch vendor profile:", profileError);
+      throw profileError;
+    }
+
+    if (!profile) {
+      throw new Error(
+        "Vendor profile was not found for the authenticated account.",
+      );
+    }
+
+    // vendor_profile_change_requests.vendor_id references
+    // vendor_profiles.id, NOT auth.users.id.
+    const { data: changeRequests, error: requestsError } = await supabase
+      .from("vendor_profile_change_requests")
+      .select("*")
+      .eq("vendor_id", profile.id)
+      .order("created_at", { ascending: false });
+
+    if (requestsError) {
+      console.error(
+        "Failed to fetch vendor profile change requests:",
+        requestsError,
+      );
+      throw requestsError;
+    }
 
     return {
-      profile: profileRes.data,
-      changeRequests: requestsRes.data || [],
+      profile,
+      changeRequests: changeRequests || [],
     };
   },
 
   /**
-   * Submits a new profile change request for Admin review
+   * Submit a vendor profile change request.
+   *
+   * Accepts auth.users.id and internally resolves vendor_profiles.id.
    */
   async submitChangeRequest({
-    vendorId,
+    vendorUserId,
     requestedField,
     currentValue,
     requestedValue,
     reason,
     supportingDocumentPath = null,
   }) {
+    if (!vendorUserId) {
+      throw new Error("Vendor user ID is required.");
+    }
+
+    if (!requestedField) {
+      throw new Error("Requested field is required.");
+    }
+
+    if (!reason?.trim()) {
+      throw new Error("Reason is required.");
+    }
+
+    // Resolve vendor_profiles.id from auth.users.id.
+    const { data: profile, error: profileError } = await supabase
+      .from("vendor_profiles")
+      .select("id")
+      .eq("user_id", vendorUserId)
+      .maybeSingle();
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    if (!profile) {
+      throw new Error(
+        "Vendor profile was not found for the authenticated account.",
+      );
+    }
+
     const { data, error } = await supabase
       .from("vendor_profile_change_requests")
       .insert({
-        vendor_id: vendorId,
+        vendor_id: profile.id,
         requested_field: requestedField,
         current_value:
           typeof currentValue === "object"
@@ -51,9 +114,13 @@ export const vendorProfileChangeService = {
         status: "SUBMITTED",
       })
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Failed to submit vendor profile change request:", error);
+      throw error;
+    }
+
     return data;
   },
 };

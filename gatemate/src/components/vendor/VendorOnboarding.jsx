@@ -93,36 +93,99 @@ export const VendorOnboarding = () => {
   });
 
   useEffect(() => {
-    if (!authLoading && vendorUser) {
-      vendorOnboardingService.getApplication(vendorUser.id).then((app) => {
+    const loadApplication = async () => {
+      if (authLoading) return;
+
+      if (!vendorUser) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const app = await vendorOnboardingService.getApplication(vendorUser.id);
+
+        // New vendor — no application exists yet
+        if (!app) {
+          setApplication(null);
+          setCurrentStep(1);
+
+          setFormData((prev) => ({
+            ...prev,
+
+            businessDetails: {
+              ...prev.businessDetails,
+              legalBusinessName: vendorUser.businessName || "",
+            },
+
+            ownerDetails: {
+              ...prev.ownerDetails,
+              primaryContactName: vendorUser.contactPerson || "",
+              email: vendorUser.email || "",
+            },
+          }));
+
+          return;
+        }
+
+        // Existing application
         setApplication(app);
-        setFormData({
+
+        setFormData((prev) => ({
           businessDetails: {
-            ...app.businessDetails,
+            ...prev.businessDetails,
+            ...(app.businessDetails || {}),
+
             legalBusinessName:
-              app.businessDetails.legalBusinessName ||
+              app.businessDetails?.legalBusinessName ||
               vendorUser.businessName ||
               "",
           },
+
           ownerDetails: {
-            ...app.ownerDetails,
+            ...prev.ownerDetails,
+            ...(app.ownerDetails || {}),
+
             primaryContactName:
-              app.ownerDetails.primaryContactName ||
+              app.ownerDetails?.primaryContactName ||
               vendorUser.contactPerson ||
               "",
-            email: app.ownerDetails.email || vendorUser.email || "",
+
+            email: app.ownerDetails?.email || vendorUser.email || "",
           },
-          businessAddress: app.businessAddress,
-          productCategories: app.productCategories,
-          verificationDocuments: app.verificationDocuments,
-          bankDetails: app.bankDetails,
-        });
+
+          businessAddress: {
+            ...prev.businessAddress,
+            ...(app.businessAddress || {}),
+          },
+
+          productCategories: Array.isArray(app.productCategories)
+            ? app.productCategories
+            : [],
+
+          verificationDocuments: {
+            ...prev.verificationDocuments,
+            ...(app.verificationDocuments || {}),
+          },
+
+          bankDetails: {
+            ...prev.bankDetails,
+            ...(app.bankDetails || {}),
+          },
+        }));
+
         setCurrentStep(app.currentStep || 1);
+      } catch (err) {
+        console.error("Failed to load vendor onboarding application:", err);
+
+        setFormError(
+          err.message || "Failed to load your onboarding application.",
+        );
+      } finally {
         setLoading(false);
-      });
-    } else if (!authLoading && !vendorUser) {
-      setLoading(false);
-    }
+      }
+    };
+
+    loadApplication();
   }, [vendorUser, authLoading]);
 
   if (loading || authLoading) {

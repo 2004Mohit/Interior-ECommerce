@@ -57,21 +57,26 @@ export const AdminVendorDetailView = () => {
       // Load signed URLs for private verification documents
       const docs = data?.verification_documents || {};
       const urls = {};
-      if (docs.gstCertificatePath) {
-        urls.gst = await adminVendorService.getSignedDocumentUrl(
-          docs.gstCertificatePath,
-        );
+
+      const gstPath = docs.gstCertificatePath || docs.gstCertificateUrl || null;
+
+      const panPath = docs.panCardPath || docs.panCardUrl || null;
+
+      const chequePath =
+        docs.cancelledChequePath || docs.cancelledChequeUrl || null;
+
+      if (gstPath) {
+        urls.gst = await adminVendorService.getSignedDocumentUrl(gstPath);
       }
-      if (docs.panCardPath) {
-        urls.pan = await adminVendorService.getSignedDocumentUrl(
-          docs.panCardPath,
-        );
+
+      if (panPath) {
+        urls.pan = await adminVendorService.getSignedDocumentUrl(panPath);
       }
-      if (docs.cancelledChequePath) {
-        urls.cheque = await adminVendorService.getSignedDocumentUrl(
-          docs.cancelledChequePath,
-        );
+
+      if (chequePath) {
+        urls.cheque = await adminVendorService.getSignedDocumentUrl(chequePath);
       }
+
       setDocUrls(urls);
     } catch (err) {
       setError(err.message || "Unable to load vendor application details.");
@@ -148,7 +153,7 @@ export const AdminVendorDetailView = () => {
   }
 
   const bDetails = application.business_details || {};
-  const oDetails = application.ownerDetails || {};
+  const oDetails = application.owner_details || {};
   const bAddress = application.business_address || {};
   const bank = application.bank_details || {};
   const categories = application.product_categories || [];

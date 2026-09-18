@@ -15,6 +15,7 @@ import {
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import { vendorProductService } from "../../services/vendorProductService";
 import { fileOptimizer } from "../../utils/fileOptimizer";
+import { productCategoryService } from "../../services/productCategoryService";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorProductForm = () => {
@@ -22,11 +23,13 @@ export const VendorProductForm = () => {
   const navigate = useNavigate();
   const { vendorUser } = useVendorAuth();
   const isEditing = Boolean(id);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
     brand: "",
-    categorySlug: "cement",
+    categorySlug: "",
     unit: "bag",
     sku: "",
     price: "",
@@ -46,6 +49,54 @@ export const VendorProductForm = () => {
   const [successMsg, setSuccessMsg] = useState(null);
 
   useEffect(() => {
+    const loadCategories = async () => {
+      setCategoriesLoading(true);
+
+      try {
+        const data = await productCategoryService.getCategories();
+
+        setCategories(data);
+
+        /*
+         * For a new product, automatically select the first
+         * real database category if available.
+         *
+         * This prevents the form from sending a fake/default
+         * category slug that does not exist in Supabase.
+         */
+        if (!isEditing && data.length > 0) {
+          setFormData((prev) => {
+            /*
+             * Do not overwrite a category if one has already
+             * been selected.
+             */
+            if (prev.categorySlug) {
+              const exists = data.some(
+                (category) => category.slug === prev.categorySlug,
+              );
+
+              if (exists) {
+                return prev;
+              }
+            }
+
+            return {
+              ...prev,
+              categorySlug: data[0].slug,
+            };
+          });
+        }
+      } catch (err) {
+        setError(err.message || "Failed to load product categories.");
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, [isEditing]);
+
+  useEffect(() => {
     if (!vendorUser?.id) return;
 
     if (isEditing) {
@@ -57,18 +108,19 @@ export const VendorProductForm = () => {
             setFormData({
               name: prod.name || "",
               brand: prod.brand || "",
-              categorySlug: prod.category_slug || "cement",
+              categorySlug: prod.categorySlug || "",
               unit: prod.unit || "bag",
               sku: prod.sku || "",
-              price: prod.price || "",
-              originalPrice: prod.original_price || "",
+              price: prod.price ?? "",
+              originalPrice: prod.originalPrice ?? "",
               moq: prod.moq || "1",
-              isExpress30MinAvailable: Boolean(prod.is_express_30min_available),
+              isExpress30MinAvailable: Boolean(prod.isExpress30MinAvailable),
               description: prod.description || "",
               features: prod.features?.length > 0 ? prod.features : [""],
-              imageUrls: prod.image_urls || [],
+              imageUrls: prod.imageUrls || [],
             });
-            setImagePreviews(prod.image_urls || []);
+
+            setImagePreviews(prod.images || prod.imageUrls || []);
           }
         })
         .catch((err) => {
@@ -106,28 +158,31 @@ export const VendorProductForm = () => {
   };
 
   const handleImageSelect = async (e) => {
-    const selectedFiles = Array.from(e.target.files);
+    const selectedFiles = Array.from(e.target.files || []);
+
     if (selectedFiles.length === 0) return;
 
     setError(null);
+
     try {
       const optimizedFiles = [];
       const newPreviews = [];
 
       for (const file of selectedFiles) {
-        const optimized = await fileOptimizer.optimizeImage(file, {
-          maxWidth: 1200,
-          maxHeight: 1200,
-          quality: 0.85,
-        });
+        const optimized = await fileOptimizer.optimizeProductImage(file);
+
         optimizedFiles.push(optimized);
         newPreviews.push(URL.createObjectURL(optimized));
       }
 
       setFiles((prev) => [...prev, ...optimizedFiles]);
       setImagePreviews((prev) => [...prev, ...newPreviews]);
+
+      // Allow selecting the same file again
+      e.target.value = "";
     } catch (err) {
-      setError("Failed to optimize image: " + err.message);
+      console.error("Image optimization failed:", err);
+      setError("Failed to optimize image: " + (err.message || "Unknown error"));
     }
   };
 
@@ -285,18 +340,46 @@ export const VendorProductForm = () => {
               <label className="font-bold text-[#282926] block mb-1">
                 Category Slug *
               </label>
-              <select
-                name="categorySlug"
-                value={formData.categorySlug}
-                onChange={handleChange}
-                className="w-full gm-input px-3.5 py-2 rounded-xl"
-              >
-                <option value="cement">Cement & Mortar</option>
-                <option value="tmt-steel">TMT Steel Rebars</option>
-                <option value="blocks-bricks">AAC Blocks & Bricks</option>
-                <option value="aggregates-sand">Aggregates & M-Sand</option>
-                <option value="waterproofing">Waterproofing & Chemicals</option>
-              </select>
+              <div className="space-y-2">
+                <label
+                  htmlFor="categorySlug"
+                  className="block text-xs font-bold text-[#173885]"
+                >
+                  Product Category
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+
+                <select
+                  id="categorySlug"
+                  name="categorySlug"
+                  value={formData.categorySlug}
+                  onChange={handleChange}
+                  disabled={categoriesLoading || loading}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-[#D9E2EA] bg-[#FEFEFE] text-sm text-[#173885] outline-none focus:border-[#3C7DDA] focus:ring-2 focus:ring-[#3C7DDA]/10 disabled:opacity-60"
+                >
+                  <option value="">
+                    {categoriesLoading
+                      ? "Loading categories..."
+                      : categories.length === 0
+                        ? "No categories available"
+                        : "Select a product category"}
+                  </option>
+
+                  {categories.map((category) => (
+                    <option key={category.slug} value={category.slug}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+
+                {!categoriesLoading && categories.length === 0 && (
+                  <p className="text-[11px] text-red-600">
+                    No active product categories are available. Please ask an
+                    administrator to create a category before adding a product.
+                  </p>
+                )}
+              </div>
             </div>
 
             <div>

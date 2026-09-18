@@ -94,35 +94,47 @@ export const VendorProfile = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+
     if (!reason.trim() || !requestedValue.trim()) {
       setError("Please provide both the proposed value and justification.");
       return;
     }
 
+    if (!vendorUser?.id) {
+      setError("Authenticated vendor account could not be identified.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
-    try {
-      const { data, error: err } = await supabase.rpc(
-        "vendor_submit_profile_change_request",
-        {
-          p_requested_field: selectedField,
-          p_current_value: { value: getCurrentValueForField(selectedField) },
-          p_requested_value: { value: requestedValue.trim() },
-          p_reason: reason.trim(),
-        },
-      );
+    setSuccessMsg(null);
 
-      if (err) throw err;
+    try {
+      await vendorProfileChangeService.submitChangeRequest({
+        vendorUserId: vendorUser.id,
+        requestedField: selectedField,
+        currentValue: {
+          value: getCurrentValueForField(selectedField),
+        },
+        requestedValue: {
+          value: requestedValue.trim(),
+        },
+        reason: reason.trim(),
+      });
 
       setSuccessMsg(
         "Change request successfully submitted to Admin moderation queue.",
       );
+
       setIsModalOpen(false);
       setRequestedValue("");
       setReason("");
-      loadData();
+
+      await loadData();
     } catch (err) {
-      setError(err.message || "Failed to submit change request.");
+      console.error("Profile change request failed:", err);
+
+      setError(err?.message || "Failed to submit profile change request.");
     } finally {
       setSubmitting(false);
     }
@@ -197,26 +209,26 @@ export const VendorProfile = () => {
           <div className="space-y-2 text-[#606460]">
             <div>
               <strong className="text-[#282926]">Legal Name:</strong>{" "}
-              {profile?.business_name || "Verified Vendor"}
+              {profile?.business_name || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">Trade Name:</strong>{" "}
-              {profile?.trade_name || "N/A"}
+              {profile?.trade_name || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">Structure:</strong>{" "}
-              {profile?.business_type || "Proprietorship"}
+              {profile?.business_type || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">GSTIN:</strong>{" "}
               <span className="font-mono font-bold text-[#173885]">
-                {profile?.gstin || "27AABCP1234F1Z5"}
+                {profile?.gstin || "Not provided"}
               </span>
             </div>
             <div>
               <strong className="text-[#282926]">PAN:</strong>{" "}
               <span className="font-mono">
-                {profile?.pan_number || "AABCP1234F"}
+                {profile?.pan_number || "Not provided"}
               </span>
             </div>
           </div>
@@ -237,20 +249,20 @@ export const VendorProfile = () => {
           <div className="space-y-2 text-[#606460]">
             <div>
               <strong className="text-[#282926]">Contact Name:</strong>{" "}
-              {profile?.contact_person || "Managing Director"}
+              {profile?.contact_person || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">Designation:</strong>{" "}
-              {profile?.designation || "Proprietor"}
+              {profile?.designation || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">Email:</strong>{" "}
-              {profile?.email || "depot@gatemate.in"}
+              {profile?.email || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">Phone:</strong>{" "}
               <span className="font-mono font-bold text-[#173885]">
-                {profile?.phone || "9829012345"}
+                {profile?.phone || "Not provided"}
               </span>
             </div>
           </div>
@@ -271,16 +283,17 @@ export const VendorProfile = () => {
           <div className="space-y-2 text-[#606460]">
             <div>
               <strong className="text-[#282926]">Yard Address:</strong>{" "}
-              {profile?.yard_address_line1 || "Pune Industrial Area"}
+              {profile?.yard_address_line1 || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">Locality:</strong>{" "}
-              {profile?.locality || "Hadapsar"}, {profile?.city || "Pune"}
+              {profile?.locality || "Not provided"},{" "}
+              {profile?.city || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">PIN Code:</strong>{" "}
               <span className="font-mono font-bold text-[#173885]">
-                {profile?.pincode || "411028"}
+                {profile?.pincode || "Not provided"}
               </span>
             </div>
             <div>
@@ -305,7 +318,7 @@ export const VendorProfile = () => {
           <div className="space-y-2 text-[#606460]">
             <div>
               <strong className="text-[#282926]">Bank Name:</strong>{" "}
-              {profile?.bank_details?.bankName || "State Bank of India"}
+              {profile?.bank_details?.bankName || "Not provided"}
             </div>
             <div>
               <strong className="text-[#282926]">Account Name:</strong>{" "}
@@ -314,13 +327,13 @@ export const VendorProfile = () => {
             <div>
               <strong className="text-[#282926]">Account Number:</strong>{" "}
               <span className="font-mono font-bold text-[#173885]">
-                {profile?.bank_details?.accountNumber || "••••••••1234"}
+                {profile?.bank_details?.accountNumber || "Not provided"}
               </span>
             </div>
             <div>
               <strong className="text-[#282926]">IFSC Code:</strong>{" "}
               <span className="font-mono">
-                {profile?.bank_details?.ifscCode || "SBIN0001234"}
+                {profile?.bank_details?.ifscCode || "Not provided"}
               </span>
             </div>
           </div>

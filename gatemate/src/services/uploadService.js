@@ -62,7 +62,7 @@ export const uploadService = {
       const fileExt = file.name.split(".").pop() || "pdf";
       const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const safeVendorId = vendorId || "temp-vendor";
-      const filePath = `vendor-verification-docs/${safeVendorId}/${documentType}/${uniqueId}.${fileExt}`;
+      const filePath = `${safeVendorId}/${documentType}/${uniqueId}.${fileExt}`;
 
       if (onStatusChange) onStatusChange("Uploading secure document...");
 

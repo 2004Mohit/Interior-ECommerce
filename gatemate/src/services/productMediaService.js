@@ -1,64 +1,49 @@
 /**
- * GateMate Product Media Management Service
+ * GateMate Product Media Service
  *
- * Secure upload, preview, and re-ordering workflow:
- * - Direct upload to Supabase Storage bucket 'product-images'
- * - File paths/metadata stored in database (never binary images inside PostgreSQL)
- * - Validation: PNG/JPG/WebP only, Max 5MB per file, Max 5 photos per product
+ * Canonical product-image uploader.
+ *
+ * Storage path:
+ * product-images/{productId}/{uniqueId}.webp
+ *
+ * This service intentionally does NOT return a local
+ * object URL when Supabase upload fails.
+ *
+ * Object URLs are only for temporary browser previews.
  */
 
-import { supabase } from "../lib/supabaseClient";
+import { uploadService } from "./uploadService";
 
 export const productMediaService = {
   /**
-   * Uploads a product photograph to Supabase Storage bucket 'product-images'.
+   * Upload a product image to Supabase Storage.
+   *
+   * @param {string} productId
+   * @param {File} file
+   * @param {Function} onStatusChange
    */
-  async uploadProductImage(vendorId, file) {
-    if (!file) throw new Error("No image file provided.");
-
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error("Please upload a valid image file (PNG, JPG, or WebP).");
+  async uploadProductImage(productId, file, onStatusChange) {
+    if (!productId) {
+      throw new Error("Product ID is required for image upload.");
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error(
-        "Image size exceeds 5MB limit. Please compress before uploading.",
-      );
+    if (!file) {
+      throw new Error("No image file provided.");
     }
 
-    const fileExt = file.name.split(".").pop();
-    const cleanFileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-    const filePath = `products/${vendorId || "vnd-general"}/${cleanFileName}`;
+    return uploadService.uploadProductImage(productId, file, onStatusChange);
+  },
 
-    try {
-      const { data, error } = await supabase.storage
-        .from("product-images")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-      if (!error && data?.path) {
-        const { data: publicData } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(data.path);
-
-        return {
-          storagePath: data.path,
-          url: publicData.publicUrl || URL.createObjectURL(file),
-          fileName: file.name,
-        };
-      }
-    } catch (e) {
-      console.warn("Supabase storage fallback to local object URL", e);
+  /**
+   * Remove a product image from Supabase Storage.
+   *
+   * @param {string} storagePath
+   */
+  async removeProductImage(storagePath) {
+    if (!storagePath) {
+      return;
     }
 
-    // Local object URL fallback
-    return {
-      storagePath: filePath,
-      url: URL.createObjectURL(file),
-      fileName: file.name,
-    };
+    return uploadService.removeFile("product-images", storagePath);
   },
 };
