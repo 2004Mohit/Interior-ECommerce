@@ -10,7 +10,6 @@
  */
 
 import { DEMO_PRODUCTS } from "../data/demoProducts";
-import { CATALOGUE_CATEGORIES } from "../data/categories";
 
 const VENDOR_STORAGE_KEY = "gatemate_vendor_profile";
 const VENDOR_PRODUCTS_KEY = "gatemate_vendor_products";
@@ -18,8 +17,8 @@ const VENDOR_ORDERS_KEY = "gatemate_vendor_orders";
 const VENDOR_RFQS_KEY = "gatemate_vendor_rfqs";
 
 const DEFAULT_VENDOR_PROFILE = {
-  id: "vnd-pune-001",
-  userId: "mock-user-1",
+  id: null,
+  userId: null,
   businessName: "Pune Mega Infrastructure Depot",
   contactPerson: "Suresh Patil",
   email: "depot@punemegaconstruct.in",

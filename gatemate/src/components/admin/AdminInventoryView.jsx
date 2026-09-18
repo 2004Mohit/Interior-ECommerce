@@ -327,7 +327,7 @@ export const AdminInventoryView = () => {
 
                         <td className="p-4">
                           <span className="font-semibold text-[#282926] block">
-                            {item.vendor?.business_name || "Vendor Partner"}
+                            {item.vendor?.business_name || "Unknown Vendor"}
                           </span>
                           <span className="text-[10px] text-[#6F8A92]">
                             {item.vendor?.locality || "Pune"},{" "}

@@ -1,15 +1,3 @@
-/**
- * GateMate Vendor Verification & State Transition Architecture
- *
- * Supports 6 vendor verification lifecycle states:
- * - DRAFT: Initial form completion in progress
- * - SUBMITTED: Application submitted by stockist
- * - UNDER_REVIEW: Manual inspection by GateMate depot onboarding team
- * - APPROVED: Active seller permissions enabled
- * - REJECTED: Application declined with formal rejection reason
- * - CHANGES_REQUESTED: Vendor prompted to update specific fields or documents
- */
-
 import { supabase } from "../lib/supabaseClient";
 
 export const VENDOR_APPLICATION_STATUS = {
@@ -21,76 +9,15 @@ export const VENDOR_APPLICATION_STATUS = {
   CHANGES_REQUESTED: "CHANGES_REQUESTED",
 };
 
-const STORAGE_PREFIX = "gatemate_vendor_application_";
-
-const DEFAULT_APPLICATION_DATA = {
-  id: null,
-  userId: null,
-  status: VENDOR_APPLICATION_STATUS.DRAFT,
-  currentStep: 1,
-  reviewerNotes: "",
-  reviewedAt: null,
-  reviewedBy: null,
-  rejectionReason: "",
-  changesRequestedItems: [],
-  businessDetails: {
-    legalBusinessName: "",
-    tradeName: "",
-    businessType: "Proprietorship",
-    gstin: "",
-    panNumber: "",
-    establishedYear: "2020",
-  },
-  ownerDetails: {
-    primaryContactName: "",
-    designation: "Proprietor / Managing Partner",
-    email: "",
-    mobileNumber: "",
-    alternatePhone: "",
-  },
-  businessAddress: {
-    depotAddressLine1: "",
-    locality: "",
-    city: "Pune",
-    state: "Maharashtra",
-    pincode: "411028",
-    serviceablePincodes: [
-      "411001",
-      "411004",
-      "411006",
-      "411014",
-      "411028",
-      "411061",
-    ],
-    hasHeavyTrailerAccess: true,
-  },
-  productCategories: [],
-  verificationDocuments: {
-    gstCertificateUrl: "",
-    gstCertificateName: "",
-    panCardUrl: "",
-    panCardName: "",
-    cancelledChequeUrl: "",
-    cancelledChequeName: "",
-  },
-  bankDetails: {
-    bankAccountName: "",
-    accountNumber: "",
-    confirmAccountNumber: "",
-    ifscCode: "",
-    bankName: "",
-    branchName: "",
-  },
-  createdAt: null,
-  updatedAt: null,
-  submittedAt: null,
-};
-
 export const vendorOnboardingService = {
+  /**
+   * Fetch the vendor application for a specific Supabase Auth user UUID.
+   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
+   */
   async getApplication(userId) {
     if (!userId) {
       throw new Error(
-        "AUTH_REQUIRED: Please sign in to access your vendor onboarding.",
+        "A valid Supabase Auth user ID is required to fetch the application.",
       );
     }
 
@@ -102,325 +29,144 @@ export const vendorOnboardingService = {
 
     if (error) {
       console.error("Failed to load vendor application:", error);
-
       throw new Error(`Unable to load vendor application: ${error.message}`);
     }
 
-    if (data) {
-      return {
-        id: data.id,
-        userId: data.user_id,
-        status: data.status,
-        currentStep: data.current_step || 1,
-        reviewerNotes: data.reviewer_notes || "",
-        reviewedAt: data.reviewed_at,
-        reviewedBy: data.reviewed_by,
-        rejectionReason: data.rejection_reason || "",
-        changesRequestedItems: data.changes_requested_items || [],
-
-        businessDetails:
-          data.business_details || DEFAULT_APPLICATION_DATA.businessDetails,
-
-        ownerDetails:
-          data.owner_details || DEFAULT_APPLICATION_DATA.ownerDetails,
-
-        businessAddress:
-          data.business_address || DEFAULT_APPLICATION_DATA.businessAddress,
-
-        productCategories: data.product_categories || [],
-
-        verificationDocuments:
-          data.verification_documents ||
-          DEFAULT_APPLICATION_DATA.verificationDocuments,
-
-        bankDetails: data.bank_details || DEFAULT_APPLICATION_DATA.bankDetails,
-
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        submittedAt: data.submitted_at,
-      };
-    }
-
-    // No database record yet.
-    // It is safe to create a local initial draft.
-    const local = localStorage.getItem(`${STORAGE_PREFIX}${userId}`);
-
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (err) {
-        console.warn("Invalid cached vendor application:", err);
-      }
-    }
-
-    return {
-      ...DEFAULT_APPLICATION_DATA,
-      userId,
-      createdAt: new Date().toISOString(),
-    };
+    return data;
   },
 
-  async uploadVerificationDocument(userId, docType, file) {
-    if (!userId || !file)
-      throw new Error("Valid user and document file are required.");
-
-    const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error(
-        "Please upload a valid PDF or high-resolution PNG/JPG document (Max 5MB).",
-      );
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      throw new Error(
-        "File size exceeds 5MB limit. Please compress the document before uploading.",
-      );
-    }
-
-    const fileExt = file.name.split(".").pop();
-    const filePath = `private_docs/${userId}/${docType}_${Date.now()}.${fileExt}`;
-
-    try {
-      const { data, error } = await supabase.storage
-        .from("vendor-verification-docs")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-      if (error) {
-        console.error("Verification document upload failed:", error);
-
-        throw new Error(`Document upload failed: ${error.message}`);
-      }
-
-      return {
-        storagePath: data.path,
-        fileName: file.name,
-      };
-    } catch (e) {
-      return {
-        storagePath: filePath,
-        fileName: file.name,
-      };
-    }
-  },
-
-  async saveDraft(userId, partialData, targetStep) {
+  /**
+   * Save or update an onboarding draft application for a user.
+   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
+   * @param {Object} formData - The current onboarding form data state
+   * @param {number|string} step - Current onboarding step
+   */
+  async saveDraft(userId, formData, step) {
     if (!userId) {
       throw new Error(
-        "AUTH_REQUIRED: Please sign in to save your vendor application.",
+        "A valid Supabase Auth user ID is required to save a draft.",
       );
     }
 
-    const currentApp = await this.getApplication(userId);
+    // Check if an application already exists for this user
+    const existing = await this.getApplication(userId).catch(() => null);
 
-    const updatedApp = {
-      ...currentApp,
-      ...partialAppMerge(currentApp, partialData),
-      currentStep: targetStep || currentApp.currentStep,
-      updatedAt: new Date().toISOString(),
+    const payload = {
+      user_id: userId,
+      form_data: formData,
+      current_step: step,
+      status:
+        existing?.status === APPLICATION_STATUS.SUBMITTED
+          ? APPLICATION_STATUS.SUBMITTED
+          : APPLICATION_STATUS.DRAFT,
+      updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from("vendor_applications")
-      .upsert(
-        {
-          user_id: userId,
-          status: updatedApp.status,
-          current_step: updatedApp.currentStep,
-          business_details: updatedApp.businessDetails,
-          owner_details: updatedApp.ownerDetails,
-          business_address: updatedApp.businessAddress,
-          product_categories: updatedApp.productCategories,
-          verification_documents: updatedApp.verificationDocuments,
-          bank_details: updatedApp.bankDetails,
-          updated_at: updatedApp.updatedAt,
-        },
-        {
-          onConflict: "user_id",
-        },
-      )
-      .select("*")
-      .single();
+    let query;
+    if (existing?.id) {
+      query = supabase
+        .from("vendor_applications")
+        .update(payload)
+        .eq("id", existing.id)
+        .select()
+        .single();
+    } else {
+      query = supabase
+        .from("vendor_applications")
+        .insert([payload])
+        .select()
+        .single();
+    }
+
+    const { data, error } = await query;
 
     if (error) {
-      console.error("Vendor application draft save failed:", error);
-      throw new Error(`Unable to save vendor application: ${error.message}`);
+      console.error("Failed to save vendor application draft:", error);
+      throw new Error(`Unable to save draft: ${error.message}`);
     }
 
-    const persisted = {
-      ...updatedApp,
-      id: data.id,
-      userId: data.user_id,
-      status: data.status,
-      currentStep: data.current_step,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-    };
-
-    // Cache only after Supabase successfully persisted the data.
-    localStorage.setItem(
-      `${STORAGE_PREFIX}${userId}`,
-      JSON.stringify(persisted),
-    );
-
-    return persisted;
+    return data;
   },
 
-  async submitApplication(userId, finalData) {
+  /**
+   * Submit the vendor application for admin review.
+   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
+   * @param {Object} formData - Finalized form data for submission
+   */
+  async submitApplication(userId, formData) {
     if (!userId) {
       throw new Error(
-        "AUTH_REQUIRED: Please sign in to submit your vendor application.",
+        "A valid Supabase Auth user ID is required to submit an application.",
       );
     }
 
-    const currentApp = await this.getApplication(userId);
+    const existing = await this.getApplication(userId).catch(() => null);
 
-    const finalized = {
-      ...currentApp,
-      ...partialAppMerge(currentApp, finalData),
-      status: VENDOR_APPLICATION_STATUS.SUBMITTED,
-      currentStep: 6,
-      reviewerNotes: "",
-      rejectionReason: "",
-      changesRequestedItems: [],
-      submittedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    const payload = {
+      user_id: userId,
+      form_data: formData,
+      status: APPLICATION_STATUS.SUBMITTED,
+      submitted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from("vendor_applications")
-      .upsert(
-        {
-          user_id: userId,
-          status: VENDOR_APPLICATION_STATUS.SUBMITTED,
-          current_step: 6,
-          reviewer_notes: "",
-          rejection_reason: null,
-          changes_requested_items: [],
-          business_details: finalized.businessDetails,
-          owner_details: finalized.ownerDetails,
-          business_address: finalized.businessAddress,
-          product_categories: finalized.productCategories,
-          verification_documents: finalized.verificationDocuments,
-          bank_details: finalized.bankDetails,
-          submitted_at: finalized.submittedAt,
-          updated_at: finalized.updatedAt,
-        },
-        {
-          onConflict: "user_id",
-        },
-      )
-      .select("*")
-      .single();
+    let query;
+    if (existing?.id) {
+      query = supabase
+        .from("vendor_applications")
+        .update(payload)
+        .eq("id", existing.id)
+        .select()
+        .single();
+    } else {
+      query = supabase
+        .from("vendor_applications")
+        .insert([payload])
+        .select()
+        .single();
+    }
+
+    const { data, error } = await query;
 
     if (error) {
-      console.error("Vendor application submission failed:", error);
-      throw new Error(`Unable to submit vendor application: ${error.message}`);
+      console.error("Failed to submit vendor application:", error);
+      throw new Error(`Unable to submit application: ${error.message}`);
     }
 
-    const persisted = {
-      ...finalized,
-      id: data.id,
-      userId: data.user_id,
-      status: data.status,
-      currentStep: data.current_step,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      submittedAt: data.submitted_at,
-    };
-
-    localStorage.setItem(
-      `${STORAGE_PREFIX}${userId}`,
-      JSON.stringify(persisted),
-    );
-
-    return persisted;
+    return data;
   },
 
-  async updateVerificationReviewState(
-    userId,
-    {
-      status,
-      reviewerNotes = "",
-      rejectionReason = "",
-      changesRequestedItems = [],
-    },
-  ) {
+  /**
+   * Update verification review state (typically used in admin workflows, but preserved if called here).
+   * @param {string} userId - The Supabase Auth user UUID (auth.users.id)
+   * @param {string} status - New application status
+   * @param {string} reviewerNotes - Notes from reviewer
+   */
+  async updateVerificationReviewState(userId, status, reviewerNotes = "") {
     if (!userId) {
-      throw new Error("AUTH_REQUIRED");
+      throw new Error("A valid Supabase Auth user ID is required.");
     }
 
-    const currentApp = await this.getApplication(userId);
-
-    const updated = {
-      ...currentApp,
+    const payload = {
       status,
-      reviewerNotes,
-      rejectionReason,
-      changesRequestedItems,
-      reviewedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      reviewer_notes: reviewerNotes,
+      updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
       .from("vendor_applications")
-      .update({
-        status,
-        reviewer_notes: reviewerNotes,
-        rejection_reason: rejectionReason || null,
-        changes_requested_items: changesRequestedItems,
-        reviewed_at: updated.reviewedAt,
-        updated_at: updated.updatedAt,
-      })
+      .update(payload)
       .eq("user_id", userId)
-      .select("*")
+      .select()
       .single();
 
     if (error) {
-      console.error("Vendor review state update failed:", error);
+      console.error("Failed to update verification review state:", error);
       throw new Error(
-        `Unable to update vendor application status: ${error.message}`,
+        `Unable to update verification review state: ${error.message}`,
       );
     }
 
-    const persisted = {
-      ...updated,
-      id: data.id,
-      userId: data.user_id,
-      status: data.status,
-      currentStep: data.current_step,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      submittedAt: data.submitted_at,
-    };
-
-    localStorage.setItem(
-      `${STORAGE_PREFIX}${userId}`,
-      JSON.stringify(persisted),
-    );
-
-    return persisted;
+    return data;
   },
 };
-
-function partialAppMerge(base, incoming) {
-  return {
-    businessDetails: {
-      ...base.businessDetails,
-      ...(incoming.businessDetails || {}),
-    },
-    ownerDetails: { ...base.ownerDetails, ...(incoming.ownerDetails || {}) },
-    businessAddress: {
-      ...base.businessAddress,
-      ...(incoming.businessAddress || {}),
-    },
-    productCategories: incoming.productCategories || base.productCategories,
-    verificationDocuments: {
-      ...base.verificationDocuments,
-      ...(incoming.verificationDocuments || {}),
-    },
-    bankDetails: { ...base.bankDetails, ...(incoming.bankDetails || {}) },
-  };
-}

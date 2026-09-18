@@ -56,7 +56,7 @@ export const ORDER_STATUS_TIMELINE_STEPS = [
 const SEED_CUSTOMER_ORDERS = [
   {
     id: "GM-ORD-20260908-0192",
-    userId: "mock-user-1",
+    userId: null,
     createdAt: "2026-09-08T10:15:00Z",
     orderStatus: ORDER_LIFECYCLE_STATUS.OUT_FOR_DELIVERY,
     paymentStatus: PAYMENT_STATUS.PENDING,
@@ -126,7 +126,7 @@ const SEED_CUSTOMER_ORDERS = [
   },
   {
     id: "GM-ORD-20260901-0844",
-    userId: "mock-user-1",
+    userId: null,
     createdAt: "2026-09-01T14:30:00Z",
     orderStatus: ORDER_LIFECYCLE_STATUS.DELIVERED,
     paymentStatus: PAYMENT_STATUS.SUCCESS,

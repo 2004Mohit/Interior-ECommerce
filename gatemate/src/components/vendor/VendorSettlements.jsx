@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Banknote,
-  CheckCircle2,
+  Search,
   RotateCcw,
-  Building2,
-  ArrowUpRight,
-  ShieldCheck,
+  CheckCircle2,
   Clock,
+  ExternalLink,
+  ShieldCheck,
+  Building2,
   FileText,
+  ArrowUpRight,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import {
@@ -18,27 +21,41 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorSettlements = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   const loadSettlements = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
-    const data = await vendorFinancialService.getSettlementBatches(vendorId);
+    const data = await vendorFinancialService.getSettlementBatches();
     setSettlements(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadSettlements();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadSettlements();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
+
+  const filteredSettlements = settlements.filter((s) => {
+    const matchSearch =
+      s.id.toLowerCase().includes(search.toLowerCase()) ||
+      (s.utrNumber && s.utrNumber.toLowerCase().includes(search.toLowerCase()));
+    const matchStatus = statusFilter === "ALL" || s.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   return (
     <div className="space-y-6 pb-24 font-sans">
       <SeoHead
-        title="Bank Settlements & Disbursals | GateMate Vendor Portal"
-        description="Weekly NEFT/RTGS bank settlement logs with UTR references and itemized commission statements."
+        title="Weekly Bank Settlements & UTR Payouts | GateMate Vendor"
+        description="Inspect weekly NEFT/RTGS settlement payout batches, UTR numbers, and bank disbursal logs."
         canonicalUrl="/vendor/settlements"
         noIndex={true}
       />
@@ -47,14 +64,14 @@ export const VendorSettlements = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
         <div>
           <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-            Direct Bank Disbursals
+            Bank Disbursal Batches
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
-            Bank Settlements & Payouts
+            Weekly Bank Settlements
           </h1>
           <p className="text-xs text-[#606460]">
-            Weekly direct-to-bank NEFT/RTGS payout history for fulfilled
-            construction site orders.
+            Track NEFT / RTGS payout batches, verified UTR numbers, and settled
+            wholesale funds transferred to your registered bank account.
           </p>
         </div>
 
@@ -67,99 +84,113 @@ export const VendorSettlements = () => {
         </button>
       </div>
 
+      {/* Filter Toolbar */}
+      <div className="gm-panel p-4 rounded-2xl border border-[#D9E2EA] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6F8A92] pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by Settlement ID or UTR number..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full gm-input pl-10 pr-4 py-2 rounded-xl text-xs"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          {[
+            { key: "ALL", label: "All Batches" },
+            { key: SETTLEMENT_STATUS.PROCESSED, label: "Processed" },
+            { key: SETTLEMENT_STATUS.PENDING, label: "Pending Disbursal" },
+          ].map((pill) => (
+            <button
+              key={pill.key}
+              onClick={() => setStatusFilter(pill.key)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                statusFilter === pill.key
+                  ? "bg-[#173885] text-[#FEFEFE]"
+                  : "bg-[#F4F6FA] text-[#606460] hover:bg-[#E4EEF3]"
+              }`}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Settlements Table */}
       {loading ? (
         <div className="space-y-2">
-          {[1, 2].map((i) => (
+          {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="gm-panel p-5 rounded-2xl h-20 animate-pulse bg-[#E4EEF3]"
+              className="gm-panel p-5 rounded-2xl h-16 animate-pulse bg-[#E4EEF3]"
             />
           ))}
         </div>
-      ) : settlements.length === 0 ? (
+      ) : filteredSettlements.length === 0 ? (
         <div className="gm-panel p-16 rounded-3xl text-center text-xs text-[#606460]">
-          No settlement batch records found.
+          No settlement payout batches found.
         </div>
       ) : (
-        <div className="space-y-4">
-          {settlements.map((s) => (
-            <div
-              key={s.id}
-              className="gm-panel p-6 rounded-3xl border border-[#D9E2EA] space-y-4 shadow-xs"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D9E2EA] pb-3.5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-black text-[#173885] text-sm">
+        <div className="gm-panel rounded-2xl overflow-hidden border border-[#D9E2EA]">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#E4EEF3] text-[#173885] font-bold border-b border-[#D9E2EA]">
+                <tr>
+                  <th className="p-3.5">Batch Reference</th>
+                  <th className="p-3.5">Batch Date</th>
+                  <th className="p-3.5 text-center">Orders Count</th>
+                  <th className="p-3.5 text-right">Disbursed Amount</th>
+                  <th className="p-3.5">UTR / Bank Reference</th>
+                  <th className="p-3.5">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#D9E2EA]">
+                {filteredSettlements.map((s) => (
+                  <tr key={s.id} className="hover:bg-[#F4F6FA] transition">
+                    <td className="p-3.5 font-mono font-bold text-[#173885]">
                       {s.id}
-                    </span>
-                    <span className="bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30 px-2 py-0.2 rounded-full text-[10px] font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Disbursed to Bank
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-[#606460] font-mono mt-0.5 block">
-                    Disbursed on{" "}
-                    {new Date(s.processedAt).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
+                    </td>
 
-                <div className="text-right">
-                  <div className="font-mono font-black text-lg text-[#3F7D20]">
-                    ₹{s.netDisbursedAmount.toLocaleString("en-IN")}
-                  </div>
-                  <span className="text-[10px] text-[#6F8A92] font-mono">
-                    Bank UTR: {s.utrNumber}
-                  </span>
-                </div>
-              </div>
+                    <td className="p-3.5 font-mono text-[#606460]">
+                      {s.batchDate}
+                    </td>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div className="bg-[#F4F6FA] p-3.5 rounded-2xl border border-[#D9E2EA]">
-                  <span className="text-[10px] font-bold text-[#6F8A92] uppercase block">
-                    Gross Product Sales
-                  </span>
-                  <strong className="text-sm font-black text-[#173885] font-mono">
-                    ₹{s.grossProductSubtotal}
-                  </strong>
-                  <span className="text-[10px] text-[#606460] block mt-0.5">
-                    {s.orderCount} order(s) reconciled
-                  </span>
-                </div>
+                    <td className="p-3.5 text-center font-mono font-bold text-[#282926]">
+                      {s.orderCount} Order(s)
+                    </td>
 
-                <div className="bg-[#F4F6FA] p-3.5 rounded-2xl border border-[#D9E2EA]">
-                  <span className="text-[10px] font-bold text-[#6F8A92] uppercase block">
-                    GateMate Commission (5%)
-                  </span>
-                  <strong className="text-sm font-black text-[#B43D20] font-mono">
-                    -₹{s.totalCommissionDeducted}
-                  </strong>
-                  <span className="text-[10px] text-[#606460] block mt-0.5">
-                    Excludes delivery & platform taxes
-                  </span>
-                </div>
+                    <td className="p-3.5 text-right font-mono font-black text-sm text-[#3F7D20]">
+                      ₹{s.totalAmount.toLocaleString("en-IN")}
+                    </td>
 
-                <div className="bg-[#F4F6FA] p-3.5 rounded-2xl border border-[#D9E2EA]">
-                  <span className="text-[10px] font-bold text-[#6F8A92] uppercase block">
-                    Destination Bank Account
-                  </span>
-                  <div className="font-bold text-[#282926] mt-0.5">
-                    {s.bankDetails?.bankName}
-                  </div>
-                  <span className="text-[10px] text-[#606460] font-mono block">
-                    A/C: {s.bankDetails?.accountNumber} (IFSC:{" "}
-                    {s.bankDetails?.ifscCode})
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+                    <td className="p-3.5 font-mono text-xs text-[#173885]">
+                      {s.utrNumber ? (
+                        <span className="font-bold">{s.utrNumber}</span>
+                      ) : (
+                        <span className="text-[#6F8A92] italic">
+                          Awaiting clearing
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="p-3.5">
+                      {s.status === SETTLEMENT_STATUS.PROCESSED ? (
+                        <span className="bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Settled
+                        </span>
+                      ) : (
+                        <span className="bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Processing
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

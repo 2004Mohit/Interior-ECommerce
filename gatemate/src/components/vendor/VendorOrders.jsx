@@ -23,7 +23,6 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorOrders = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,15 +30,20 @@ export const VendorOrders = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   const loadOrders = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
-    const data = await vendorOrderService.getVendorOrders(vendorId);
+    const data = await vendorOrderService.getVendorOrders();
     setOrders(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadOrders();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadOrders();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
 
   const filteredOrders = orders.filter((o) => {
     const matchSearch =

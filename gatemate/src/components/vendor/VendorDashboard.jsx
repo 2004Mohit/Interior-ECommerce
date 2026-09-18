@@ -30,7 +30,6 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorDashboard = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,10 +37,11 @@ export const VendorDashboard = () => {
   const [adjustingProduct, setAdjustingProduct] = useState(null);
 
   const loadDashboard = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await vendorDashboardService.getDashboardOverview(vendorId);
+      const res = await vendorDashboardService.getDashboardOverview();
       setData(res);
     } catch (err) {
       setError(err.message || "Failed to load dashboard metrics.");
@@ -51,8 +51,12 @@ export const VendorDashboard = () => {
   };
 
   useEffect(() => {
-    loadDashboard();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadDashboard();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
 
   if (loading) {
     return (
@@ -70,6 +74,20 @@ export const VendorDashboard = () => {
           <div className="h-64 bg-[#FEFEFE] rounded-3xl border border-[#D9E2EA]" />
           <div className="h-64 bg-[#FEFEFE] rounded-3xl border border-[#D9E2EA]" />
         </div>
+      </div>
+    );
+  }
+
+  if (!vendorUser) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-4 font-sans">
+        <AlertCircle className="w-12 h-12 text-[#B43D20] mx-auto" />
+        <h2 className="text-xl font-black text-[#173885]">
+          Authentication Required
+        </h2>
+        <p className="text-xs text-[#606460]">
+          Please sign in to access your vendor dashboard.
+        </p>
       </div>
     );
   }
@@ -119,9 +137,7 @@ export const VendorDashboard = () => {
           </div>
           <p className="text-xs text-[#606460] mt-0.5">
             Operational overview for{" "}
-            <strong>
-              {vendorUser?.businessName || "Pune Infrastructure Supplies Depot"}
-            </strong>
+            <strong>{vendorUser?.email || "Authenticated Vendor"}</strong>
           </p>
         </div>
 
@@ -684,7 +700,6 @@ export const VendorDashboard = () => {
         isOpen={Boolean(adjustingProduct)}
         onClose={() => setAdjustingProduct(null)}
         product={adjustingProduct}
-        vendorId={vendorId}
         onStockAdjusted={() => {
           loadDashboard();
         }}

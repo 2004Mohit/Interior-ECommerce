@@ -256,7 +256,7 @@ export const AdminProfileChangeReviewView = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D9E2EA] pb-3">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="font-bold text-sm text-[#173885]">
-                        {vendor?.business_name || "Vendor Partner"}
+                        {vendor?.business_name || "Unknown Vendor"}
                       </span>
                       <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#E4EEF3] text-[#3C7DDA] border border-[#3C7DDA]/30">
                         {req.requested_field}

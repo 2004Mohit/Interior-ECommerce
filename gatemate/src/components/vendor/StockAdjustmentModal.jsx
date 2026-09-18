@@ -43,8 +43,12 @@ export const StockAdjustmentModal = ({
     setError(null);
 
     try {
+      if (!vendorId) {
+        throw new Error("Vendor profile is not available.");
+      }
+
       const result = await vendorInventoryService.adjustStock({
-        vendorId: vendorId || "vnd-pune-001",
+        vendorId,
         productId: product.productId,
         newOnHandStock: targetNum,
         reason,

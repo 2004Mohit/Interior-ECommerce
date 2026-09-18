@@ -66,9 +66,13 @@ export const SuggestAttributeModal = ({
     setError(null);
 
     try {
+      if (!vendorId) {
+        throw new Error("Vendor profile is not available.");
+      }
+
       const result = await productAttributeService.submitVendorSuggestion({
-        vendorId: vendorId || "vnd-pune-001",
-        vendorBusinessName: vendorBusinessName || "Vendor Partner",
+        vendorId,
+        vendorBusinessName,
         categorySlug,
         attributeName: attrName.trim(),
         type: attrType,

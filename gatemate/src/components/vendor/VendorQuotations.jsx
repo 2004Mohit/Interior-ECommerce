@@ -28,7 +28,6 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorQuotations = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
   const navigate = useNavigate();
 
   const [quotations, setQuotations] = useState([]);
@@ -39,15 +38,20 @@ export const VendorQuotations = () => {
   const [actionNotice, setActionNotice] = useState(null);
 
   const loadQuotations = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
-    const data = await vendorQuotationService.getVendorQuotations(vendorId);
+    const data = await vendorQuotationService.getVendorQuotations();
     setQuotations(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadQuotations();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadQuotations();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
 
   const handleConvertToOrder = async (quoteId) => {
     setConvertingId(quoteId);
@@ -55,10 +59,7 @@ export const VendorQuotations = () => {
 
     try {
       const result =
-        await vendorQuotationService.convertAcceptedQuotationToOrder(
-          vendorId,
-          quoteId,
-        );
+        await vendorQuotationService.convertAcceptedQuotationToOrder(quoteId);
       setActionNotice(
         `Quotation converted to Wholesale Order ${result.createdOrder.id}!`,
       );

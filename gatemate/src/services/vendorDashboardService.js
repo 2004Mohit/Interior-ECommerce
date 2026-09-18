@@ -9,6 +9,7 @@
  * - vendorProductService (Products pending admin review or changes requested)
  */
 
+import { supabase } from "../lib/supabaseClient";
 import { vendorOrderService } from "./vendorOrderService";
 import { VENDOR_ORDER_STATUS } from "./vendorOrderStateMachine";
 import { vendorFinancialService } from "./vendorFinancialService";
@@ -20,17 +21,34 @@ import {
 } from "./vendorProductService";
 
 export const vendorDashboardService = {
-  async getDashboardOverview(vendorId = "vnd-pune-001") {
+  async _resolveVendorId() {
+    const { data: vendorId, error } = await supabase.rpc(
+      "get_vendor_id_for_auth_user",
+    );
+    if (error) {
+      throw new Error(`Unable to resolve vendor profile: ${error.message}`);
+    }
+    if (!vendorId) {
+      throw new Error(
+        "Vendor profile not found. The vendor may not be approved yet.",
+      );
+    }
+    return vendorId;
+  },
+
+  async getDashboardOverview() {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     try {
+      const vendorId = await this._resolveVendorId();
+
       const [orders, financials, inventory, rfqs, products] = await Promise.all(
         [
-          vendorOrderService.getVendorOrders(vendorId),
-          vendorFinancialService.getFinancialSummary(vendorId),
-          vendorInventoryService.getInventory(vendorId),
-          vendorRfqService.getVendorRfqs(vendorId),
-          vendorProductService.getVendorProducts(vendorId),
+          vendorOrderService.getVendorOrders(),
+          vendorFinancialService.getFinancialSummary(),
+          vendorInventoryService.getInventory(),
+          vendorRfqService.getVendorRfqs(),
+          vendorProductService.getVendorProducts(),
         ],
       );
 
@@ -100,7 +118,8 @@ export const vendorDashboardService = {
     } catch (e) {
       console.error("Failed to load vendor dashboard summary", e);
       throw new Error(
-        "Unable to aggregate vendor terminal metrics. Please retry.",
+        e.message ||
+          "Unable to aggregate vendor terminal metrics. Please retry.",
       );
     }
   },

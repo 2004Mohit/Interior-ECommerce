@@ -26,7 +26,6 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorInventory = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [inventory, setInventory] = useState([]);
   const [history, setHistory] = useState([]);
@@ -38,10 +37,11 @@ export const VendorInventory = () => {
     useState(null);
 
   const loadData = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
     const [inv, hist] = await Promise.all([
-      vendorInventoryService.getInventory(vendorId),
-      vendorInventoryService.getInventoryHistory(vendorId),
+      vendorInventoryService.getInventory(),
+      vendorInventoryService.getInventoryHistory(),
     ]);
     setInventory(inv);
     setHistory(hist);
@@ -49,8 +49,12 @@ export const VendorInventory = () => {
   };
 
   useEffect(() => {
-    loadData();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
 
   const filteredInventory = inventory.filter((item) => {
     const matchSearch =
@@ -454,7 +458,6 @@ export const VendorInventory = () => {
         isOpen={Boolean(selectedProductForAdjust)}
         onClose={() => setSelectedProductForAdjust(null)}
         product={selectedProductForAdjust}
-        vendorId={vendorId}
         onStockAdjusted={(updatedItem) => {
           setInventory((prev) =>
             prev.map((i) =>

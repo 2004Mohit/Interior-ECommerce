@@ -19,21 +19,21 @@ export const VendorProductPreview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    vendorProductService.getVendorProductById(vendorId, id).then((p) => {
+    if (!vendorUser?.id) return;
+    vendorProductService.getVendorProductById(id).then((p) => {
       setProduct(p);
       if (p?.images?.[0] || p?.img) {
         setSelectedImage(p.images?.[0] || p.img);
       }
       setLoading(false);
     });
-  }, [vendorId, id]);
+  }, [vendorUser?.id, id]);
 
   if (loading) {
     return (

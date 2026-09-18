@@ -19,136 +19,22 @@ export const SETTLEMENT_STATUS = {
   HOLD: "HOLD",
 };
 
-const VENDOR_FINANCIALS_KEY = "gatemate_vendor_financial_ledger_";
-const VENDOR_SETTLEMENTS_KEY = "gatemate_vendor_settlements_list_";
-
-const SEED_TRANSACTIONS = [
-  {
-    id: "TXN-GM-20260910-001",
-    orderId: "GM-ORD-20260910-0210",
-    vendorId: "vnd-pune-001",
-    orderDate: "2026-09-10T11:00:00Z",
-    deliveredDate: "2026-09-10T14:30:00Z",
-    customerRef: "CUST-PN-1102 (Shree Developers)",
-    productSubtotal: 5520,
-    deliveryFee: 0,
-    packagingFee: 29,
-    taxAmount: 0,
-    orderGrandTotal: 5549,
-    commissionRate: 0.05,
-    commissionAmount: 276, // 5% of 5,520
-    vendorPayableAmount: 5244, // 5,520 - 276
-    paymentMethod: "Net Banking IMPS (Cashfree)",
-    paymentStatus: "SUCCESS",
-    settlementStatus: SETTLEMENT_STATUS.PROCESSED,
-    settlementBatchId: "SET-PN-20260910-01",
-    utrNumber: "HDFCR5202609100091",
-  },
-  {
-    id: "TXN-GM-20260908-002",
-    orderId: "GM-ORD-20260908-0192",
-    vendorId: "vnd-pune-001",
-    orderDate: "2026-09-08T10:15:00Z",
-    deliveredDate: "2026-09-08T11:45:00Z",
-    customerRef: "CUST-PN-8812 (Aditya Rathore)",
-    productSubtotal: 3850,
-    deliveryFee: 0,
-    packagingFee: 49,
-    taxAmount: 0,
-    orderGrandTotal: 3948,
-    commissionRate: 0.05,
-    commissionAmount: 192.5, // 5% of 3,850
-    vendorPayableAmount: 3657.5, // 3,850 - 192.5
-    paymentMethod: "Pay on Delivery (Doorstep Cash/UPI)",
-    paymentStatus: "SUCCESS",
-    settlementStatus: SETTLEMENT_STATUS.PROCESSED,
-    settlementBatchId: "SET-PN-20260909-01",
-    utrNumber: "HDFCR5202609090044",
-  },
-  {
-    id: "TXN-GM-20260911-003",
-    orderId: "GM-ORD-20260911-0391",
-    vendorId: "vnd-pune-001",
-    orderDate: "2026-09-11T12:45:00Z",
-    deliveredDate: null,
-    customerRef: "CUST-PN-4901 (Kailash Deshmukh)",
-    productSubtotal: 5040,
-    deliveryFee: 0,
-    packagingFee: 29,
-    taxAmount: 0,
-    orderGrandTotal: 5069,
-    commissionRate: 0.05,
-    commissionAmount: 252, // 5% of 5,040
-    vendorPayableAmount: 4788, // 5,040 - 252
-    paymentMethod: "UPI Collect (Cashfree)",
-    paymentStatus: "SUCCESS",
-    settlementStatus: SETTLEMENT_STATUS.PENDING,
-    settlementBatchId: null,
-    utrNumber: null,
-  },
-  {
-    id: "TXN-GM-20260911-004",
-    orderId: "GM-ORD-20260911-0418",
-    vendorId: "vnd-pune-001",
-    orderDate: "2026-09-11T13:10:00Z",
-    deliveredDate: null,
-    customerRef: "CUST-PN-8812 (Aditya Rathore)",
-    productSubtotal: 3850,
-    deliveryFee: 0,
-    packagingFee: 49,
-    taxAmount: 0,
-    orderGrandTotal: 3948,
-    commissionRate: 0.05,
-    commissionAmount: 192.5,
-    vendorPayableAmount: 3657.5,
-    paymentMethod: "Pay on Delivery",
-    paymentStatus: "PENDING",
-    settlementStatus: SETTLEMENT_STATUS.PENDING,
-    settlementBatchId: null,
-    utrNumber: null,
-  },
-];
-
-const SEED_SETTLEMENT_BATCHES = [
-  {
-    id: "SET-PN-20260910-01",
-    vendorId: "vnd-pune-001",
-    batchDate: "2026-09-10",
-    grossProductSubtotal: 5520,
-    totalCommissionDeducted: 276,
-    netDisbursedAmount: 5244,
-    orderCount: 1,
-    status: SETTLEMENT_STATUS.PROCESSED,
-    bankDetails: {
-      accountName: "Pune Mega Infrastructure Depot Pvt Ltd",
-      accountNumber: "•••• •••• 5678",
-      bankName: "HDFC Bank, Hadapsar Branch",
-      ifscCode: "HDFC0001234",
-    },
-    utrNumber: "HDFCR5202609100091",
-    processedAt: "2026-09-10T18:00:00Z",
-  },
-  {
-    id: "SET-PN-20260909-01",
-    vendorId: "vnd-pune-001",
-    batchDate: "2026-09-09",
-    grossProductSubtotal: 3850,
-    totalCommissionDeducted: 192.5,
-    netDisbursedAmount: 3657.5,
-    orderCount: 1,
-    status: SETTLEMENT_STATUS.PROCESSED,
-    bankDetails: {
-      accountName: "Pune Mega Infrastructure Depot Pvt Ltd",
-      accountNumber: "•••• •••• 5678",
-      bankName: "HDFC Bank, Hadapsar Branch",
-      ifscCode: "HDFC0001234",
-    },
-    utrNumber: "HDFCR5202609090044",
-    processedAt: "2026-09-09T18:00:00Z",
-  },
-];
-
 export const vendorFinancialService = {
+  async _resolveVendorId() {
+    const { data: vendorId, error } = await supabase.rpc(
+      "get_vendor_id_for_auth_user",
+    );
+    if (error) {
+      throw new Error(`Unable to resolve vendor profile: ${error.message}`);
+    }
+    if (!vendorId) {
+      throw new Error(
+        "Vendor profile not found. The vendor may not be approved yet.",
+      );
+    }
+    return vendorId;
+  },
+
   /**
    * Pure calculation contract:
    * 5% of Product Subtotal (Excludes delivery charges, packaging, taxes, and discounts).
@@ -172,21 +58,18 @@ export const vendorFinancialService = {
   },
 
   /**
-   * Fetches transactions for a specific vendor or all vendors if no vendorId is provided.
+   * Fetches transactions for the authenticated vendor profile.
    */
-  async getTransactions(vendorId = null, limit = 50) {
-    let query = supabase
+  async getTransactions(limit = 50) {
+    const vendorId = await this._resolveVendorId();
+
+    const { data, error } = await supabase
       .from("vendor_transactions")
       .select("*")
+      .eq("vendor_id", vendorId)
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    // Only apply vendor_id filter if a valid non-mock UUID is provided
-    if (vendorId && vendorId !== "vnd-pune-001" && vendorId.length === 36) {
-      query = query.eq("vendor_id", vendorId);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },
@@ -194,8 +77,8 @@ export const vendorFinancialService = {
   /**
    * Fetches financial ledger summary metrics.
    */
-  async getFinancialSummary(vendorId = null) {
-    const transactions = await this.getTransactions(vendorId, 200);
+  async getFinancialSummary() {
+    const transactions = await this.getTransactions(200);
 
     const grossVolume = transactions.reduce(
       (sum, t) => sum + Number(t.product_subtotal || 0),
@@ -224,18 +107,16 @@ export const vendorFinancialService = {
   /**
    * Fetches settlement batches.
    */
-  async getSettlements(vendorId = null, limit = 50) {
-    let query = supabase
+  async getSettlements(limit = 50) {
+    const vendorId = await this._resolveVendorId();
+
+    const { data, error } = await supabase
       .from("vendor_settlements")
       .select("*")
+      .eq("vendor_id", vendorId)
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (vendorId && vendorId !== "vnd-pune-001" && vendorId.length === 36) {
-      query = query.eq("vendor_id", vendorId);
-    }
-
-    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   },

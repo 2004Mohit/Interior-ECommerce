@@ -26,7 +26,6 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorNotifications = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,23 +34,28 @@ export const VendorNotifications = () => {
   );
 
   const loadNotifications = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
-    const data = await vendorNotificationService.getNotifications(vendorId);
+    const data = await vendorNotificationService.getNotifications();
     setNotifications(data);
     setLoading(false);
   };
 
   useEffect(() => {
-    loadNotifications();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadNotifications();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
 
   const handleMarkAsRead = async (id) => {
-    const updated = await vendorNotificationService.markAsRead(vendorId, id);
+    const updated = await vendorNotificationService.markAsRead(id);
     setNotifications(updated);
   };
 
   const handleMarkAllAsRead = async () => {
-    const updated = await vendorNotificationService.markAllAsRead(vendorId);
+    const updated = await vendorNotificationService.markAllAsRead();
     setNotifications(updated);
   };
 

@@ -11,7 +11,7 @@ const SEED_PRODUCT_REVIEWS = {
     {
       id: "rev-pune-001",
       productId: "prod-cem-001",
-      userId: "mock-user-1",
+      userId: null,
       userName: "Vikramaditya S. (Civil Contractor)",
       userLocation: "Koregaon Park, Pune",
       rating: 5,

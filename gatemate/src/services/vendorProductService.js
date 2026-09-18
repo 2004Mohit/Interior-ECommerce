@@ -5,7 +5,7 @@
  * DRAFT -> SUBMITTED -> UNDER_REVIEW -> (CHANGES_REQUESTED / REJECTED / APPROVED -> PUBLISHED)
  */
 
-import { supabase } from "../lib/supabaseClient";
+import { vendorIdentityService } from "./vendorIdentityService.js";
 
 export const PRODUCT_APPROVAL_STATUS = {
   DRAFT: "DRAFT",
@@ -21,8 +21,8 @@ const VENDOR_PRODUCTS_KEY = "gatemate_vendor_products_list_";
 
 const INITIAL_VENDOR_PRODUCTS = [
   {
-    id: "vp-001",
-    vendorId: "vnd-pune-001",
+    id: null,
+    vendorId: null,
     slug: "ultratech-super-cement-50kg-ppc",
     name: "UltraTech Super Weather-Shield PPC Cement (50 kg Bag)",
     brand: "UltraTech",
@@ -59,8 +59,8 @@ const INITIAL_VENDOR_PRODUCTS = [
     updatedAt: "2026-08-01T12:00:00Z",
   },
   {
-    id: "vp-002",
-    vendorId: "vnd-pune-001",
+    id: null,
+    vendorId: null,
     slug: "tata-tiscon-550d-tmt-rebar-12mm",
     name: "Tata Tiscon 550D High Ductility Earthquake Resistant TMT Rebar (12mm)",
     brand: "Tata Tiscon",
@@ -95,8 +95,8 @@ const INITIAL_VENDOR_PRODUCTS = [
     updatedAt: "2026-08-04T15:30:00Z",
   },
   {
-    id: "vp-003",
-    vendorId: "vnd-pune-001",
+    id: null,
+    vendorId: null,
     slug: "siporex-aac-lightweight-block-600x200x150mm",
     name: "Siporex Lightweight Autoclaved Aerated Concrete AAC Block (600x200x150mm)",
     brand: "Siporex",
@@ -122,8 +122,8 @@ const INITIAL_VENDOR_PRODUCTS = [
     updatedAt: "2026-09-08T09:30:00Z",
   },
   {
-    id: "vp-004",
-    vendorId: "vnd-pune-001",
+    id: null,
+    vendorId: null,
     slug: "washed-manufactured-m-sand-for-concreting-1-brass",
     name: "Washed Manufactured Sand (M-Sand) for RCC Concreting (1 Brass / 100 Cu Ft)",
     brand: "Sahyadri Aggregates",
@@ -153,7 +153,10 @@ const INITIAL_VENDOR_PRODUCTS = [
 ];
 
 export const vendorProductService = {
-  async getVendorProducts(vendorId = "vnd-pune-001") {
+  async getVendorProducts(vendorId) {
+    if (!vendorId) {
+      throw new Error("Vendor profile ID is required.");
+    }
     await new Promise((resolve) => setTimeout(resolve, 80));
     const stored = localStorage.getItem(`${VENDOR_PRODUCTS_KEY}${vendorId}`);
     if (stored) {
@@ -272,7 +275,8 @@ export const vendorProductService = {
     { status, reviewerNotes = "" },
   ) {
     await new Promise((resolve) => setTimeout(resolve, 120));
-    const vendorId = "vnd-pune-001";
+    const vendorId = await vendorIdentityService.getVendorProfileId();
+
     const products = await this.getVendorProducts(vendorId);
 
     const updated = products.map((p) => {

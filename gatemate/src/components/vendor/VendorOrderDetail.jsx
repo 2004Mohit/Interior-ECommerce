@@ -29,7 +29,6 @@ import { SeoHead } from "../common/SeoHead";
 export const VendorOrderDetail = () => {
   const { id } = useParams();
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,10 +39,11 @@ export const VendorOrderDetail = () => {
   const [showRejectPrompt, setShowRejectPrompt] = useState(false);
 
   const loadOrder = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
     setTransitionError(null);
     try {
-      const match = await vendorOrderService.getVendorOrderById(vendorId, id);
+      const match = await vendorOrderService.getVendorOrderById(id);
       setOrder(match);
     } catch (err) {
       setTransitionError("Unable to load order details.");
@@ -53,8 +53,12 @@ export const VendorOrderDetail = () => {
   };
 
   useEffect(() => {
-    loadOrder();
-  }, [vendorId, id]);
+    if (vendorUser?.id) {
+      loadOrder();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id, id]);
 
   const handleExecuteTransition = async (nextStatus, optionalNotes = "") => {
     setUpdatingStatus(true);
@@ -63,7 +67,6 @@ export const VendorOrderDetail = () => {
 
     try {
       const updated = await vendorOrderService.advanceOrderStatus(
-        vendorId,
         order.id,
         nextStatus,
         optionalNotes || customNotes,

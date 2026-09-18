@@ -32,7 +32,6 @@ export const VendorRfqDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [rfq, setRfq] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,10 +49,11 @@ export const VendorRfqDetail = () => {
   const [isEditingExistingQuote, setIsEditingExistingQuote] = useState(false);
 
   const loadRfq = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
     setErrorMessage(null);
     try {
-      const match = await vendorRfqService.getRfqById(vendorId, id);
+      const match = await vendorRfqService.getRfqById(id);
       setRfq(match);
       if (match?.quotation) {
         const rateMap = {};
@@ -84,8 +84,12 @@ export const VendorRfqDetail = () => {
   };
 
   useEffect(() => {
-    loadRfq();
-  }, [vendorId, id]);
+    if (vendorUser?.id) {
+      loadRfq();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id, id]);
 
   const handleRateChange = (productId, val) => {
     setItemRates((prev) => ({
@@ -144,7 +148,6 @@ export const VendorRfqDetail = () => {
       }));
 
       const updated = await vendorRfqService.submitOrUpdateQuotation({
-        vendorId,
         rfqId: rfq.id,
         itemQuotes: formattedQuotes,
         freightCharges: Number(freightCharges) || 0,
@@ -179,7 +182,6 @@ export const VendorRfqDetail = () => {
     setSubmitting(true);
     try {
       const updated = await vendorRfqService.withdrawQuotation(
-        vendorId,
         rfq.id,
         "Vendor withdrew active quotation.",
       );

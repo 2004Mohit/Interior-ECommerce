@@ -22,7 +22,6 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorPayments = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [summary, setSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -31,10 +30,11 @@ export const VendorPayments = () => {
   const [statusFilter, setStatusFilter] = useState("ALL");
 
   const loadFinancialData = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
     const [summ, txns] = await Promise.all([
-      vendorFinancialService.getFinancialSummary(vendorId),
-      vendorFinancialService.getTransactions(vendorId),
+      vendorFinancialService.getFinancialSummary(),
+      vendorFinancialService.getTransactions(),
     ]);
     setSummary(summ);
     setTransactions(txns);
@@ -42,8 +42,12 @@ export const VendorPayments = () => {
   };
 
   useEffect(() => {
-    loadFinancialData();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadFinancialData();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
 
   const filteredTransactions = transactions.filter((t) => {
     const matchSearch =

@@ -1,11 +1,5 @@
 /**
  * GateMate Category Product Attribute & Vendor Suggestion Engine
- *
- * Supports:
- * - Fixed system-defined attributes for each Product category
- * - Vendor ability to suggest additional custom attributes when category fields are insufficient
- * - Staged lifecycle states for suggestions: PENDING -> (APPROVED -> Merged into Category / REJECTED)
- * - Dynamic attribute types: 'text', 'number', 'select' (with allowedValues)
  */
 
 import { supabase } from "../lib/supabaseClient";
@@ -22,7 +16,7 @@ export const ATTRIBUTE_SUGGESTION_STATUS = {
   REJECTED: "REJECTED",
 };
 
-// 1. Fixed System-Defined Category Attributes
+// Fixed System-Defined Category Attributes
 const SYSTEM_CATEGORY_ATTRIBUTES = {
   cement: [
     {
@@ -374,9 +368,23 @@ const SYSTEM_CATEGORY_ATTRIBUTES = {
 const SUGGESTIONS_STORAGE_KEY = "gatemate_vendor_attribute_suggestions";
 
 export const productAttributeService = {
+  async _resolveVendorId() {
+    const { data: vendorId, error } = await supabase.rpc(
+      "get_vendor_id_for_auth_user",
+    );
+    if (error) {
+      throw new Error(`Unable to resolve vendor profile: ${error.message}`);
+    }
+    if (!vendorId) {
+      throw new Error(
+        "Vendor profile not found. The vendor may not be approved yet.",
+      );
+    }
+    return vendorId;
+  },
+
   /**
-   * Fetches the merged category attributes:
-   * (Fixed System Attributes + Any Admin-APPROVED Vendor Suggestions for this category)
+   * Fetches the merged category attributes.
    */
   async getCategoryAttributes(categorySlug) {
     const baseAttrs = SYSTEM_CATEGORY_ATTRIBUTES[categorySlug] || [
@@ -398,7 +406,6 @@ export const productAttributeService = {
       },
     ];
 
-    // Load admin-approved suggestions
     const approvedSuggestions =
       await this.getApprovedSuggestionsForCategory(categorySlug);
 
@@ -409,8 +416,6 @@ export const productAttributeService = {
    * Submits a vendor's custom attribute suggestion into the PENDING review state.
    */
   async submitVendorSuggestion({
-    vendorId,
-    vendorBusinessName,
     categorySlug,
     attributeName,
     type = ATTRIBUTE_TYPES.TEXT,
@@ -418,7 +423,9 @@ export const productAttributeService = {
     required = false,
     reason = "",
   }) {
-    if (!vendorId || !categorySlug || !attributeName?.trim()) {
+    const vendorId = await this._resolveVendorId();
+
+    if (!categorySlug || !attributeName?.trim()) {
       throw new Error("Please provide category and attribute name.");
     }
 
@@ -426,7 +433,6 @@ export const productAttributeService = {
     const newSuggestion = {
       id: `sug-${Date.now()}`,
       vendorId,
-      vendorBusinessName: vendorBusinessName || "Vendor Partner",
       categorySlug,
       name: cleanName,
       type,
@@ -466,9 +472,10 @@ export const productAttributeService = {
   },
 
   /**
-   * Get suggestions submitted by a specific vendor.
+   * Get suggestions submitted by the authenticated vendor.
    */
-  async getVendorSuggestions(vendorId) {
+  async getVendorSuggestions() {
+    const vendorId = await this._resolveVendorId();
     const all = this._getLocalSuggestions();
     return all.filter((s) => s.vendorId === vendorId);
   },
@@ -482,7 +489,6 @@ export const productAttributeService = {
 
   /**
    * Admin: Approve or Reject a suggested attribute.
-   * If approved, it is automatically merged for all future vendors of that category.
    */
   async updateSuggestionReviewState(
     suggestionId,
@@ -530,7 +536,7 @@ export const productAttributeService = {
         id: s.id,
         name: s.name,
         type: s.type,
-        required: false, // Approved vendor suggestions default to optional for other vendors
+        required: false,
         allowedValues: s.allowedValues,
         placeholder: `e.g. ${s.name} specification`,
         isSystem: false,
@@ -544,8 +550,7 @@ export const productAttributeService = {
       const seed = [
         {
           id: "sug-seed-01",
-          vendorId: "vnd-pune-001",
-          vendorBusinessName: "Pune Mega Infrastructure Depot",
+          vendorId: "legacy-demo-seed",
           categorySlug: "electrical",
           name: "Wire Gauge (AWG / SWG)",
           type: ATTRIBUTE_TYPES.TEXT,
@@ -557,21 +562,6 @@ export const productAttributeService = {
           reviewerNotes: "Approved for electrical wires & cables.",
           createdAt: "2026-08-15T10:00:00Z",
           updatedAt: "2026-08-16T10:00:00Z",
-        },
-        {
-          id: "sug-seed-02",
-          vendorId: "vnd-pune-001",
-          vendorBusinessName: "Pune Mega Infrastructure Depot",
-          categorySlug: "cement",
-          name: "Bag Packaging Material",
-          type: ATTRIBUTE_TYPES.SELECT,
-          allowedValues: ["HDPE Laminated Bag", "Paper Bag", "Jute Bag"],
-          required: false,
-          reason: "Helps site managers verify moisture barrier resistance.",
-          status: ATTRIBUTE_SUGGESTION_STATUS.PENDING,
-          reviewerNotes: "",
-          createdAt: "2026-09-08T11:30:00Z",
-          updatedAt: "2026-09-08T11:30:00Z",
         },
       ];
       localStorage.setItem(SUGGESTIONS_STORAGE_KEY, JSON.stringify(seed));

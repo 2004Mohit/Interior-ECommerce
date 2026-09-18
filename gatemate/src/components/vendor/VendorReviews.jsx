@@ -22,7 +22,6 @@ import { SeoHead } from "../common/SeoHead";
 
 export const VendorReviews = () => {
   const { vendorUser } = useVendorAuth();
-  const vendorId = vendorUser?.id || "vnd-pune-001";
 
   const [reviews, setReviews] = useState([]);
   const [metrics, setMetrics] = useState(null);
@@ -31,10 +30,11 @@ export const VendorReviews = () => {
   const [ratingFilter, setRatingFilter] = useState("ALL");
 
   const loadReviewsData = async () => {
+    if (!vendorUser?.id) return;
     setLoading(true);
     const [revList, met] = await Promise.all([
-      vendorReviewService.getVendorProductReviews(vendorId),
-      vendorReviewService.getProductReviewMetrics(vendorId),
+      vendorReviewService.getVendorProductReviews(),
+      vendorReviewService.getProductReviewMetrics(),
     ]);
     setReviews(revList);
     setMetrics(met);
@@ -42,8 +42,12 @@ export const VendorReviews = () => {
   };
 
   useEffect(() => {
-    loadReviewsData();
-  }, [vendorId]);
+    if (vendorUser?.id) {
+      loadReviewsData();
+    } else {
+      setLoading(false);
+    }
+  }, [vendorUser?.id]);
 
   const filteredReviews = reviews.filter((r) => {
     const matchSearch =
