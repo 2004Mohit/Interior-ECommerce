@@ -380,18 +380,94 @@ export const AdminCategoryEditView = () => {
 
               <div>
                 <label className="text-xs font-bold text-[#282926] block mb-1">
-                  Category Image URL
+                  Category Image
                 </label>
-                <div className="relative">
-                  <Image className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6F8A92]" />
+
+                <div className="border border-[#D9E2EA] rounded-2xl p-4 bg-[#F8FBFD]">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start">
+                    {/* Image Preview */}
+                    <div className="w-32 h-32 rounded-xl overflow-hidden border border-[#D9E2EA] bg-[#FEFEFE] flex items-center justify-center shrink-0">
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Category preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Image className="w-8 h-8 text-[#9AAAB5]" />
+                      )}
+                    </div>
+
+                    {/* Upload Controls */}
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="text-xs font-bold text-[#173885]">
+                          Upload Category Image
+                        </p>
+
+                        <p className="text-[11px] text-[#606460] mt-1">
+                          JPG, PNG, or WebP. Maximum original size 2 MB. The
+                          image will automatically be resized to a maximum of
+                          800 × 800 pixels and compressed to WebP.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {/* Choose / Replace */}
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={imageProcessing || submitting}
+                          className="btn-gm-secondary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 disabled:opacity-50"
+                        >
+                          <Upload className="w-4 h-4" />
+
+                          {imageProcessing
+                            ? "Processing Image..."
+                            : imagePreview
+                              ? "Replace Image"
+                              : "Choose Image"}
+                        </button>
+
+                        {/* Remove */}
+                        {imagePreview && selectedImage && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            disabled={submitting}
+                            className="px-4 py-2 rounded-xl border border-[#D9E2EA] text-[#B43D20] text-xs font-bold flex items-center gap-2 hover:bg-[#FBE3DE] transition disabled:opacity-50"
+                          >
+                            <X className="w-4 h-4" />
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Processed Size */}
+                      {selectedImage && (
+                        <p className="text-[10px] font-mono text-[#3F7D20]">
+                          Processed size:{" "}
+                          {(selectedImage.size / 1024).toFixed(0)} KB
+                        </p>
+                      )}
+
+                      {/* Existing Image Information */}
+                      {!selectedImage && formData.image_url && (
+                        <p className="text-[10px] text-[#606460]">
+                          Existing category image will remain unchanged unless
+                          you choose a new image.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Hidden File Input */}
                   <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={formData.image_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, image_url: e.target.value })
-                    }
-                    className="w-full gm-input pl-10 pr-3.5 py-2.5 rounded-xl text-xs font-mono"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageSelect}
+                    className="hidden"
                   />
                 </div>
               </div>

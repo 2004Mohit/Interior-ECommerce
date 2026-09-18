@@ -26,7 +26,7 @@ import {
   ATTRIBUTE_TYPES,
 } from "../../services/productAttributeService";
 import { productMediaService } from "../../services/productMediaService";
-import { CATALOGUE_CATEGORIES } from "../../data/categories";
+import { supabase } from "../../lib/supabaseClient";
 import { getRecommendedUnitsForCategory } from "../../data/constructionUnits";
 import { SuggestAttributeModal } from "./SuggestAttributeModal";
 import { SeoHead } from "../common/SeoHead";
@@ -55,6 +55,8 @@ export const VendorProductForm = () => {
     status: PRODUCT_APPROVAL_STATUS.DRAFT,
   });
 
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoryAttributes, setCategoryAttributes] = useState([]);
   const [loading, setLoading] = useState(isEditing);
   const [savingAction, setSavingAction] = useState(null); // 'draft' | 'submit'
@@ -66,9 +68,59 @@ export const VendorProductForm = () => {
   const [isSuggestModalOpen, setIsSuggestModalOpen] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    const loadCategories = async () => {
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("id, slug, name, is_active, display_order")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+        .order("name", { ascending: true });
+      if (!mounted) return;
+      if (error) {
+        console.error("Failed to load vendor product categories:", error);
+        setCategories([]);
+      } else {
+        setCategories(data || []);
+      }
+      setCategoriesLoading(false);
+    };
+    loadCategories();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isEditing || categories.length === 0) return;
+    setFormData((prev) => {
+      const current = categories.find((cat) => cat.slug === prev.categorySlug);
+      const selected = current || categories[0];
+      if (!selected || (current && prev.category === selected.name))
+        return prev;
+      const recommended = getRecommendedUnitsForCategory(selected.slug);
+      return {
+        ...prev,
+        categorySlug: selected.slug,
+        category: selected.name,
+        unit: recommended[0]?.value || prev.unit,
+        dynamicAttributes: {},
+      };
+    });
+  }, [categories, isEditing]);
+
+  useEffect(() => {
+    if (!formData.categorySlug) {
+      setCategoryAttributes([]);
+      return;
+    }
     productAttributeService
       .getCategoryAttributes(formData.categorySlug)
-      .then(setCategoryAttributes);
+      .then(setCategoryAttributes)
+      .catch((error) => {
+        console.error("Failed to load category attributes:", error);
+        setCategoryAttributes([]);
+      });
   }, [formData.categorySlug]);
 
   useEffect(() => {
@@ -106,7 +158,7 @@ export const VendorProductForm = () => {
 
   const handleCategoryChange = (e) => {
     const slug = e.target.value;
-    const match = CATALOGUE_CATEGORIES.find((c) => c.slug === slug);
+    const match = categories.find((c) => c.slug === slug);
     const recommended = getRecommendedUnitsForCategory(slug);
 
     setFormData((prev) => ({
@@ -449,11 +501,17 @@ export const VendorProductForm = () => {
                 onChange={handleCategoryChange}
                 className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-bold"
               >
-                {CATALOGUE_CATEGORIES.map((cat) => (
-                  <option key={cat.id} value={cat.slug}>
-                    {cat.name}
-                  </option>
-                ))}
+                {categoriesLoading ? (
+                  <option value="">Loading categories...</option>
+                ) : categories.length === 0 ? (
+                  <option value="">No active categories available</option>
+                ) : (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={cat.slug}>
+                      {cat.name}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
 

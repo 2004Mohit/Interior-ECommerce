@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Layers,
   PlusCircle,
@@ -34,12 +35,9 @@ export const AdminAttributeReviewPanel = () => {
   // Edit / Create Attribute Modal
   const [editingAttr, setEditingAttr] = useState(null);
   const [attrForm, setAttrForm] = useState({
-    name: "",
     category_slug: "",
-    type: "text",
-    allowed_values: "",
-    is_required: false,
-    placeholder: "",
+    pendingName: "",
+    attributes: [],
   });
 
   // Merge Attributes Modal
@@ -87,16 +85,14 @@ export const AdminAttributeReviewPanel = () => {
     setError(null);
     setActionSuccess(null);
     setEditingAttr("NEW");
+
     setAttrForm({
-      name: "",
       category_slug:
         selectedCategory !== "ALL"
           ? selectedCategory
           : categories[0]?.slug || "",
-      type: "text",
-      allowed_values: "",
-      is_required: false,
-      placeholder: "",
+      pendingName: "",
+      attributes: [],
     });
   };
 
@@ -104,63 +100,200 @@ export const AdminAttributeReviewPanel = () => {
     setError(null);
     setActionSuccess(null);
     setEditingAttr(attr);
+
     setAttrForm({
-      id: attr.id,
-      name: attr.name,
       category_slug: attr.category_slug,
-      type: attr.type,
-      allowed_values: Array.isArray(attr.allowed_values)
-        ? attr.allowed_values.join(", ")
-        : "",
-      is_required: attr.is_required,
-      placeholder: attr.placeholder || "",
+      attributes: [
+        {
+          id: attr.id,
+          name: attr.name || "",
+          type: attr.type || "text",
+          allowed_values: Array.isArray(attr.allowed_values)
+            ? attr.allowed_values.join(", ")
+            : "",
+          placeholder: attr.placeholder || "",
+          is_required: Boolean(attr.is_required),
+        },
+      ],
     });
   };
 
-  const handleSaveAttribute = async (e) => {
-    e.preventDefault();
-    if (!attrForm.name.trim() || !attrForm.category_slug) {
-      setError("Attribute Name and Category are required.");
+  const addAttributeName = () => {
+    const name = attrForm.pendingName?.trim();
+
+    if (!name) return;
+
+    const alreadyExists = attrForm.attributes.some(
+      (attribute) => attribute.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+
+    if (alreadyExists) {
+      setError(`Attribute "${name}" has already been added.`);
+      return;
+    }
+
+    setError(null);
+
+    setAttrForm((prev) => ({
+      ...prev,
+      pendingName: "",
+      attributes: [
+        ...prev.attributes,
+        {
+          id: null,
+          name,
+          type: "text",
+          allowed_values: "",
+          placeholder: "",
+          is_required: false,
+        },
+      ],
+    }));
+  };
+
+  const removeAttribute = (index) => {
+    setAttrForm((prev) => ({
+      ...prev,
+      attributes: prev.attributes.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateAttribute = (index, field, value) => {
+    setAttrForm((prev) => ({
+      ...prev,
+      attributes: prev.attributes.map((attribute, i) =>
+        i === index
+          ? {
+              ...attribute,
+              [field]: value,
+              ...(field === "type" && value !== "select"
+                ? { allowed_values: "" }
+                : {}),
+            }
+          : attribute,
+      ),
+    }));
+  };
+
+  const handleAttributeNameKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addAttributeName();
       return;
     }
 
     if (
-      attrForm.type === "select" &&
-      !attrForm.allowed_values
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean).length
+      e.key === "Backspace" &&
+      !attrForm.pendingName?.trim() &&
+      attrForm.attributes.length > 0
     ) {
-      setError("Allowed Values are required for a dropdown attribute.");
+      removeAttribute(attrForm.attributes.length - 1);
+    }
+  };
+
+  const handleSaveAttribute = async (e) => {
+    e.preventDefault();
+
+    if (!attrForm.category_slug) {
+      setError("Please select a category.");
       return;
+    }
+
+    if (!attrForm.attributes.length) {
+      setError("Add at least one attribute before creating.");
+      return;
+    }
+
+    for (const attribute of attrForm.attributes) {
+      if (!attribute.name.trim()) {
+        setError("Every attribute must have a name.");
+        return;
+      }
+
+      if (
+        attribute.type === "select" &&
+        !attribute.allowed_values
+          .split(",")
+          .map((value) => value.trim())
+          .filter(Boolean).length
+      ) {
+        setError(`Allowed Values are required for "${attribute.name}".`);
+        return;
+      }
     }
 
     setSubmitting(true);
     setError(null);
-    try {
-      const allowedArr =
-        attrForm.type === "select"
-          ? attrForm.allowed_values
-              .split(",")
-              .map((v) => v.trim())
-              .filter(Boolean)
-          : [];
 
-      await adminAttributeService.saveAttribute({
-        id: editingAttr !== "NEW" ? editingAttr.id : null,
-        category_slug: attrForm.category_slug,
-        name: attrForm.name,
-        type: attrForm.type,
-        allowed_values: allowedArr,
-        is_required: attrForm.is_required,
-        placeholder: attrForm.placeholder,
+    try {
+      const isEditingExistingAttribute = editingAttr && editingAttr !== "NEW";
+
+      if (isEditingExistingAttribute) {
+        const attribute = attrForm.attributes[0];
+
+        const allowedArr =
+          attribute.type === "select"
+            ? attribute.allowed_values
+                .split(",")
+                .map((value) => value.trim())
+                .filter(Boolean)
+            : [];
+
+        await adminAttributeService.saveAttribute({
+          id: attribute.id,
+          category_slug: attrForm.category_slug,
+          name: attribute.name,
+          type: attribute.type,
+          allowed_values: allowedArr,
+          is_required: Boolean(attribute.is_required),
+          placeholder: attribute.placeholder,
+        });
+
+        setActionSuccess(`Attribute "${attribute.name}" updated successfully.`);
+      } else {
+        await Promise.all(
+          attrForm.attributes.map((attribute) => {
+            const allowedArr =
+              attribute.type === "select"
+                ? attribute.allowed_values
+                    .split(",")
+                    .map((value) => value.trim())
+                    .filter(Boolean)
+                : [];
+
+            return adminAttributeService.saveAttribute({
+              id: null,
+              category_slug: attrForm.category_slug,
+              name: attribute.name,
+              type: attribute.type,
+              allowed_values: allowedArr,
+
+              // Save the requirement selected for this attribute.
+              is_required: Boolean(attribute.is_required),
+
+              placeholder: attribute.placeholder,
+            });
+          }),
+        );
+
+        setActionSuccess(
+          `${attrForm.attributes.length} attribute${
+            attrForm.attributes.length > 1 ? "s" : ""
+          } created successfully.`,
+        );
+      }
+
+      setEditingAttr(null);
+
+      setAttrForm({
+        category_slug: "",
+        attributes: [],
+        pendingName: "",
       });
 
-      setActionSuccess(`Attribute "${attrForm.name}" saved successfully.`);
-      setEditingAttr(null);
       await loadData();
     } catch (err) {
-      setError(err.message || "Failed to save attribute.");
+      setError(err.message || "Failed to save attributes.");
     } finally {
       setSubmitting(false);
     }
@@ -564,37 +697,72 @@ export const AdminAttributeReviewPanel = () => {
 
         {/* Modal: Create / Edit Attribute */}
         {editingAttr && (
-          <div className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#FEFEFE] border border-[#D9E2EA] w-full max-w-lg p-6 sm:p-8 rounded-3xl relative shadow-2xl space-y-4">
-              <div className="flex justify-between items-center border-b border-[#D9E2EA] pb-3">
-                <h3 className="text-lg font-black text-[#173885]">
-                  {editingAttr === "NEW"
-                    ? "Create Standard Attribute"
-                    : `Edit Attribute: ${attrForm.name}`}
-                </h3>
-                <button
-                  onClick={() => setEditingAttr(null)}
-                  className="text-[#606460] hover:text-[#282926]"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+          <div className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 18 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 18 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-[#FEFEFE] border border-[#D9E2EA] w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl relative shadow-2xl"
+            >
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-[#FEFEFE]/95 backdrop-blur-md border-b border-[#D9E2EA] px-6 sm:px-8 py-5">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-8 h-8 rounded-xl bg-[#D0E8F7] flex items-center justify-center">
+                        <Layers className="w-4 h-4 text-[#173885]" />
+                      </div>
+
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#3C7DDA]">
+                        Attribute Architecture
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-black text-[#173885]">
+                      {editingAttr === "NEW"
+                        ? "Create Standard Attributes"
+                        : "Edit Attribute"}
+                    </h3>
+
+                    <p className="text-xs text-[#606460] mt-1">
+                      {editingAttr === "NEW"
+                        ? "Add multiple technical attributes and configure each field independently."
+                        : "Update the configuration of this standard attribute."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditingAttr(null)}
+                    className="w-9 h-9 rounded-xl border border-[#D9E2EA] text-[#606460] hover:text-[#173885] hover:bg-[#D0E8F7]/40 transition flex items-center justify-center shrink-0"
+                    aria-label="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
-              <form onSubmit={handleSaveAttribute} className="space-y-4">
+              <form
+                onSubmit={handleSaveAttribute}
+                className="p-6 sm:p-8 space-y-6"
+              >
+                {/* Category */}
                 <div>
-                  <label className="text-xs font-bold text-[#282926] block mb-1">
-                    Target Category *
+                  <label className="text-xs font-black text-[#282926] block mb-2">
+                    Category *
                   </label>
+
                   <select
                     disabled={editingAttr !== "NEW"}
                     value={attrForm.category_slug}
                     onChange={(e) =>
-                      setAttrForm({
-                        ...attrForm,
+                      setAttrForm((prev) => ({
+                        ...prev,
                         category_slug: e.target.value,
-                      })
+                      }))
                     }
-                    className="w-full gm-input px-3 py-2 rounded-xl text-xs font-bold disabled:bg-[#F4F6FA]"
+                    className="w-full gm-input px-4 py-3 rounded-xl text-xs font-bold disabled:bg-[#F4F6FA]"
                   >
                     {categories.map((c) => (
                       <option key={c.slug} value={c.slug}>
@@ -604,112 +772,341 @@ export const AdminAttributeReviewPanel = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-[#282926] block mb-1">
-                    Attribute Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Compressive Strength, Cement Grade"
-                    value={attrForm.name}
-                    onChange={(e) =>
-                      setAttrForm({ ...attrForm, name: e.target.value })
-                    }
-                    className="w-full gm-input px-3.5 py-2 rounded-xl text-xs"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+                {/* Add Attribute Name */}
+                {editingAttr === "NEW" && (
                   <div>
-                    <label className="text-xs font-bold text-[#282926] block mb-1">
-                      Field Type *
-                    </label>
-                    <select
-                      value={attrForm.type}
-                      onChange={(e) =>
-                        setAttrForm({ ...attrForm, type: e.target.value })
-                      }
-                      className="w-full gm-input px-3 py-2 rounded-xl text-xs font-bold"
-                    >
-                      <option value="text">Free Text</option>
-                      <option value="number">Numeric Value</option>
-                      <option value="select">Dropdown Select</option>
-                    </select>
-                  </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-black text-[#282926]">
+                        Attribute Names *
+                      </label>
 
-                  <div className="flex items-center gap-2 pt-6">
-                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-[#173885]">
+                      <span className="text-[10px] font-semibold text-[#6F8A92]">
+                        Press Enter to add
+                      </span>
+                    </div>
+
+                    <div className="relative">
                       <input
-                        type="checkbox"
-                        checked={attrForm.is_required}
+                        autoFocus
+                        type="text"
+                        value={attrForm.pendingName || ""}
                         onChange={(e) =>
-                          setAttrForm({
-                            ...attrForm,
-                            is_required: e.target.checked,
-                          })
+                          setAttrForm((prev) => ({
+                            ...prev,
+                            pendingName: e.target.value,
+                          }))
                         }
-                        className="rounded border-[#D9E2EA] text-[#173885] focus:ring-[#173885]"
+                        onKeyDown={handleAttributeNameKeyDown}
+                        placeholder="Type an attribute name and press Enter..."
+                        className="w-full gm-input px-4 py-3.5 pr-12 rounded-2xl text-xs border-[#D9E2EA] focus:border-[#33B2FF] focus:ring-2 focus:ring-[#33B2FF]/20 transition-all"
                       />
-                      <span>Mandatory on Products</span>
-                    </label>
-                  </div>
-                </div>
 
-                {attrForm.type === "select" && (
-                  <div>
-                    <label className="text-xs font-bold text-[#282926] block mb-1">
-                      Allowed Values (Comma-separated) *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="M20, M25, M30, M35, M40"
-                      value={attrForm.allowed_values}
-                      onChange={(e) =>
-                        setAttrForm({
-                          ...attrForm,
-                          allowed_values: e.target.value,
-                        })
-                      }
-                      className="w-full gm-input px-3.5 py-2 rounded-xl text-xs"
-                    />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-[#D0E8F7] flex items-center justify-center">
+                        <PlusCircle className="w-4 h-4 text-[#173885]" />
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-[#6F8A92] mt-2">
+                      Add one attribute at a time. Commas are not used as
+                      separators.
+                    </p>
                   </div>
                 )}
 
+                {/* Added Attributes */}
                 <div>
-                  <label className="text-xs font-bold text-[#282926] block mb-1">
-                    Input Placeholder / Guide
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 53 Grade (OPC)"
-                    value={attrForm.placeholder}
-                    onChange={(e) =>
-                      setAttrForm({ ...attrForm, placeholder: e.target.value })
-                    }
-                    className="w-full gm-input px-3.5 py-2 rounded-xl text-xs"
-                  />
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-[#173885]">
+                        {editingAttr === "NEW"
+                          ? "Added Attributes"
+                          : "Attribute Configuration"}
+                      </h4>
+
+                      {editingAttr === "NEW" && (
+                        <p className="text-[10px] text-[#6F8A92] mt-1">
+                          Configure each attribute independently.
+                        </p>
+                      )}
+                    </div>
+
+                    {editingAttr === "NEW" && (
+                      <span className="px-2.5 py-1 rounded-full bg-[#D0E8F7] text-[#173885] text-[10px] font-black">
+                        {attrForm.attributes.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {attrForm.attributes.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-[#8CD0FA] bg-[#D0E8F7]/25 p-7 text-center">
+                      <Layers className="w-7 h-7 text-[#3C7DDA] mx-auto mb-2" />
+
+                      <p className="text-xs font-bold text-[#173885]">
+                        No attributes added yet
+                      </p>
+
+                      <p className="text-[10px] text-[#6F8A92] mt-1">
+                        Type an attribute name above and press Enter.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <AnimatePresence initial={false}>
+                        {attrForm.attributes.map((attribute, index) => (
+                          <motion.div
+                            key={attribute.id || `${attribute.name}-${index}`}
+                            layout
+                            initial={{
+                              opacity: 0,
+                              y: 12,
+                              scale: 0.98,
+                            }}
+                            animate={{
+                              opacity: 1,
+                              y: 0,
+                              scale: 1,
+                            }}
+                            exit={{
+                              opacity: 0,
+                              scale: 0.96,
+                              x: 20,
+                            }}
+                            transition={{
+                              duration: 0.2,
+                              ease: "easeOut",
+                            }}
+                            className="rounded-2xl border border-[#D9E2EA] bg-[#FEFEFE] overflow-hidden shadow-sm"
+                          >
+                            {/* Attribute title */}
+                            <div className="px-4 py-3 bg-gradient-to-r from-[#D0E8F7]/60 to-[#FEFEFE] border-b border-[#D9E2EA] flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-[#33B2FF]/10 border border-[#33B2FF]/20 flex items-center justify-center shrink-0">
+                                  <span className="text-[10px] font-black text-[#173885]">
+                                    {index + 1}
+                                  </span>
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p className="text-xs font-black text-[#173885] truncate">
+                                    {attribute.name}
+                                  </p>
+
+                                  <p className="text-[9px] uppercase tracking-wider text-[#6F8A92] font-bold">
+                                    Technical Attribute
+                                  </p>
+                                </div>
+                              </div>
+
+                              {editingAttr === "NEW" && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeAttribute(index)}
+                                  className="w-7 h-7 rounded-lg border border-[#B43D20]/20 text-[#B43D20] hover:bg-[#FBE3DE] transition flex items-center justify-center shrink-0"
+                                  title={`Remove ${attribute.name}`}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Configuration */}
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                              {/* Input Type */}
+                              <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-[#606460] block mb-1.5">
+                                  Input Type
+                                </label>
+
+                                <select
+                                  value={attribute.type}
+                                  onChange={(e) =>
+                                    updateAttribute(
+                                      index,
+                                      "type",
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-full gm-input px-3 py-2.5 rounded-xl text-xs font-bold"
+                                >
+                                  <option value="text">Text Input</option>
+
+                                  <option value="number">Numeric Value</option>
+
+                                  <option value="select">
+                                    Dropdown Select
+                                  </option>
+                                </select>
+                              </div>
+
+                              {/* Placeholder */}
+                              <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-[#606460] block mb-1.5">
+                                  Placeholder
+                                </label>
+
+                                <input
+                                  type="text"
+                                  value={attribute.placeholder}
+                                  onChange={(e) =>
+                                    updateAttribute(
+                                      index,
+                                      "placeholder",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder={
+                                    attribute.type === "number"
+                                      ? "e.g. 25"
+                                      : attribute.type === "select"
+                                        ? "e.g. Select grade..."
+                                        : "e.g. 43 Grade, OPC 53"
+                                  }
+                                  className="w-full gm-input px-3 py-2.5 rounded-xl text-xs"
+                                />
+                              </div>
+
+                              {/* Product Requirement */}
+                              <div>
+                                <label className="text-[10px] font-black uppercase tracking-wider text-[#606460] block mb-1.5">
+                                  Product Requirement
+                                </label>
+
+                                <select
+                                  value={
+                                    attribute.is_required
+                                      ? "mandatory"
+                                      : "optional"
+                                  }
+                                  onChange={(e) =>
+                                    updateAttribute(
+                                      index,
+                                      "is_required",
+                                      e.target.value === "mandatory",
+                                    )
+                                  }
+                                  className="w-full gm-input px-3 py-2.5 rounded-xl text-xs font-bold"
+                                >
+                                  <option value="optional">Optional</option>
+                                  <option value="mandatory">Mandatory</option>
+                                </select>
+
+                                <p className="text-[9px] text-[#6F8A92] mt-1.5">
+                                  {attribute.is_required
+                                    ? "Vendor must provide this value."
+                                    : "Vendor can leave this value empty."}
+                                </p>
+                              </div>
+
+                              {/* Allowed Values */}
+                              {attribute.type === "select" && (
+                                <motion.div
+                                  initial={{
+                                    opacity: 0,
+                                    height: 0,
+                                  }}
+                                  animate={{
+                                    opacity: 1,
+                                    height: "auto",
+                                  }}
+                                  className="md:col-span-2"
+                                >
+                                  <label className="text-[10px] font-black uppercase tracking-wider text-[#606460] block mb-1.5">
+                                    Allowed Values
+                                  </label>
+
+                                  <input
+                                    type="text"
+                                    value={attribute.allowed_values}
+                                    onChange={(e) =>
+                                      updateAttribute(
+                                        index,
+                                        "allowed_values",
+                                        e.target.value,
+                                      )
+                                    }
+                                    placeholder="e.g. OPC 43, OPC 53, PPC"
+                                    className="w-full gm-input px-3 py-2.5 rounded-xl text-xs"
+                                  />
+
+                                  <p className="text-[9px] text-[#6F8A92] mt-1.5">
+                                    Separate dropdown options with commas.
+                                  </p>
+                                </motion.div>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex justify-end gap-3 pt-2">
+                {/* Info */}
+                {editingAttr === "NEW" && attrForm.attributes.length > 0 && (
+                  <div className="rounded-2xl bg-[#D0E8F7]/35 border border-[#8CD0FA]/50 px-4 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-[#33B2FF]/10 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#3C7DDA]" />
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black text-[#173885]">
+                          Ready to create
+                        </p>
+
+                        <p className="text-[10px] text-[#606460] mt-0.5">
+                          Each attribute will be saved with its own input type
+                          and placeholder. New standard attributes are optional
+                          by default.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-[#D9E2EA]">
                   <button
                     type="button"
                     onClick={() => setEditingAttr(null)}
                     disabled={submitting}
-                    className="btn-gm-secondary px-4 py-2 rounded-xl text-xs font-bold"
+                    className="btn-gm-secondary px-5 py-2.5 rounded-xl text-xs font-bold"
                   >
                     Cancel
                   </button>
+
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="btn-gm-primary px-5 py-2 rounded-xl text-xs font-bold shadow-xs disabled:opacity-50"
+                    disabled={
+                      submitting ||
+                      !attrForm.category_slug ||
+                      attrForm.attributes.length === 0
+                    }
+                    className="btn-gm-primary px-5 py-2.5 rounded-xl text-xs font-bold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    <span>{submitting ? "Saving..." : "Save Attribute"}</span>
+                    {submitting ? (
+                      <>
+                        <RotateCcw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>
+                          {editingAttr === "NEW"
+                            ? `Create ${attrForm.attributes.length} ${
+                                attrForm.attributes.length === 1
+                                  ? "Attribute"
+                                  : "Attributes"
+                              }`
+                            : "Save Changes"}
+                        </span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
-            </div>
+            </motion.div>
           </div>
         )}
 
