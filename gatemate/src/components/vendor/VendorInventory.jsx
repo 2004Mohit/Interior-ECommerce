@@ -39,6 +39,9 @@ export const VendorInventory = () => {
   const [selectedProductForAdjust, setSelectedProductForAdjust] =
     useState(null);
 
+  /**
+   * Load inventory and inventory history.
+   */
   const loadData = useCallback(
     async ({ showRefresh = false } = {}) => {
       if (!vendorUser?.id) {
@@ -55,13 +58,20 @@ export const VendorInventory = () => {
           setLoading(true);
         }
 
+        /*
+         * Load live inventory first.
+         *
+         * This is the critical data for the page.
+         */
         const inventoryData = await vendorInventoryService.getInventory();
 
         setInventory(inventoryData);
 
         /*
-         * History is loaded separately so a history issue does not
-         * prevent the live inventory table from being displayed.
+         * History is intentionally loaded separately.
+         *
+         * If history fails, the live inventory table should
+         * still remain usable.
          */
         try {
           setHistoryLoading(true);
@@ -95,6 +105,9 @@ export const VendorInventory = () => {
     loadData();
   }, [loadData]);
 
+  /**
+   * Filter inventory by search and status.
+   */
   const filteredInventory = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
@@ -133,6 +146,10 @@ export const VendorInventory = () => {
     0,
   );
 
+  /**
+   * Update the live inventory immediately after a successful
+   * stock adjustment.
+   */
   const handleStockAdjusted = useCallback(
     (updatedItem) => {
       if (!updatedItem?.productId) {
@@ -152,7 +169,7 @@ export const VendorInventory = () => {
       );
 
       /*
-       * Refresh history after a successful adjustment.
+       * Refresh history after successful adjustment.
        */
       vendorInventoryService
         .getInventoryHistory()
@@ -165,6 +182,11 @@ export const VendorInventory = () => {
             historyError,
           );
         });
+
+      /*
+       * Close the adjustment modal after a successful update.
+       */
+      setSelectedProductForAdjust(null);
     },
     [loadData],
   );
@@ -277,6 +299,7 @@ export const VendorInventory = () => {
               type="button"
               onClick={() => setError("")}
               className="rounded-lg p-1 text-red-500 transition hover:bg-red-100"
+              aria-label="Dismiss error"
             >
               <XCircle className="h-5 w-5" />
             </button>
@@ -285,6 +308,7 @@ export const VendorInventory = () => {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Total SKUs */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -301,6 +325,7 @@ export const VendorInventory = () => {
             </div>
           </div>
 
+          {/* Low Stock */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -317,6 +342,7 @@ export const VendorInventory = () => {
             </div>
           </div>
 
+          {/* Out of Stock */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -333,6 +359,7 @@ export const VendorInventory = () => {
             </div>
           </div>
 
+          {/* Available Units */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -550,7 +577,7 @@ export const VendorInventory = () => {
                             )}
                           </td>
 
-                          {/* On hand */}
+                          {/* On Hand */}
                           <td className="px-5 py-4 text-right">
                             <span className="text-sm font-semibold text-slate-900">
                               {item.onHandStock}

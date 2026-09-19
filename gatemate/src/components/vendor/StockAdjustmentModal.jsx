@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
+
 import {
   vendorInventoryService,
   ADJUSTMENT_REASONS,
@@ -64,11 +65,23 @@ export const StockAdjustmentModal = ({
       ? 0
       : targetStock - currentOnHand;
 
+  /*
+   * If target stock is invalid or below reserved stock,
+   * don't calculate a misleading negative availability.
+   */
   const resultingAvailable =
     targetStock === null || !Number.isFinite(targetStock)
       ? currentAvailable
-      : Math.max(0, targetStock - reservedStock);
+      : targetStock >= reservedStock
+        ? targetStock - reservedStock
+        : 0;
 
+  /*
+   * This is a BLOCKING validation condition.
+   *
+   * Database constraint:
+   * reserved_stock <= on_hand_stock
+   */
   const willHaveReservationShortage =
     targetStock !== null &&
     Number.isFinite(targetStock) &&
@@ -118,8 +131,36 @@ export const StockAdjustmentModal = ({
       return;
     }
 
+    /*
+     * Critical inventory protection:
+     *
+     * On Hand can never be lower than Reserved.
+     *
+     * Example:
+     * On Hand = 100
+     * Reserved = 30
+     *
+     * Minimum allowed On Hand = 30
+     */
+    if (targetNum < reservedStock) {
+      setError(
+        `Cannot set on-hand stock below reserved stock. ${reservedStock} units are currently reserved, so the minimum on-hand quantity is ${reservedStock}.`,
+      );
+      return;
+    }
+
     if (!reason) {
       setError("Please select an adjustment reason.");
+      return;
+    }
+
+    /*
+     * Prevent meaningless updates.
+     */
+    if (targetNum === currentOnHand) {
+      setError(
+        "The new on-hand quantity is the same as the current quantity. Please enter a different quantity.",
+      );
       return;
     }
 
@@ -130,7 +171,7 @@ export const StockAdjustmentModal = ({
         productId: product.productId,
         newOnHandStock: targetNum,
         reason,
-        batchNumber,
+        batchNumber: batchNumber.trim(),
       });
 
       setSuccess(true);
@@ -161,9 +202,9 @@ export const StockAdjustmentModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
           <div>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
@@ -187,6 +228,7 @@ export const StockAdjustmentModal = ({
             onClick={handleClose}
             disabled={submitting}
             className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
@@ -229,29 +271,33 @@ export const StockAdjustmentModal = ({
 
             {/* Inventory stats */}
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-lg bg-white p-3 border border-slate-200">
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs text-slate-500">On Hand</p>
+
                 <p className="mt-1 text-base font-semibold text-slate-900">
                   {currentOnHand} {product.unit || ""}
                 </p>
               </div>
 
-              <div className="rounded-lg bg-white p-3 border border-slate-200">
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs text-slate-500">Reserved</p>
+
                 <p className="mt-1 text-base font-semibold text-slate-900">
                   {reservedStock} {product.unit || ""}
                 </p>
               </div>
 
-              <div className="rounded-lg bg-white p-3 border border-slate-200">
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs text-slate-500">Available</p>
+
                 <p className="mt-1 text-base font-semibold text-slate-900">
                   {currentAvailable} {product.unit || ""}
                 </p>
               </div>
 
-              <div className="rounded-lg bg-white p-3 border border-slate-200">
+              <div className="rounded-lg border border-slate-200 bg-white p-3">
                 <p className="text-xs text-slate-500">MOQ</p>
+
                 <p className="mt-1 text-base font-semibold text-slate-900">
                   {moq} {product.unit || ""}
                 </p>
@@ -262,7 +308,7 @@ export const StockAdjustmentModal = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div className="px-6 py-5 space-y-5">
+          <div className="space-y-5 px-6 py-5">
             {/* New stock */}
             <div>
               <label
@@ -333,20 +379,22 @@ export const StockAdjustmentModal = ({
               </div>
             </div>
 
-            {/* Reservation warning */}
+            {/* Reservation protection */}
             {willHaveReservationShortage && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                 <div className="flex items-start gap-3">
-                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
 
                   <div>
-                    <p className="text-sm font-medium text-amber-800">
-                      Reserved quantity is higher than on-hand stock
+                    <p className="text-sm font-medium text-red-800">
+                      Invalid stock quantity
                     </p>
 
-                    <p className="mt-1 text-xs text-amber-700">
-                      This adjustment will make available stock zero until the
-                      reserved quantity is resolved.
+                    <p className="mt-1 text-xs text-red-700">
+                      {reservedStock} {product.unit || "units"} are currently
+                      reserved. On-hand stock cannot be lower than the reserved
+                      quantity. The minimum allowed on-hand quantity is{" "}
+                      {reservedStock}.
                     </p>
                   </div>
                 </div>
@@ -371,22 +419,17 @@ export const StockAdjustmentModal = ({
               >
                 <option value={ADJUSTMENT_REASONS.RESTOCK}>Restock</option>
 
-                <option value={ADJUSTMENT_REASONS.ORDER_FULFILLED}>
-                  Order Fulfilled
-                </option>
-
                 <option value={ADJUSTMENT_REASONS.DAMAGE}>Damage</option>
-
-                <option value={ADJUSTMENT_REASONS.LOSS}>Loss</option>
 
                 <option value={ADJUSTMENT_REASONS.CORRECTION}>
                   Correction
                 </option>
-
-                <option value={ADJUSTMENT_REASONS.RETURN}>Return</option>
-
-                <option value={ADJUSTMENT_REASONS.OTHER}>Other</option>
               </select>
+
+              <p className="mt-2 text-xs text-slate-500">
+                Order reservation, fulfillment, and release adjustments are
+                generated automatically by the order inventory workflow.
+              </p>
             </div>
 
             {/* Batch number */}
@@ -450,7 +493,7 @@ export const StockAdjustmentModal = ({
 
             <button
               type="submit"
-              disabled={submitting || success}
+              disabled={submitting || success || willHaveReservationShortage}
               className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? "Updating..." : "Update Inventory"}
