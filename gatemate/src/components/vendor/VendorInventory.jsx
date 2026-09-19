@@ -1,472 +1,801 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Boxes,
+  Package,
   Search,
+  RefreshCw,
   AlertTriangle,
   XCircle,
-  CheckCircle2,
-  RotateCcw,
-  Filter,
+  Boxes,
   History,
-  Edit2,
-  ArrowDownRight,
-  ArrowUpRight,
-  Clock,
-  FileText,
-  Layers,
-  ShieldCheck,
+  Edit3,
 } from "lucide-react";
+
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import {
   vendorInventoryService,
   STOCK_STATUS,
 } from "../../services/vendorInventoryService";
-import { StockAdjustmentModal } from "./StockAdjustmentModal";
-import { SeoHead } from "../common/SeoHead";
+
+import StockAdjustmentModal from "../../components/vendor/StockAdjustmentModal";
+import SeoHead from "../common/SeoHead";
 
 export const VendorInventory = () => {
   const { vendorUser } = useVendorAuth();
 
   const [inventory, setInventory] = useState([]);
   const [history, setHistory] = useState([]);
+
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("LIVE"); // 'LIVE' | 'HISTORY'
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [error, setError] = useState("");
+
+  const [activeTab, setActiveTab] = useState("LIVE");
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+
   const [selectedProductForAdjust, setSelectedProductForAdjust] =
     useState(null);
 
-  const loadData = async () => {
-    if (!vendorUser?.id) return;
-    setLoading(true);
-    const [inv, hist] = await Promise.all([
-      vendorInventoryService.getInventory(),
-      vendorInventoryService.getInventoryHistory(),
-    ]);
-    setInventory(inv);
-    setHistory(hist);
-    setLoading(false);
-  };
+  const loadData = useCallback(
+    async ({ showRefresh = false } = {}) => {
+      if (!vendorUser?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setError("");
+
+        if (showRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        const inventoryData = await vendorInventoryService.getInventory();
+
+        setInventory(inventoryData);
+
+        /*
+         * History is loaded separately so a history issue does not
+         * prevent the live inventory table from being displayed.
+         */
+        try {
+          setHistoryLoading(true);
+
+          const historyData =
+            await vendorInventoryService.getInventoryHistory();
+
+          setHistory(historyData);
+        } catch (historyError) {
+          console.error("[VendorInventory] History load failed", historyError);
+
+          setHistory([]);
+        } finally {
+          setHistoryLoading(false);
+        }
+      } catch (err) {
+        console.error("[VendorInventory] Inventory load failed", err);
+
+        setError(err?.message || "Unable to load inventory. Please try again.");
+
+        setInventory([]);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [vendorUser?.id],
+  );
 
   useEffect(() => {
-    if (vendorUser?.id) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
-  }, [vendorUser?.id]);
+    loadData();
+  }, [loadData]);
 
-  const filteredInventory = inventory.filter((item) => {
-    const matchSearch =
-      item.productName.toLowerCase().includes(search.toLowerCase()) ||
-      item.brand.toLowerCase().includes(search.toLowerCase()) ||
-      item.sku.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "ALL" || item.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const filteredInventory = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
 
-  const totalSKUs = inventory.length;
-  const lowStockCount = inventory.filter((i) => i.isLowStock).length;
-  const outOfStockCount = inventory.filter((i) => i.isOutOfStock).length;
+    return inventory.filter((item) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        String(item.productName || "")
+          .toLowerCase()
+          .includes(normalizedSearch) ||
+        String(item.brand || "")
+          .toLowerCase()
+          .includes(normalizedSearch) ||
+        String(item.sku || "")
+          .toLowerCase()
+          .includes(normalizedSearch);
+
+      const matchesStatus =
+        statusFilter === "ALL" || item.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [inventory, search, statusFilter]);
+
+  const totalSkus = inventory.length;
+
+  const lowStockCount = inventory.filter(
+    (item) => item.status === STOCK_STATUS.LOW_STOCK,
+  ).length;
+
+  const outOfStockCount = inventory.filter(
+    (item) => item.status === STOCK_STATUS.OUT_OF_STOCK,
+  ).length;
+
   const totalAvailableUnits = inventory.reduce(
-    (acc, i) => acc + i.availableStock,
+    (sum, item) => sum + (Number(item.availableStock) || 0),
     0,
   );
 
-  const getStatusBadge = (status) => {
+  const handleStockAdjusted = useCallback(
+    (updatedItem) => {
+      if (!updatedItem?.productId) {
+        loadData({ showRefresh: true });
+        return;
+      }
+
+      setInventory((current) =>
+        current.map((item) =>
+          item.productId === updatedItem.productId
+            ? {
+                ...item,
+                ...updatedItem,
+              }
+            : item,
+        ),
+      );
+
+      /*
+       * Refresh history after a successful adjustment.
+       */
+      vendorInventoryService
+        .getInventoryHistory()
+        .then((historyData) => {
+          setHistory(historyData);
+        })
+        .catch((historyError) => {
+          console.error(
+            "[VendorInventory] History refresh failed",
+            historyError,
+          );
+        });
+    },
+    [loadData],
+  );
+
+  const getStatusLabel = (status) => {
     switch (status) {
-      case STOCK_STATUS.OUT_OF_STOCK:
-        return (
-          <span className="bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit">
-            <XCircle className="w-3 h-3 shrink-0" /> Out of Stock
-          </span>
-        );
+      case STOCK_STATUS.IN_STOCK:
+        return "In Stock";
+
       case STOCK_STATUS.LOW_STOCK:
-        return (
-          <span className="bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit">
-            <AlertTriangle className="w-3 h-3 shrink-0" /> Low Stock Warning
-          </span>
-        );
+        return "Low Stock";
+
+      case STOCK_STATUS.OUT_OF_STOCK:
+        return "Out of Stock";
+
       default:
-        return (
-          <span className="bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 w-fit">
-            <CheckCircle2 className="w-3 h-3 shrink-0" /> In Stock
-          </span>
-        );
+        return status || "Unknown";
     }
   };
 
+  const getStatusClass = (status) => {
+    switch (status) {
+      case STOCK_STATUS.IN_STOCK:
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+
+      case STOCK_STATUS.LOW_STOCK:
+        return "bg-amber-50 text-amber-700 border-amber-200";
+
+      case STOCK_STATUS.OUT_OF_STOCK:
+        return "bg-red-50 text-red-700 border-red-200";
+
+      default:
+        return "bg-slate-50 text-slate-700 border-slate-200";
+    }
+  };
+
+  const formatDate = (value) => {
+    if (!value) {
+      return "—";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "—";
+    }
+
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   return (
-    <div className="space-y-6 pb-24 font-sans">
+    <>
       <SeoHead
-        title="Vendor Inventory Management | GateMate"
-        description="Live stock adjustments, reserved quantity tracking, low-stock threshold triggers, and audit history logs."
-        canonicalUrl="/vendor/inventory"
-        noIndex={true}
+        title="Inventory Management | GateMate Vendor"
+        description="Manage vendor inventory, stock quantities, reservations, and inventory history."
       />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
-        <div>
-          <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-            Depot Stock Control
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
-            Vendor Inventory Management
-          </h1>
-          <p className="text-xs text-[#606460]">
-            Manage physical on-hand stock, inspect order reservations, and
-            monitor low-stock thresholds in real time.
-          </p>
-        </div>
-
-        <button
-          onClick={loadData}
-          className="btn-gm-secondary px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Refresh Inventory</span>
-        </button>
-      </div>
-
-      {/* KPI Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="gm-card p-5 rounded-2xl flex items-center justify-between border border-[#D9E2EA]">
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider">
-              Total Active SKUs
-            </span>
-            <div className="text-2xl font-black text-[#173885] mt-1 font-mono">
-              {totalSKUs}
-            </div>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Depot Stock Control
+            </h1>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Vendor Inventory Management
+            </p>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Manage physical on-hand stock, inspect order reservations, and
+              monitor low-stock thresholds in real time.
+            </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-[#E4EEF3] text-[#173885] flex items-center justify-center">
-            <Boxes className="w-5 h-5" />
-          </div>
+
+          <button
+            type="button"
+            onClick={() => loadData({ showRefresh: true })}
+            disabled={refreshing || loading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            />
+
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
 
-        <div className="gm-card p-5 rounded-2xl flex items-center justify-between border border-[#D9E2EA]">
-          <div>
-            <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider">
-              Sellable Stock Volume
-            </span>
-            <div className="text-2xl font-black text-[#173885] mt-1 font-mono">
-              {totalAvailableUnits.toLocaleString("en-IN")}
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#E1F2D9] text-[#3F7D20] flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
+        {/* Error */}
+        {error && (
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
 
-        <div
-          className={`gm-card p-5 rounded-2xl flex items-center justify-between border ${
-            lowStockCount > 0
-              ? "border-[#A66A08]/40 bg-[#FFF0D5]/30"
-              : "border-[#D9E2EA]"
-          }`}
-        >
-          <div>
-            <span className="text-[11px] font-bold text-[#A66A08] uppercase tracking-wider">
-              Low-Stock Warnings
-            </span>
-            <div className="text-2xl font-black text-[#A66A08] mt-1 font-mono">
-              {lowStockCount}
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#FFF0D5] text-[#A66A08] flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-        </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-red-800">
+                Unable to load inventory
+              </p>
 
-        <div
-          className={`gm-card p-5 rounded-2xl flex items-center justify-between border ${
-            outOfStockCount > 0
-              ? "border-[#B43D20]/40 bg-[#FBE3DE]/30"
-              : "border-[#D9E2EA]"
-          }`}
-        >
-          <div>
-            <span className="text-[11px] font-bold text-[#B43D20] uppercase tracking-wider">
-              Out of Stock Alerts
-            </span>
-            <div className="text-2xl font-black text-[#B43D20] mt-1 font-mono">
-              {outOfStockCount}
-            </div>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#FBE3DE] text-[#B43D20] flex items-center justify-center">
-            <XCircle className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Main Tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-[#D9E2EA] pb-2">
-        <button
-          onClick={() => setActiveTab("LIVE")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-            activeTab === "LIVE"
-              ? "bg-[#173885] text-[#FEFEFE] shadow-xs"
-              : "bg-[#FEFEFE] text-[#606460] border border-[#D9E2EA] hover:bg-[#E4EEF3]"
-          }`}
-        >
-          <Boxes className="w-4 h-4" />
-          <span>Live Stock Management ({inventory.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("HISTORY")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
-            activeTab === "HISTORY"
-              ? "bg-[#173885] text-[#FEFEFE] shadow-xs"
-              : "bg-[#FEFEFE] text-[#606460] border border-[#D9E2EA] hover:bg-[#E4EEF3]"
-          }`}
-        >
-          <History className="w-4 h-4" />
-          <span>Audit History Trail ({history.length})</span>
-        </button>
-      </div>
-
-      {activeTab === "LIVE" ? (
-        <div className="space-y-4">
-          {/* Filter Toolbar */}
-          <div className="gm-panel p-4 rounded-2xl border border-[#D9E2EA] flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="relative w-full sm:max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6F8A92] pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search products by title, brand, or SKU..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full gm-input pl-10 pr-4 py-2 rounded-xl text-xs"
-              />
+              <p className="mt-1 text-sm text-red-700">{error}</p>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-              {[
-                { key: "ALL", label: "All Products" },
-                { key: STOCK_STATUS.IN_STOCK, label: "In Stock" },
-                { key: STOCK_STATUS.LOW_STOCK, label: "Low Stock" },
-                { key: STOCK_STATUS.OUT_OF_STOCK, label: "Out of Stock" },
-              ].map((pill) => (
-                <button
-                  key={pill.key}
-                  onClick={() => setStatusFilter(pill.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                    statusFilter === pill.key
-                      ? "bg-[#3C7DDA] text-[#FEFEFE]"
-                      : "bg-[#F4F6FA] text-[#606460] hover:bg-[#E4EEF3]"
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setError("")}
+              className="rounded-lg p-1 text-red-500 transition hover:bg-red-100"
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
           </div>
+        )}
 
-          {/* Live Inventory Table */}
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="gm-panel p-5 rounded-2xl h-16 animate-pulse bg-[#E4EEF3]"
-                />
-              ))}
-            </div>
-          ) : filteredInventory.length === 0 ? (
-            <div className="gm-panel p-12 text-center text-xs text-[#606460]">
-              No products found matching the search and status criteria.
-            </div>
-          ) : (
-            <div className="gm-panel rounded-2xl overflow-hidden border border-[#D9E2EA]">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#E4EEF3] text-[#173885] font-bold border-b border-[#D9E2EA]">
-                    <tr>
-                      <th className="p-3.5">Product & SKU</th>
-                      <th className="p-3.5">Category</th>
-                      <th className="p-3.5 text-center">On-Hand Stock</th>
-                      <th className="p-3.5 text-center">Reserved for Orders</th>
-                      <th className="p-3.5 text-center">Available Stock</th>
-                      <th className="p-3.5">Stock Status</th>
-                      <th className="p-3.5">Last Updated</th>
-                      <th className="p-3.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#D9E2EA]">
-                    {filteredInventory.map((item) => (
-                      <tr
-                        key={item.productId}
-                        className="hover:bg-[#F4F6FA] transition"
-                      >
-                        <td className="p-3.5 flex items-center gap-3">
-                          <img
-                            src={item.img}
-                            alt=""
-                            className="w-10 h-10 rounded-lg object-cover bg-[#F4F6FA] border border-[#D9E2EA] shrink-0"
-                          />
-                          <div className="min-w-0 max-w-xs">
-                            <div className="font-bold text-[#282926] truncate">
-                              {item.productName}
-                            </div>
-                            <div className="text-[10px] text-[#6F8A92] font-mono">
-                              {item.brand} • SKU: {item.sku}
-                            </div>
-                          </div>
-                        </td>
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Total SKUs</p>
 
-                        <td className="p-3.5 font-semibold text-[#606460]">
-                          {item.category}
-                        </td>
-
-                        <td className="p-3.5 text-center font-mono font-bold text-[#282926]">
-                          {item.onHandStock}{" "}
-                          <span className="text-[10px] text-[#606460] font-normal">
-                            {item.unit}s
-                          </span>
-                        </td>
-
-                        <td className="p-3.5 text-center font-mono font-bold text-[#A66A08]">
-                          {item.reservedStock || 0}{" "}
-                          <span className="text-[10px] text-[#606460] font-normal">
-                            {item.unit}s
-                          </span>
-                        </td>
-
-                        <td className="p-3.5 text-center font-mono font-black text-sm text-[#173885]">
-                          {item.availableStock}{" "}
-                          <span className="text-[10px] text-[#606460] font-normal">
-                            {item.unit}s
-                          </span>
-                        </td>
-
-                        <td className="p-3.5">{getStatusBadge(item.status)}</td>
-
-                        <td className="p-3.5 text-[#6F8A92] text-[11px] whitespace-nowrap font-mono">
-                          {new Date(item.lastUpdated).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
-                        </td>
-
-                        <td className="p-3.5 text-right">
-                          <button
-                            onClick={() => setSelectedProductForAdjust(item)}
-                            className="btn-gm-primary px-3 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1 shadow-xs"
-                          >
-                            <Edit2 className="w-3 h-3 text-[#FEFEFE]" />
-                            <span>Adjust Stock</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  {totalSkus}
+                </p>
               </div>
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100">
+                <Boxes className="h-5 w-5 text-slate-700" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Low Stock</p>
+
+                <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  {lowStockCount}
+                </p>
+              </div>
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Out of Stock</p>
+
+                <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  {outOfStockCount}
+                </p>
+              </div>
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50">
+                <XCircle className="h-5 w-5 text-red-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-500">Available Units</p>
+
+                <p className="mt-2 text-2xl font-semibold text-slate-900">
+                  {totalAvailableUnits}
+                </p>
+              </div>
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100">
+                <Package className="h-5 w-5 text-slate-700" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 px-5">
+            <div className="flex items-center gap-6">
+              <button
+                type="button"
+                onClick={() => setActiveTab("LIVE")}
+                className={`border-b-2 px-1 py-4 text-sm font-medium transition ${
+                  activeTab === "LIVE"
+                    ? "border-slate-900 text-slate-900"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                Live Inventory
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("HISTORY")}
+                className={`border-b-2 px-1 py-4 text-sm font-medium transition ${
+                  activeTab === "HISTORY"
+                    ? "border-slate-900 text-slate-900"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  Inventory History
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* LIVE INVENTORY */}
+          {activeTab === "LIVE" && (
+            <div>
+              {/* Filters */}
+              <div className="flex flex-col gap-3 border-b border-slate-200 p-5 lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search product, brand or SKU..."
+                    className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  />
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="ALL">All Status</option>
+
+                  <option value={STOCK_STATUS.IN_STOCK}>In Stock</option>
+
+                  <option value={STOCK_STATUS.LOW_STOCK}>Low Stock</option>
+
+                  <option value={STOCK_STATUS.OUT_OF_STOCK}>
+                    Out of Stock
+                  </option>
+                </select>
+              </div>
+
+              {/* Loading */}
+              {loading && (
+                <div className="flex min-h-[300px] items-center justify-center">
+                  <div className="flex items-center gap-3 text-sm text-slate-500">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Loading inventory...
+                  </div>
+                </div>
+              )}
+
+              {/* Table */}
+              {!loading && (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1200px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50/70">
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Product
+                        </th>
+
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Category
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          MOQ
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          On Hand
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Reserved
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Available
+                        </th>
+
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Status
+                        </th>
+
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Last Updated
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredInventory.length === 0 && (
+                        <tr>
+                          <td colSpan={9} className="px-5 py-14 text-center">
+                            <div className="flex flex-col items-center">
+                              <Package className="h-8 w-8 text-slate-300" />
+
+                              <p className="mt-3 text-sm font-medium text-slate-700">
+                                No inventory found
+                              </p>
+
+                              <p className="mt-1 text-sm text-slate-500">
+                                Try changing your search or status filter.
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+
+                      {filteredInventory.map((item) => (
+                        <tr
+                          key={item.productId}
+                          className="transition hover:bg-slate-50/70"
+                        >
+                          {/* Product */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                                {item.img ? (
+                                  <img
+                                    src={item.img}
+                                    alt={item.productName}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center">
+                                    <Package className="h-5 w-5 text-slate-400" />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-slate-900">
+                                  {item.productName}
+                                </p>
+
+                                {item.brand && (
+                                  <p className="truncate text-xs text-slate-500">
+                                    {item.brand}
+                                  </p>
+                                )}
+
+                                {item.sku && (
+                                  <p className="truncate text-xs text-slate-400">
+                                    SKU: {item.sku}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Category */}
+                          <td className="px-5 py-4 text-sm text-slate-600">
+                            {item.category || "—"}
+                          </td>
+
+                          {/* MOQ */}
+                          <td className="px-5 py-4 text-right">
+                            <span className="text-sm font-medium text-slate-900">
+                              {item.moq}
+                            </span>
+
+                            {item.unit && (
+                              <span className="ml-1 text-xs text-slate-500">
+                                {item.unit}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* On hand */}
+                          <td className="px-5 py-4 text-right">
+                            <span className="text-sm font-semibold text-slate-900">
+                              {item.onHandStock}
+                            </span>
+
+                            {item.unit && (
+                              <span className="ml-1 text-xs text-slate-500">
+                                {item.unit}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Reserved */}
+                          <td className="px-5 py-4 text-right">
+                            <span className="text-sm text-slate-700">
+                              {item.reservedStock}
+                            </span>
+
+                            {item.unit && (
+                              <span className="ml-1 text-xs text-slate-500">
+                                {item.unit}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Available */}
+                          <td className="px-5 py-4 text-right">
+                            <span
+                              className={`text-sm font-semibold ${
+                                item.isOutOfStock
+                                  ? "text-red-600"
+                                  : item.isLowStock
+                                    ? "text-amber-600"
+                                    : "text-slate-900"
+                              }`}
+                            >
+                              {item.availableStock}
+                            </span>
+
+                            {item.unit && (
+                              <span className="ml-1 text-xs text-slate-500">
+                                {item.unit}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Status */}
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClass(
+                                item.status,
+                              )}`}
+                            >
+                              {getStatusLabel(item.status)}
+                            </span>
+                          </td>
+
+                          {/* Updated */}
+                          <td className="px-5 py-4 text-sm text-slate-500">
+                            {formatDate(item.lastUpdated)}
+                          </td>
+
+                          {/* Action */}
+                          <td className="px-5 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedProductForAdjust(item)}
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                              Adjust
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Footer count */}
+              {!loading && filteredInventory.length > 0 && (
+                <div className="border-t border-slate-200 px-5 py-4">
+                  <p className="text-sm text-slate-500">
+                    Showing{" "}
+                    <span className="font-medium text-slate-700">
+                      {filteredInventory.length}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium text-slate-700">
+                      {inventory.length}
+                    </span>{" "}
+                    inventory items
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* HISTORY */}
+          {activeTab === "HISTORY" && (
+            <div>
+              {historyLoading ? (
+                <div className="flex min-h-[300px] items-center justify-center">
+                  <div className="flex items-center gap-3 text-sm text-slate-500">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Loading inventory history...
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1000px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50/70">
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Date
+                        </th>
+
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Product
+                        </th>
+
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Reason
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Previous
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Change
+                        </th>
+
+                        <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          New Stock
+                        </th>
+
+                        <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Batch / Reference
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-slate-100">
+                      {history.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="px-5 py-14 text-center">
+                            <div className="flex flex-col items-center">
+                              <History className="h-8 w-8 text-slate-300" />
+
+                              <p className="mt-3 text-sm font-medium text-slate-700">
+                                No inventory history
+                              </p>
+
+                              <p className="mt-1 text-sm text-slate-500">
+                                Stock adjustments will appear here.
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+
+                      {history.map((historyItem) => (
+                        <tr
+                          key={historyItem.id}
+                          className="transition hover:bg-slate-50/70"
+                        >
+                          <td className="px-5 py-4 text-sm text-slate-500">
+                            {formatDate(historyItem.timestamp)}
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <div>
+                              <p className="text-sm font-medium text-slate-900">
+                                {historyItem.productName}
+                              </p>
+
+                              {historyItem.sku && (
+                                <p className="mt-0.5 text-xs text-slate-400">
+                                  SKU: {historyItem.sku}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+                              {historyItem.reason}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4 text-right text-sm text-slate-700">
+                            {historyItem.previousStock} {historyItem.unit || ""}
+                          </td>
+
+                          <td className="px-5 py-4 text-right">
+                            <span
+                              className={`text-sm font-semibold ${
+                                historyItem.changeQty > 0
+                                  ? "text-emerald-600"
+                                  : historyItem.changeQty < 0
+                                    ? "text-red-600"
+                                    : "text-slate-500"
+                              }`}
+                            >
+                              {historyItem.changeQty > 0
+                                ? `+${historyItem.changeQty}`
+                                : historyItem.changeQty}
+                            </span>
+
+                            {historyItem.unit && (
+                              <span className="ml-1 text-xs text-slate-500">
+                                {historyItem.unit}
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-5 py-4 text-right text-sm font-semibold text-slate-900">
+                            {historyItem.newStock} {historyItem.unit || ""}
+                          </td>
+
+                          <td className="px-5 py-4 text-sm text-slate-500">
+                            {historyItem.batchNumber || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
-      ) : (
-        /* Inventory History Audit Trail Tab */
-        <div className="space-y-4">
-          <div className="gm-panel rounded-2xl overflow-hidden border border-[#D9E2EA]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-[#E4EEF3] text-[#173885] font-bold border-b border-[#D9E2EA]">
-                  <tr>
-                    <th className="p-3.5">Timestamp</th>
-                    <th className="p-3.5">Product</th>
-                    <th className="p-3.5">Adjustment Reason</th>
-                    <th className="p-3.5 text-center">Previous Stock</th>
-                    <th className="p-3.5 text-center">Change Qty</th>
-                    <th className="p-3.5 text-center">New On-Hand Stock</th>
-                    <th className="p-3.5">Batch / Ref #</th>
-                    <th className="p-3.5">Logged By</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#D9E2EA]">
-                  {history.map((h) => (
-                    <tr key={h.id} className="hover:bg-[#F4F6FA] transition">
-                      <td className="p-3.5 text-[#6F8A92] font-mono text-[11px] whitespace-nowrap">
-                        {new Date(h.timestamp).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
-
-                      <td className="p-3.5 font-bold text-[#282926] max-w-xs truncate">
-                        {h.productName}
-                      </td>
-
-                      <td className="p-3.5 text-[#606460]">
-                        <span className="font-semibold text-[#173885]">
-                          {h.reason}
-                        </span>
-                      </td>
-
-                      <td className="p-3.5 text-center font-mono text-[#606460]">
-                        {h.previousStock} {h.unit}
-                      </td>
-
-                      <td className="p-3.5 text-center font-mono font-bold">
-                        <span
-                          className={`inline-flex items-center gap-0.5 ${
-                            h.changeQty > 0
-                              ? "text-[#3F7D20]"
-                              : "text-[#B43D20]"
-                          }`}
-                        >
-                          {h.changeQty > 0 ? (
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                          ) : (
-                            <ArrowDownRight className="w-3.5 h-3.5" />
-                          )}
-                          {h.changeQty > 0 ? `+${h.changeQty}` : h.changeQty}{" "}
-                          {h.unit}
-                        </span>
-                      </td>
-
-                      <td className="p-3.5 text-center font-mono font-black text-[#173885]">
-                        {h.newStock} {h.unit}
-                      </td>
-
-                      <td className="p-3.5 font-mono text-[11px] text-[#606460]">
-                        {h.batchNumber}
-                      </td>
-
-                      <td className="p-3.5 text-[#606460]">{h.adjustedBy}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Stock Adjustment Modal */}
       <StockAdjustmentModal
         isOpen={Boolean(selectedProductForAdjust)}
         onClose={() => setSelectedProductForAdjust(null)}
         product={selectedProductForAdjust}
-        onStockAdjusted={(updatedItem) => {
-          setInventory((prev) =>
-            prev.map((i) =>
-              i.productId === updatedItem.productId ? updatedItem : i,
-            ),
-          );
-          loadData();
-        }}
+        onStockAdjusted={handleStockAdjusted}
       />
-    </div>
+    </>
   );
 };
+
+export default VendorInventory;

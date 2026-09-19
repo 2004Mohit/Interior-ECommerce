@@ -1,5 +1,11 @@
-import React, { useState } from "react";
-import { X, Boxes, AlertCircle, CheckCircle2, Save, Info } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  X,
+  Package,
+  ArrowDownToLine,
+  AlertTriangle,
+  CheckCircle2,
+} from "lucide-react";
 import {
   vendorInventoryService,
   ADJUSTMENT_REASONS,
@@ -9,46 +15,118 @@ export const StockAdjustmentModal = ({
   isOpen,
   onClose,
   product,
-  vendorId,
   onStockAdjusted,
 }) => {
-  const [newStock, setNewStock] = useState(
-    product ? String(product.onHandStock) : "0",
-  );
+  const [newStock, setNewStock] = useState("");
   const [reason, setReason] = useState(ADJUSTMENT_REASONS.RESTOCK);
   const [batchNumber, setBatchNumber] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  if (!isOpen || !product) return null;
-
-  const currentAvailable =
-    product.availableStock !== undefined
-      ? product.availableStock
-      : product.onHandStock;
-  const targetNum = Number(newStock);
-  const stockDiff = isNaN(targetNum) ? 0 : targetNum - product.onHandStock;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isNaN(targetNum) || targetNum < 0 || !Number.isInteger(targetNum)) {
-      setError(
-        "Please enter a valid non-negative whole number for physical stock.",
-      );
+  /*
+   * Keep modal state synchronized whenever a different product
+   * is selected or the modal is opened again.
+   */
+  useEffect(() => {
+    if (!isOpen || !product) {
       return;
     }
 
-    setIsSubmitting(true);
-    setError(null);
+    setNewStock(
+      product.onHandStock !== undefined && product.onHandStock !== null
+        ? String(product.onHandStock)
+        : "0",
+    );
+
+    setReason(ADJUSTMENT_REASONS.RESTOCK);
+    setBatchNumber("");
+    setSubmitting(false);
+    setError("");
+    setSuccess(false);
+  }, [isOpen, product]);
+
+  const currentOnHand = Number(product?.onHandStock) || 0;
+
+  const reservedStock = Number(product?.reservedStock) || 0;
+
+  const moq = Number(product?.moq) > 0 ? Number(product.moq) : 1;
+
+  const currentAvailable =
+    Number(product?.availableStock) >= 0
+      ? Number(product.availableStock)
+      : Math.max(0, currentOnHand - reservedStock);
+
+  const targetStock = newStock === "" ? null : Number(newStock);
+
+  const stockDiff =
+    targetStock === null || !Number.isFinite(targetStock)
+      ? 0
+      : targetStock - currentOnHand;
+
+  const resultingAvailable =
+    targetStock === null || !Number.isFinite(targetStock)
+      ? currentAvailable
+      : Math.max(0, targetStock - reservedStock);
+
+  const willHaveReservationShortage =
+    targetStock !== null &&
+    Number.isFinite(targetStock) &&
+    targetStock < reservedStock;
+
+  const adjustmentLabel = useMemo(() => {
+    if (stockDiff > 0) {
+      return `+${stockDiff}`;
+    }
+
+    if (stockDiff < 0) {
+      return `${stockDiff}`;
+    }
+
+    return "0";
+  }, [stockDiff]);
+
+  if (!isOpen || !product) {
+    return null;
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    setError("");
+    setSuccess(false);
+
+    if (newStock === "") {
+      setError("Please enter the new on-hand quantity.");
+      return;
+    }
+
+    const targetNum = Number(newStock);
+
+    if (!Number.isFinite(targetNum)) {
+      setError("Please enter a valid stock quantity.");
+      return;
+    }
+
+    if (targetNum < 0) {
+      setError("Stock quantity cannot be negative.");
+      return;
+    }
+
+    if (!Number.isInteger(targetNum)) {
+      setError("Stock quantity must be a whole number.");
+      return;
+    }
+
+    if (!reason) {
+      setError("Please select an adjustment reason.");
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
-      if (!vendorId) {
-        throw new Error("Vendor profile is not available.");
-      }
-
       const result = await vendorInventoryService.adjustStock({
-        vendorId,
         productId: product.productId,
         newOnHandStock: targetNum,
         reason,
@@ -56,172 +134,326 @@ export const StockAdjustmentModal = ({
       });
 
       setSuccess(true);
-      onStockAdjusted?.(result.updatedItem);
+
+      onStockAdjusted?.(result?.updatedItem);
+
       setTimeout(() => {
-        setSuccess(false);
-        onClose();
-      }, 1200);
+        onClose?.();
+      }, 1000);
     } catch (err) {
-      setError(err.message || "Failed to update stock level.");
+      console.error("[StockAdjustmentModal]", err);
+
+      setError(err?.message || "Unable to update inventory. Please try again.");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
+  const handleClose = () => {
+    if (submitting) {
+      return;
+    }
+
+    setError("");
+    setSuccess(false);
+    onClose?.();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-[#173885]/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[#FEFEFE] border border-[#D9E2EA] w-full max-w-lg p-6 sm:p-8 rounded-3xl relative shadow-2xl overflow-y-auto max-h-[90vh]">
-        <button
-          onClick={onClose}
-          disabled={isSubmitting}
-          className="absolute top-5 right-5 text-[#606460] hover:text-[#282926]"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <div className="flex items-center gap-2 mb-1">
-          <Boxes className="w-5 h-5 text-[#3C7DDA]" />
-          <h3 className="text-xl font-bold text-[#173885]">
-            Adjust Physical Yard Stock
-          </h3>
-        </div>
-        <p className="text-xs text-[#606460] mb-4 truncate">
-          Product:{" "}
-          <strong className="text-[#282926]">{product.productName}</strong>
-        </p>
-
-        {error && (
-          <div className="p-3 rounded-xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs mb-4 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {success && (
-          <div className="p-3 rounded-xl bg-[#E1F2D9] border border-[#3F7D20]/30 text-[#3F7D20] text-xs mb-4 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#3F7D20] shrink-0" />
-            <span>Stock level updated and logged to audit trail!</span>
-          </div>
-        )}
-
-        {/* Current Balance Overview */}
-        <div className="grid grid-cols-3 gap-2 p-3.5 rounded-2xl bg-[#F4F6FA] border border-[#D9E2EA] text-center text-xs mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200">
           <div>
-            <span className="text-[10px] text-[#6F8A92] font-semibold block">
-              On-Hand Yard
-            </span>
-            <strong className="text-sm font-black text-[#173885] font-mono">
-              {product.onHandStock}
-            </strong>
-            <span className="text-[10px] text-[#606460]"> {product.unit}</span>
-          </div>
-          <div className="border-x border-[#D9E2EA]">
-            <span className="text-[10px] text-[#6F8A92] font-semibold block">
-              Reserved Orders
-            </span>
-            <strong className="text-sm font-black text-[#A66A08] font-mono">
-              {product.reservedStock || 0}
-            </strong>
-            <span className="text-[10px] text-[#606460]"> {product.unit}</span>
-          </div>
-          <div>
-            <span className="text-[10px] text-[#6F8A92] font-semibold block">
-              Authoritative Available
-            </span>
-            <strong className="text-sm font-black text-[#3F7D20] font-mono">
-              {currentAvailable}
-            </strong>
-            <span className="text-[10px] text-[#606460]"> {product.unit}</span>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-[#282926] block mb-1">
-              New Physical On-Hand Stock ({product.unit}s) *
-            </label>
             <div className="flex items-center gap-3">
-              <input
-                type="number"
-                required
-                min={0}
-                value={newStock}
-                onChange={(e) => setNewStock(e.target.value)}
-                className="w-full gm-input px-3.5 py-2.5 rounded-xl text-sm font-mono font-bold"
-              />
-              <span
-                className={`text-xs font-bold font-mono px-3 py-2 rounded-xl whitespace-nowrap ${
-                  stockDiff > 0
-                    ? "bg-[#E1F2D9] text-[#3F7D20]"
-                    : stockDiff < 0
-                      ? "bg-[#FBE3DE] text-[#B43D20]"
-                      : "bg-[#E4EEF3] text-[#173885]"
-                }`}
-              >
-                {stockDiff > 0 ? `+${stockDiff}` : stockDiff} {product.unit}s
-              </span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+                <Package className="h-5 w-5 text-slate-700" />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Adjust Inventory
+                </h2>
+
+                <p className="text-sm text-slate-500">
+                  Update the physical on-hand quantity.
+                </p>
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-[#282926] block mb-1">
-              Adjustment Reason *
-            </label>
-            <select
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-semibold"
-            >
-              {Object.entries(ADJUSTMENT_REASONS).map(([k, label]) => (
-                <option key={k} value={label}>
-                  {label}
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={submitting}
+            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Product summary */}
+        <div className="px-6 pt-5">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-start gap-4">
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                {product.img || product.image ? (
+                  <img
+                    src={product.img || product.image}
+                    alt={product.productName}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Package className="h-6 w-6 text-slate-400" />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-semibold text-slate-900">
+                  {product.productName}
+                </h3>
+
+                {product.brand && (
+                  <p className="text-sm text-slate-500">{product.brand}</p>
+                )}
+
+                {product.sku && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    SKU: {product.sku}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Inventory stats */}
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-lg bg-white p-3 border border-slate-200">
+                <p className="text-xs text-slate-500">On Hand</p>
+                <p className="mt-1 text-base font-semibold text-slate-900">
+                  {currentOnHand} {product.unit || ""}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-white p-3 border border-slate-200">
+                <p className="text-xs text-slate-500">Reserved</p>
+                <p className="mt-1 text-base font-semibold text-slate-900">
+                  {reservedStock} {product.unit || ""}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-white p-3 border border-slate-200">
+                <p className="text-xs text-slate-500">Available</p>
+                <p className="mt-1 text-base font-semibold text-slate-900">
+                  {currentAvailable} {product.unit || ""}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-white p-3 border border-slate-200">
+                <p className="text-xs text-slate-500">MOQ</p>
+                <p className="mt-1 text-base font-semibold text-slate-900">
+                  {moq} {product.unit || ""}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 py-5 space-y-5">
+            {/* New stock */}
+            <div>
+              <label
+                htmlFor="new-on-hand-stock"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                New On-Hand Quantity
+              </label>
+
+              <div className="relative">
+                <input
+                  id="new-on-hand-stock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={newStock}
+                  onChange={(event) => setNewStock(event.target.value)}
+                  disabled={submitting}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
+                  placeholder="Enter physical quantity"
+                />
+
+                {product.unit && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">
+                    {product.unit}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-2 flex items-center justify-between text-xs">
+                <span className="text-slate-500">
+                  Current: {currentOnHand} {product.unit || ""}
+                </span>
+
+                <span
+                  className={
+                    stockDiff > 0
+                      ? "font-medium text-emerald-600"
+                      : stockDiff < 0
+                        ? "font-medium text-red-600"
+                        : "font-medium text-slate-500"
+                  }
+                >
+                  Change: {adjustmentLabel}
+                </span>
+              </div>
+            </div>
+
+            {/* Resulting availability */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-start gap-3">
+                <ArrowDownToLine className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
+
+                <div>
+                  <p className="text-sm font-medium text-slate-800">
+                    Resulting available quantity
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-600">
+                    {resultingAvailable} {product.unit || ""}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Available quantity is calculated from on-hand stock minus
+                    reserved stock.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reservation warning */}
+            {willHaveReservationShortage && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">
+                      Reserved quantity is higher than on-hand stock
+                    </p>
+
+                    <p className="mt-1 text-xs text-amber-700">
+                      This adjustment will make available stock zero until the
+                      reserved quantity is resolved.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Reason */}
+            <div>
+              <label
+                htmlFor="adjustment-reason"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Adjustment Reason
+              </label>
+
+              <select
+                id="adjustment-reason"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                disabled={submitting}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
+              >
+                <option value={ADJUSTMENT_REASONS.RESTOCK}>Restock</option>
+
+                <option value={ADJUSTMENT_REASONS.ORDER_FULFILLED}>
+                  Order Fulfilled
                 </option>
-              ))}
-            </select>
+
+                <option value={ADJUSTMENT_REASONS.DAMAGE}>Damage</option>
+
+                <option value={ADJUSTMENT_REASONS.LOSS}>Loss</option>
+
+                <option value={ADJUSTMENT_REASONS.CORRECTION}>
+                  Correction
+                </option>
+
+                <option value={ADJUSTMENT_REASONS.RETURN}>Return</option>
+
+                <option value={ADJUSTMENT_REASONS.OTHER}>Other</option>
+              </select>
+            </div>
+
+            {/* Batch number */}
+            <div>
+              <label
+                htmlFor="batch-number"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Batch / Inward Challan
+                <span className="ml-1 font-normal text-slate-400">
+                  (Optional)
+                </span>
+              </label>
+
+              <input
+                id="batch-number"
+                type="text"
+                value={batchNumber}
+                onChange={(event) => setBatchNumber(event.target.value)}
+                disabled={submitting}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
+                placeholder="Enter batch or inward reference"
+              />
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Success */}
+            {success && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+                  <p className="text-sm text-emerald-700">
+                    Inventory updated successfully.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div>
-            <label className="text-xs font-bold text-[#282926] block mb-1">
-              Manufacturer Batch / Inward Challan # (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. BATCH-UT-2026-SEP09 or GRN-4821"
-              value={batchNumber}
-              onChange={(e) => setBatchNumber(e.target.value)}
-              className="w-full gm-input px-3.5 py-2 rounded-xl text-xs font-mono"
-            />
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#E4EEF3] border border-[#9AAED4]/40 text-xs text-[#173885] flex items-start gap-2">
-            <Info className="w-4 h-4 text-[#3C7DDA] shrink-0 mt-0.5" />
-            <p className="text-[11px] text-[#606460] leading-relaxed">
-              Available customer checkout quantities update authoritatively
-              after subtracting any unfulfilled site delivery commitments.
-            </p>
-          </div>
-
-          <div className="flex gap-3 pt-2">
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
             <button
               type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 btn-gm-secondary py-2.5 rounded-xl text-xs font-bold"
+              onClick={handleClose}
+              disabled={submitting}
+              className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
+
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="flex-1 btn-gm-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+              disabled={submitting || success}
+              className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Save className="w-3.5 h-3.5" />
-              <span>
-                {isSubmitting
-                  ? "Saving Adjustment..."
-                  : "Confirm Stock Adjustment"}
-              </span>
+              {submitting ? "Updating..." : "Update Inventory"}
             </button>
           </div>
         </form>
@@ -229,3 +461,5 @@ export const StockAdjustmentModal = ({
     </div>
   );
 };
+
+export default StockAdjustmentModal;

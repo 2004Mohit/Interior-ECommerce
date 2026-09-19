@@ -100,3 +100,5 @@ export const SeoHead = ({
 
   return null;
 };
+
+export default SeoHead;
