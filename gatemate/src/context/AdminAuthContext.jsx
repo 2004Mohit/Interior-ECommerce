@@ -5,7 +5,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabaseAdmin } from "../lib/supabaseClient";
 import {
   adminPermissionService,
   ADMIN_PERMISSIONS,
@@ -25,7 +25,7 @@ export const AdminAuthProvider = ({ children }) => {
       const {
         data: { session },
         error: sessionError,
-      } = await supabase.auth.getSession();
+      } = await supabaseAdmin.auth.getSession();
 
       if (sessionError) {
         throw sessionError;
@@ -50,7 +50,7 @@ export const AdminAuthProvider = ({ children }) => {
        * - frontend hardcoded values
        */
       const { data: role, error: roleError } =
-        await supabase.rpc("get_auth_role");
+        await supabaseAdmin.rpc("get_auth_role");
 
       if (roleError) {
         throw roleError;
@@ -81,7 +81,7 @@ export const AdminAuthProvider = ({ children }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, _session) => {
+    } = supabaseAdmin.auth.onAuthStateChange((_event, _session) => {
       loadAdminSession();
     });
 
@@ -94,7 +94,7 @@ export const AdminAuthProvider = ({ children }) => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseAdmin.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
@@ -108,10 +108,10 @@ export const AdminAuthProvider = ({ children }) => {
        * registered as an active GateMate Admin.
        */
       const { data: role, error: roleError } =
-        await supabase.rpc("get_auth_role");
+        await supabaseAdmin.rpc("get_auth_role");
 
       if (roleError) {
-        await supabase.auth.signOut();
+        await supabaseAdmin.auth.signOut();
 
         return {
           error: {
@@ -121,7 +121,7 @@ export const AdminAuthProvider = ({ children }) => {
       }
 
       if (role !== "ADMIN") {
-        await supabase.auth.signOut();
+        await supabaseAdmin.auth.signOut();
 
         return {
           error: {
@@ -146,7 +146,7 @@ export const AdminAuthProvider = ({ children }) => {
     setLoading(true);
 
     try {
-      await supabase.auth.signOut();
+      await supabaseAdmin.auth.signOut();
     } finally {
       setAdminUser(null);
       setPermissions([]);

@@ -1,10 +1,9 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { USER_ROLES } from "../../services/roleService";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 
 export const AdminProtectedRoute = ({ children }) => {
-  const { user, role, loading } = useAuth();
+  const { adminUser, loading, isAdminAuthenticated } = useAdminAuth();
 
   if (loading) {
     return (
@@ -14,10 +13,11 @@ export const AdminProtectedRoute = ({ children }) => {
     );
   }
 
-  // Not logged in or not admin
-  if (!user || role !== USER_ROLES.ADMIN) {
+  if (!adminUser || !isAdminAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
   return children;
 };
+
+export default AdminProtectedRoute;

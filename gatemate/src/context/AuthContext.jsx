@@ -5,7 +5,12 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { supabase } from "../lib/supabaseClient";
+import {
+  supabaseCustomer,
+  supabaseAdmin,
+  supabaseVendor,
+  transferAuthSession,
+} from "../lib/supabaseClient";
 import { roleService, USER_ROLES } from "../services/roleService";
 
 const AuthContext = createContext({});
@@ -13,6 +18,7 @@ const AuthContext = createContext({});
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
+  const [error, setError] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -54,11 +60,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      handleSessionResolution(initialSession);
-    });
+    supabaseCustomer.auth
+      .getSession()
+      .then(({ data: { session: initialSession } }) => {
+        handleSessionResolution(initialSession);
+      });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    const { data: authListener } = supabaseCustomer.auth.onAuthStateChange(
       async (_event, newSession) => {
         await handleSessionResolution(newSession);
       },
@@ -71,39 +79,147 @@ export const AuthProvider = ({ children }) => {
 
   const loginWithPassword = async (email, password) => {
     setLoading(true);
-    const cleanEmail = (email || "").trim().toLowerCase();
+    setError(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: cleanEmail,
-      password,
-    });
+    try {
+      const cleanEmail = email?.trim().toLowerCase();
 
-    if (error) {
+      if (!cleanEmail) {
+        throw new Error("Please enter your email address.");
+      }
+
+      if (!password) {
+        throw new Error("Please enter your password.");
+      }
+
+      /*
+       * Authenticate through the common Customer client first.
+       */
+      const { data, error } = await supabaseCustomer.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const authenticatedUser = data?.user;
+      const authenticatedSession = data?.session;
+
+      if (!authenticatedUser || !authenticatedSession) {
+        throw new Error("Authentication session could not be established.");
+      }
+
+      /*
+       * Resolve the account role.
+       */
+      const detectedRole = await roleService.resolveUserRole(authenticatedUser);
+
+      /*
+       * Normalize role.
+       */
+      const normalizedRole = String(
+        detectedRole ||
+          authenticatedUser?.app_metadata?.role ||
+          authenticatedUser?.app_metadata?.ROLE ||
+          "CUSTOMER",
+      ).toUpperCase();
+
+      let activeSession = authenticatedSession;
+
+      /*
+       * =========================================================
+       * ADMIN
+       * =========================================================
+       *
+       * The login happened through supabaseCustomer.
+       *
+       * Move the session to the dedicated Admin client before
+       * navigating to the Admin portal.
+       */
+      if (normalizedRole === "ADMIN") {
+        const transferred = await transferAuthSession(
+          authenticatedSession,
+          supabaseAdmin,
+        );
+
+        activeSession = transferred?.session || authenticatedSession;
+
+        /*
+         * Remove only the temporary Customer-client session.
+         *
+         * scope: "local" is important.
+         */
+        await supabaseCustomer.auth.signOut({
+          scope: "local",
+        });
+
+        setUser(authenticatedUser);
+        setSession(activeSession);
+        setRole("ADMIN");
+
+        return {
+          user: authenticatedUser,
+          session: activeSession,
+          role: "ADMIN",
+          destination: "/admin/dashboard",
+        };
+      }
+
+      /*
+       * =========================================================
+       * VENDOR
+       * =========================================================
+       */
+      if (normalizedRole === "VENDOR") {
+        const transferred = await transferAuthSession(
+          authenticatedSession,
+          supabaseVendor,
+        );
+
+        activeSession = transferred?.session || authenticatedSession;
+
+        await supabaseCustomer.auth.signOut({
+          scope: "local",
+        });
+
+        setUser(authenticatedUser);
+        setSession(activeSession);
+        setRole("VENDOR");
+
+        return {
+          user: authenticatedUser,
+          session: activeSession,
+          role: "VENDOR",
+          destination: "/vendor/dashboard",
+        };
+      }
+
+      /*
+       * =========================================================
+       * CUSTOMER
+       * =========================================================
+       */
+      setUser(authenticatedUser);
+      setSession(activeSession);
+      setRole("CUSTOMER");
+
+      return {
+        user: authenticatedUser,
+        session: activeSession,
+        role: "CUSTOMER",
+        destination: "/",
+      };
+    } catch (err) {
+      console.error("Login failed:", err);
+
+      setError(err?.message || "Unable to sign in. Please try again.");
+
+      throw err;
+    } finally {
       setLoading(false);
-      throw error;
     }
-
-    const authenticatedUser = data.user;
-    setUser(authenticatedUser);
-    setSession(data.session);
-
-    const detectedRole = await roleService.resolveUserRole(authenticatedUser);
-    setRole(detectedRole);
-    setLoading(false);
-
-    let destination = null;
-    if (detectedRole === USER_ROLES.ADMIN) {
-      destination = "/admin";
-    } else if (detectedRole === USER_ROLES.VENDOR) {
-      destination = "/vendor/dashboard";
-    }
-
-    return {
-      user: authenticatedUser,
-      session: data.session,
-      role: detectedRole,
-      destination,
-    };
   };
 
   const registerWithEmailPassword = async (
@@ -116,7 +232,7 @@ export const AuthProvider = ({ children }) => {
     const cleanEmail = (email || "").trim().toLowerCase();
     const cleanPhone = (phone || "").trim().replace(/\D/g, "");
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabaseCustomer.auth.signUp({
       email: cleanEmail,
       password,
       options: {
@@ -155,7 +271,9 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setLoading(true);
     try {
-      await supabase.auth.signOut();
+      await supabaseCustomer.auth.signOut({
+        scope: "local",
+      });
     } catch {
       // Ignored fallback
     } finally {

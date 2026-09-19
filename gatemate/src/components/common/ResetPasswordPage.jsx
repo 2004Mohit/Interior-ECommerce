@@ -7,7 +7,11 @@ import {
   ArrowRight,
   KeyRound,
 } from "lucide-react";
-import { supabase } from "../../lib/supabaseClient";
+import {
+  supabaseAdmin,
+  supabaseVendor,
+  supabaseCustomer,
+} from "../../lib/supabaseClient";
 import { passwordRecoveryService } from "../../services/passwordRecoveryService";
 import { SeoHead } from "./SeoHead";
 
@@ -15,6 +19,13 @@ export const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const role = (searchParams.get("role") || "CUSTOMER").toUpperCase();
+
+  const authClient =
+    role === "ADMIN"
+      ? supabaseAdmin
+      : role === "VENDOR"
+        ? supabaseVendor
+        : supabaseCustomer;
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,7 +41,7 @@ export const ResetPasswordPage = () => {
       try {
         const {
           data: { session },
-        } = await supabase.auth.getSession();
+        } = await authClient.auth.getSession();
         if (session) {
           setHasValidSession(true);
         } else {
@@ -51,11 +62,13 @@ export const ResetPasswordPage = () => {
 
     checkSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setHasValidSession(true);
-      }
-    });
+    const { data: authListener } = authClient.auth.onAuthStateChange(
+      (event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setHasValidSession(true);
+        }
+      },
+    );
 
     return () => {
       authListener?.subscription?.unsubscribe?.();
@@ -86,7 +99,7 @@ export const ResetPasswordPage = () => {
         if (role === "VENDOR") {
           navigate("/vendor/login");
         } else if (role === "ADMIN") {
-          navigate("/admin/login");
+          navigate("/");
         } else {
           navigate("/");
         }

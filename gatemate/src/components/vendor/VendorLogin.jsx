@@ -10,6 +10,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+import {
+  supabaseVendor,
+  supabaseAdmin,
+  transferAuthSession,
+} from "../../lib/supabaseClient";
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import { vendorIdentityService } from "../../services/vendorIdentityService";
 import { ForgotPasswordModal } from "../common/ForgotPasswordModal";
@@ -21,8 +26,8 @@ export const VendorLogin = () => {
 
   const { login, loading: authLoading } = useVendorAuth();
 
-  const [email, setEmail] = useState("depot@punemegaconstruct.in");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -94,6 +99,23 @@ export const VendorLogin = () => {
         authenticatedUser.app_metadata?.ROLE;
 
       if (appRole === "ADMIN") {
+        /*
+         * The login happened through supabaseVendor.
+         *
+         * Move the authenticated session into the dedicated
+         * Admin Supabase client before navigating to the Admin portal.
+         */
+        await transferAuthSession(result.session, supabaseAdmin);
+
+        /*
+         * Remove only the temporary Vendor-client session.
+         * Do NOT use global signOut because we do not want to
+         * invalidate the authenticated Supabase session.
+         */
+        await supabaseVendor.auth.signOut({
+          scope: "local",
+        });
+
         navigate("/admin/dashboard", {
           replace: true,
         });

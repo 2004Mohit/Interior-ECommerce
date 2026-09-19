@@ -3,7 +3,25 @@
  * Powered by Supabase Auth (Magic Link / PKCE Email Verification)
  */
 
-import { supabase } from "../lib/supabaseClient";
+import {
+  supabaseAdmin,
+  supabaseVendor,
+  supabaseCustomer,
+} from "../lib/supabaseClient";
+
+const getAuthClient = (role = "CUSTOMER") => {
+  switch (role) {
+    case "ADMIN":
+      return supabaseAdmin;
+
+    case "VENDOR":
+      return supabaseVendor;
+
+    case "CUSTOMER":
+    default:
+      return supabaseCustomer;
+  }
+};
 
 const VENDOR_ACCOUNTS_STORAGE_KEY = "gatemate_vendor_registered_accounts";
 
@@ -37,9 +55,14 @@ export const passwordRecoveryService = {
     const redirectUrl = `${window.location.origin}/reset-password?role=${encodeURIComponent(role)}`;
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-        redirectTo: redirectUrl,
-      });
+      const authClient = getAuthClient(role);
+
+      const { error } = await authClient.auth.resetPasswordForEmail(
+        cleanEmail,
+        {
+          redirectTo: redirectUrl,
+        },
+      );
 
       if (error) {
         console.warn("Supabase resetPasswordForEmail notice:", error.message);
@@ -64,7 +87,9 @@ export const passwordRecoveryService = {
     }
 
     try {
-      const { data, error } = await supabase.auth.updateUser({
+      const authClient = getAuthClient(role);
+
+      const { data, error } = await authClient.auth.updateUser({
         password: newPassword,
       });
 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabaseVendor } from "../lib/supabaseClient";
 
 const VendorAuthContext = createContext(null);
 
@@ -19,7 +19,7 @@ export const VendorAuthProvider = ({ children }) => {
         const {
           data: { session },
           error: sessionError,
-        } = await supabase.auth.getSession();
+        } = await supabaseVendor.auth.getSession();
 
         if (sessionError) {
           console.error("Failed to get vendor session:", sessionError);
@@ -38,7 +38,10 @@ export const VendorAuthProvider = ({ children }) => {
             authUser?.user_metadata?.account_type ||
             authUser?.user_metadata?.accountType;
 
-          if (authUser && accountType === "VENDOR") {
+          const appRole =
+            authUser?.app_metadata?.role || authUser?.app_metadata?.ROLE;
+
+          if (authUser && (accountType === "VENDOR" || appRole === "ADMIN")) {
             setVendorUser(authUser);
           } else {
             setVendorUser(null);
@@ -61,7 +64,7 @@ export const VendorAuthProvider = ({ children }) => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabaseVendor.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
 
       const authUser = session?.user ?? null;
@@ -75,8 +78,13 @@ export const VendorAuthProvider = ({ children }) => {
         authUser.user_metadata?.account_type ||
         authUser.user_metadata?.accountType;
 
-      // Only treat VENDOR accounts as vendor-authenticated users.
-      if (accountType === "VENDOR") {
+      const appRole =
+        authUser.app_metadata?.role || authUser.app_metadata?.ROLE;
+
+      // Allow both Vendor and Admin accounts to complete
+      // authentication through the Vendor Sign In page.
+      // VendorLogin will transfer ADMIN sessions to supabaseAdmin.
+      if (accountType === "VENDOR" || appRole === "ADMIN") {
         setVendorUser(authUser);
       } else {
         setVendorUser(null);
@@ -111,7 +119,7 @@ export const VendorAuthProvider = ({ children }) => {
 
     try {
       const { data, error: signInError } =
-        await supabase.auth.signInWithPassword({
+        await supabaseVendor.auth.signInWithPassword({
           email: cleanEmail,
           password,
         });
@@ -141,8 +149,25 @@ export const VendorAuthProvider = ({ children }) => {
         authUser.user_metadata?.account_type ||
         authUser.user_metadata?.accountType;
 
-      if (accountType && accountType !== "VENDOR") {
-        await supabase.auth.signOut();
+      const appRole =
+        authUser.app_metadata?.role || authUser.app_metadata?.ROLE;
+
+      // ADMIN accounts are allowed to authenticate through the
+      // Vendor Sign In page. VendorLogin will transfer the session
+      // to the dedicated Admin Supabase client.
+      if (appRole === "ADMIN") {
+        setVendorUser(authUser);
+
+        return {
+          user: authUser,
+          session: data.session,
+          role: "ADMIN",
+        };
+      }
+
+      // All non-admin accounts must be actual vendors.
+      if (accountType !== "VENDOR") {
+        await supabaseVendor.auth.signOut({ scope: "local" });
 
         const err = new Error(
           "This account is not registered as a vendor account. Please use the customer login.",
@@ -151,6 +176,14 @@ export const VendorAuthProvider = ({ children }) => {
         setError(err.message);
         throw err;
       }
+
+      setVendorUser(authUser);
+
+      return {
+        user: authUser,
+        session: data.session,
+        role: "VENDOR",
+      };
 
       setVendorUser(authUser);
 
@@ -215,7 +248,7 @@ export const VendorAuthProvider = ({ children }) => {
        */
       const redirectUrl = `${window.location.origin}${VENDOR_CALLBACK_PATH}`;
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabaseVendor.auth.signUp({
         email: cleanEmail,
         password,
         options: {
@@ -275,7 +308,7 @@ export const VendorAuthProvider = ({ children }) => {
     setError(null);
 
     try {
-      const { error: signOutError } = await supabase.auth.signOut();
+      const { error: signOutError } = await supabaseVendor.auth.signOut();
 
       if (signOutError) {
         setError(signOutError.message);
@@ -303,7 +336,7 @@ export const VendorAuthProvider = ({ children }) => {
       const {
         data: { session },
         error: sessionError,
-      } = await supabase.auth.getSession();
+      } = await supabaseVendor.auth.getSession();
 
       if (sessionError) {
         throw sessionError;
@@ -318,7 +351,7 @@ export const VendorAuthProvider = ({ children }) => {
        * /vendor/login.
        */
       if (session) {
-        await supabase.auth.signOut();
+        await supabaseVendor.auth.signOut();
       }
 
       setVendorUser(null);
