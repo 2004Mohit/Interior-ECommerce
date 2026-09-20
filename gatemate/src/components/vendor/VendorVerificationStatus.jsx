@@ -16,6 +16,7 @@ import {
   Edit2,
   RotateCcw,
   Lock,
+  Eye,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import {
@@ -32,6 +33,7 @@ export const VendorVerificationStatus = () => {
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewingDocument, setViewingDocument] = useState(null);
 
   const loadApplication = async () => {
     if (!vendorUser?.id) return;
@@ -151,6 +153,31 @@ export const VendorVerificationStatus = () => {
 
   const statusInfo = getStatusBadge();
   const StatusIcon = statusInfo.icon;
+
+  const handleViewDocument = async (documentPath, documentName) => {
+    if (!documentPath) {
+      setError("This document is not available.");
+      return;
+    }
+
+    try {
+      setViewingDocument(documentName);
+
+      const signedUrl =
+        await vendorOnboardingService.getVerificationDocumentUrl(
+          vendorUser.id,
+          documentPath,
+        );
+
+      window.open(signedUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      console.error("Failed to open verification document:", err);
+
+      setError(err?.message || "Unable to open the verification document.");
+    } finally {
+      setViewingDocument(null);
+    }
+  };
 
   const handleEditAndResubmit = () => {
     navigate("/vendor/onboarding");
@@ -470,50 +497,138 @@ export const VendorVerificationStatus = () => {
           <h4 className="text-xs font-bold text-[#173885] uppercase tracking-wider">
             Submitted Verification Documents
           </h4>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3.5 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] space-y-1">
+            {/* GST Certificate */}
+            <div className="p-3.5 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] space-y-2">
               <span className="text-[10px] font-bold text-[#6F8A92] uppercase">
                 GST Registration (REG-06)
               </span>
+
               <div className="font-semibold text-[#282926] truncate">
                 {application?.verificationDocuments?.gstCertificateName ||
                   "Not Uploaded"}
               </div>
-              <span className="text-[10px] text-emerald-700 font-bold block">
-                {application?.verificationDocuments?.gstCertificateName
-                  ? "Securely Stored in Private Storage"
-                  : "Pending Upload"}
-              </span>
+
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="text-[10px] text-emerald-700 font-bold">
+                  {application?.verificationDocuments?.gstCertificateName
+                    ? "Securely Stored"
+                    : "Pending Upload"}
+                </span>
+
+                {application?.verificationDocuments?.gstCertificateUrl && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleViewDocument(
+                        application.verificationDocuments.gstCertificateUrl,
+                        application.verificationDocuments.gstCertificateName,
+                      )
+                    }
+                    disabled={
+                      viewingDocument ===
+                      application.verificationDocuments.gstCertificateName
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#C9D9E8] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#3C7DDA] transition hover:border-[#3C7DDA] hover:bg-[#EEF5FB] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+
+                    {viewingDocument ===
+                    application.verificationDocuments.gstCertificateName
+                      ? "Opening..."
+                      : "View Document"}
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] space-y-1">
+            {/* PAN Card */}
+            <div className="p-3.5 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] space-y-2">
               <span className="text-[10px] font-bold text-[#6F8A92] uppercase">
                 Business PAN Card
               </span>
+
               <div className="font-semibold text-[#282926] truncate">
                 {application?.verificationDocuments?.panCardName ||
                   "Not Uploaded"}
               </div>
-              <span className="text-[10px] text-emerald-700 font-bold block">
-                {application?.verificationDocuments?.panCardName
-                  ? "Securely Stored in Private Storage"
-                  : "Pending Upload"}
-              </span>
+
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="text-[10px] text-emerald-700 font-bold">
+                  {application?.verificationDocuments?.panCardName
+                    ? "Securely Stored"
+                    : "Pending Upload"}
+                </span>
+
+                {application?.verificationDocuments?.panCardUrl && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleViewDocument(
+                        application.verificationDocuments.panCardUrl,
+                        application.verificationDocuments.panCardName,
+                      )
+                    }
+                    disabled={
+                      viewingDocument ===
+                      application.verificationDocuments.panCardName
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#C9D9E8] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#3C7DDA] transition hover:border-[#3C7DDA] hover:bg-[#EEF5FB] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+
+                    {viewingDocument ===
+                    application.verificationDocuments.panCardName
+                      ? "Opening..."
+                      : "View Document"}
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] space-y-1">
+            {/* Cancelled Cheque */}
+            <div className="p-3.5 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] space-y-2">
               <span className="text-[10px] font-bold text-[#6F8A92] uppercase">
                 Cancelled Cheque
               </span>
+
               <div className="font-semibold text-[#282926] truncate">
                 {application?.verificationDocuments?.cancelledChequeName ||
                   "Not Uploaded"}
               </div>
-              <span className="text-[10px] text-emerald-700 font-bold block">
-                {application?.verificationDocuments?.cancelledChequeName
-                  ? "Securely Stored in Private Storage"
-                  : "Pending Upload"}
-              </span>
+
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <span className="text-[10px] text-emerald-700 font-bold">
+                  {application?.verificationDocuments?.cancelledChequeName
+                    ? "Securely Stored"
+                    : "Pending Upload"}
+                </span>
+
+                {application?.verificationDocuments?.cancelledChequeUrl && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleViewDocument(
+                        application.verificationDocuments.cancelledChequeUrl,
+                        application.verificationDocuments.cancelledChequeName,
+                      )
+                    }
+                    disabled={
+                      viewingDocument ===
+                      application.verificationDocuments.cancelledChequeName
+                    }
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#C9D9E8] bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#3C7DDA] transition hover:border-[#3C7DDA] hover:bg-[#EEF5FB] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+
+                    {viewingDocument ===
+                    application.verificationDocuments.cancelledChequeName
+                      ? "Opening..."
+                      : "View Document"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

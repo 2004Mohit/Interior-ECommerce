@@ -216,10 +216,7 @@ export const VendorProductForm = () => {
          * Current service signature is:
          * getVendorProductById(productId, vendorId?)
          */
-        const prod = await vendorProductService.getVendorProductById(
-          id,
-          vendorUser?.id || null,
-        );
+        const prod = await vendorProductService.getVendorProductById(id);
 
         if (cancelled || !prod) {
           return;

@@ -227,4 +227,131 @@ export const vendorOnboardingService = {
       currentStep: data.current_step || 1,
     };
   },
+
+  /**
+   * Generate a short-lived signed URL for the vendor's
+   * own verification document.
+   *
+   * Supports both:
+   *
+   * 1. Existing files:
+   *    vendor-verification-docs/{vendorId}/{documentType}/{file}
+   *
+   * 2. Future/standard files:
+   *    {vendorId}/{documentType}/{file}
+   */
+  async getVerificationDocumentUrl(userId, documentPath) {
+    if (!userId) {
+      throw new Error("Authenticated vendor is required.");
+    }
+
+    if (!documentPath) {
+      throw new Error("Verification document is not available.");
+    }
+
+    const bucket = "vendor-verification-docs";
+
+    let storedPath = String(documentPath).trim();
+
+    /*
+     * Remove accidental full Storage URL prefixes.
+     */
+    const publicMarker = `/storage/v1/object/public/${bucket}/`;
+    const signMarker = `/storage/v1/object/sign/${bucket}/`;
+
+    if (storedPath.includes(publicMarker)) {
+      storedPath = storedPath.split(publicMarker)[1];
+    } else if (storedPath.includes(signMarker)) {
+      storedPath = storedPath.split(signMarker)[1];
+    }
+
+    /*
+     * Decode URL encoding if the database contains
+     * an encoded storage path.
+     */
+    try {
+      storedPath = decodeURIComponent(storedPath);
+    } catch {
+      // Keep original path if decoding is unnecessary/invalid.
+    }
+
+    /*
+     * IMPORTANT:
+     *
+     * The current uploadService stores existing files as:
+     *
+     * vendor-verification-docs/{userId}/{documentType}/{file}
+     *
+     * Therefore we must NOT remove the bucket prefix
+     * before createSignedUrl().
+     */
+
+    const bucketPrefix = `${bucket}/`;
+
+    let ownershipPath = storedPath;
+
+    if (ownershipPath.startsWith(bucketPrefix)) {
+      ownershipPath = ownershipPath.substring(bucketPrefix.length);
+    }
+
+    /*
+     * Security check.
+     *
+     * The actual vendor-owned portion must begin with
+     * the authenticated user's ID.
+     */
+    const expectedPrefix = `${userId}/`;
+
+    if (!ownershipPath.startsWith(expectedPrefix)) {
+      console.error("Verification document ownership check failed:", {
+        userId,
+        documentPath,
+        storedPath,
+        ownershipPath,
+      });
+
+      throw new Error("You are not authorized to view this document.");
+    }
+
+    /*
+     * Use the ORIGINAL stored path for existing files.
+     */
+    const pathsToTry = [storedPath];
+
+    /*
+     * Also support correctly stored future paths without
+     * the bucket prefix.
+     */
+    if (storedPath.startsWith(bucketPrefix)) {
+      const relativePath = storedPath.substring(bucketPrefix.length);
+
+      if (relativePath !== storedPath) {
+        pathsToTry.push(relativePath);
+      }
+    } else {
+      pathsToTry.push(`${bucketPrefix}${storedPath}`);
+    }
+
+    let lastError = null;
+
+    for (const path of pathsToTry) {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 300);
+
+      if (!error && data?.signedUrl) {
+        return data.signedUrl;
+      }
+
+      lastError = error;
+    }
+
+    console.error("Failed to generate verification document URL:", lastError);
+
+    throw new Error(
+      `Unable to open verification document: ${
+        lastError?.message || "Object not found"
+      }`,
+    );
+  },
 };
