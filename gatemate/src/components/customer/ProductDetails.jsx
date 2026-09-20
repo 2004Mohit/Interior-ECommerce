@@ -26,6 +26,8 @@ import { ProductImage } from "./ProductImage";
 import { SeoHead } from "../common/SeoHead";
 import { seoService } from "../../services/seoService";
 
+import { supabase } from "../../lib/supabaseClient";
+
 export const ProductDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -52,6 +54,20 @@ export const ProductDetails = () => {
   const [pendingAction, setPendingAction] = useState(null);
 
   const [actionSuccessMsg, setActionSuccessMsg] = useState(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      console.log("=== GATEMATE SESSION CHECK ===");
+      console.log("Session:", data.session);
+      console.log("User ID:", data.session?.user?.id);
+      console.log("Email:", data.session?.user?.email);
+      console.log("Error:", error);
+    };
+
+    checkSession();
+  }, []);
 
   /*
    * --------------------------------------------------------------------------

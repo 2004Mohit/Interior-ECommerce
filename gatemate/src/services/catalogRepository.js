@@ -8,7 +8,7 @@
  *   - vendor_profiles
  *   - product_categories
  *   - vendor_inventory
- *   - customer_product_reviews
+ *   - product_reviews
  *
  * Public catalogue rule:
  *   Only PUBLISHED products are visible.
@@ -20,6 +20,11 @@
  *   - No banners
  *   - No promotions
  *   - No localStorage catalogue
+ *
+ * Inventory rule:
+ *   availableStock = on_hand_stock - reserved_stock
+ *
+ * The customer catalogue never exposes negative availability.
  */
 
 import { supabase } from "../lib/supabaseClient";
@@ -164,15 +169,56 @@ const getAvailableStock = (row) => {
     return 0;
   }
 
-  const onHand = toNumber(inventory.on_hand_stock, 0);
+  const onHand = Math.max(0, toNumber(inventory.on_hand_stock, 0));
 
-  const reserved = toNumber(inventory.reserved_stock, 0);
+  const reserved = Math.max(0, toNumber(inventory.reserved_stock, 0));
 
   return Math.max(0, onHand - reserved);
 };
 
+const getOnHandStock = (row) => {
+  const inventory = getInventoryRecord(row);
+
+  if (!inventory) {
+    return 0;
+  }
+
+  return Math.max(0, toNumber(inventory.on_hand_stock, 0));
+};
+
+const getReservedStock = (row) => {
+  const inventory = getInventoryRecord(row);
+
+  if (!inventory) {
+    return 0;
+  }
+
+  return Math.max(0, toNumber(inventory.reserved_stock, 0));
+};
+
+const getLowStockThreshold = (row) => {
+  const inventory = getInventoryRecord(row);
+
+  if (!inventory) {
+    return 0;
+  }
+
+  return Math.max(0, toNumber(inventory.low_stock_threshold, 0));
+};
+
 const isInStock = (row) => {
   return getAvailableStock(row) > 0;
+};
+
+const isLowStock = (row) => {
+  const availableStock = getAvailableStock(row);
+  const threshold = getLowStockThreshold(row);
+
+  return availableStock > 0 && threshold > 0 && availableStock <= threshold;
+};
+
+const isOutOfStock = (row) => {
+  return getAvailableStock(row) <= 0;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -210,8 +256,11 @@ const normalizeDynamicAttributes = (value) => {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Reviews are loaded separately because the current database schema
- * stores customer ratings in customer_product_reviews.
+ * Reviews are loaded separately so a review/RLS problem does not
+ * prevent the customer catalogue from loading.
+ *
+ * Current GateMate schema:
+ *   product_reviews
  *
  * Only PUBLISHED reviews are considered.
  */
@@ -222,55 +271,68 @@ const getReviewStats = async (productIds = []) => {
     return {};
   }
 
-  const { data, error } = await supabase
-    .from("customer_product_reviews")
-    .select(
-      `
-        product_id,
-        customer_product_rating
-      `,
-    )
-    .in("product_id", ids)
-    .eq("status", "PUBLISHED");
+  try {
+    const { data, error } = await supabase
+      .from("product_reviews")
+      .select(
+        `
+          product_id,
+          rating
+        `,
+      )
+      .in("product_id", ids)
+      .eq("moderation_status", "PUBLISHED");
 
-  if (error) {
-    throw new Error(`Unable to load product reviews: ${error.message}`);
+    if (error) {
+      console.warn(
+        "Unable to load product reviews. Catalogue will continue without review stats:",
+        error,
+      );
+
+      return {};
+    }
+
+    const stats = {};
+
+    (data || []).forEach((review) => {
+      const productId = review?.product_id;
+
+      if (!productId) {
+        return;
+      }
+
+      if (!stats[productId]) {
+        stats[productId] = {
+          total: 0,
+          sum: 0,
+          average: 0,
+        };
+      }
+
+      const rating = toNumber(review.rating, 0);
+
+      if (rating >= 1 && rating <= 5) {
+        stats[productId].total += 1;
+        stats[productId].sum += rating;
+      }
+    });
+
+    Object.keys(stats).forEach((productId) => {
+      const item = stats[productId];
+
+      item.average =
+        item.total > 0 ? Number((item.sum / item.total).toFixed(1)) : 0;
+    });
+
+    return stats;
+  } catch (error) {
+    console.warn(
+      "Product review loading failed. Catalogue will continue without review stats:",
+      error,
+    );
+
+    return {};
   }
-
-  const stats = {};
-
-  (data || []).forEach((review) => {
-    const productId = review.product_id;
-
-    if (!productId) {
-      return;
-    }
-
-    if (!stats[productId]) {
-      stats[productId] = {
-        total: 0,
-        sum: 0,
-        average: 0,
-      };
-    }
-
-    const rating = toNumber(review.customer_product_rating, 0);
-
-    if (rating >= 1 && rating <= 5) {
-      stats[productId].total += 1;
-
-      stats[productId].sum += rating;
-    }
-  });
-
-  Object.keys(stats).forEach((productId) => {
-    const item = stats[productId];
-
-    item.average =
-      item.total > 0 ? Number((item.sum / item.total).toFixed(1)) : 0;
-  });
-
-  return stats;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -297,10 +359,8 @@ const buildSearchText = (row) => {
     row?.unit,
     ...toArray(row?.features),
     dynamicText,
-
     category?.name,
     category?.descriptor,
-
     vendor?.business_name,
     vendor?.trade_name,
     vendor?.city,
@@ -506,6 +566,12 @@ const mapProductRow = (row, reviewStats = {}) => {
 
   const availableStock = getAvailableStock(row);
 
+  const onHandStock = getOnHandStock(row);
+
+  const reservedStock = getReservedStock(row);
+
+  const lowStockThreshold = getLowStockThreshold(row);
+
   const dynamicAttributes = normalizeDynamicAttributes(row.dynamic_attributes);
 
   const review = reviewStats[row.id] || {
@@ -518,6 +584,11 @@ const mapProductRow = (row, reviewStats = {}) => {
   const originalPrice = toNullableNumber(row.original_price);
 
   const isExpress = Boolean(row.is_express_30min_available);
+
+  const outOfStock = availableStock <= 0;
+
+  const lowStock =
+    !outOfStock && lowStockThreshold > 0 && availableStock <= lowStockThreshold;
 
   return {
     /* ---------------------------------------------------------------------- */
@@ -590,7 +661,23 @@ const mapProductRow = (row, reviewStats = {}) => {
 
     availableStock,
 
+    onHandStock,
+
+    reservedStock,
+
+    lowStockThreshold,
+
     isInStock: availableStock > 0,
+
+    isOutOfStock: outOfStock,
+
+    isLowStock: lowStock,
+
+    stockStatus: outOfStock
+      ? "OUT_OF_STOCK"
+      : lowStock
+        ? "LOW_STOCK"
+        : "IN_STOCK",
 
     inventory: inventory
       ? {
@@ -598,17 +685,38 @@ const mapProductRow = (row, reviewStats = {}) => {
 
           vendorId: inventory.vendor_id || row.vendor_id,
 
-          onHandStock: toNumber(inventory.on_hand_stock, 0),
+          onHandStock,
 
-          reservedStock: toNumber(inventory.reserved_stock, 0),
+          reservedStock,
 
           availableStock,
 
-          lowStockThreshold: toNumber(inventory.low_stock_threshold, 0),
+          lowStockThreshold,
 
           updatedAt: inventory.updated_at || null,
         }
-      : null,
+      : {
+          /*
+           * Missing inventory means there is currently
+           * no readable inventory record.
+           *
+           * The actual RLS/public inventory fix must
+           * make this object populate for customer users.
+           */
+          productId: row.id,
+
+          vendorId: row.vendor_id || null,
+
+          onHandStock: 0,
+
+          reservedStock: 0,
+
+          availableStock: 0,
+
+          lowStockThreshold: 0,
+
+          updatedAt: null,
+        },
 
     /* ---------------------------------------------------------------------- */
     /* Express delivery                                                       */
@@ -699,45 +807,8 @@ const mapProductRow = (row, reviewStats = {}) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* Supabase select                                                             */
+/* Supabase select                                                            */
 /* -------------------------------------------------------------------------- */
-
-/**
- * IMPORTANT:
- *
- * product_categories actual columns from project SQL:
- *
- *   id
- *   slug
- *   name
- *   descriptor
- *   image_url
- *   display_order
- *   is_active
- *
- * vendor_profiles actual columns used here:
- *
- *   id
- *   business_name
- *   trade_name
- *   contact_person
- *   designation
- *   city
- *   state
- *   locality
- *   pincode
- *   serviceable_pincodes
- *   is_express_30min_enabled
- *
- * vendor_inventory actual columns:
- *
- *   product_id
- *   vendor_id
- *   on_hand_stock
- *   reserved_stock
- *   low_stock_threshold
- *   updated_at
- */
 
 const PRODUCT_SELECT = `
   *,
@@ -875,11 +946,10 @@ const sortProducts = (products, sort = "relevance", search = "") => {
 /* -------------------------------------------------------------------------- */
 
 export const catalogRepository = {
-  /**
-   * ------------------------------------------------------------------------
-   * Get active categories
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Get active categories                                                     */
+  /* ------------------------------------------------------------------------ */
+
   async getCategories() {
     const { data, error } = await supabase
       .from("product_categories")
@@ -922,11 +992,10 @@ export const catalogRepository = {
     }));
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Get category by slug
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Get category by slug                                                      */
+  /* ------------------------------------------------------------------------ */
+
   async getCategoryBySlug(slug) {
     if (!slug) {
       return null;
@@ -976,11 +1045,10 @@ export const catalogRepository = {
     };
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Get product by slug
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Get product by slug                                                       */
+  /* ------------------------------------------------------------------------ */
+
   async getProductBySlug(slug) {
     if (!slug) {
       return null;
@@ -1006,11 +1074,10 @@ export const catalogRepository = {
     return mapProductRow(data, reviewStats);
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Query customer catalogue
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Query customer catalogue                                                  */
+  /* ------------------------------------------------------------------------ */
+
   async queryCatalog({
     search = "",
     category = "",
@@ -1039,9 +1106,9 @@ export const catalogRepository = {
 
     const selectedCategory = categorySlug || category;
 
-    /*
-     * Database-level filters
-     */
+    /* ---------------------------------------------------------------------- */
+    /* Database-level filters                                                  */
+    /* ---------------------------------------------------------------------- */
 
     if (selectedCategory && selectedCategory !== "ALL") {
       query = query.eq("category_slug", selectedCategory);
@@ -1064,12 +1131,11 @@ export const catalogRepository = {
     }
 
     /*
-     * Do not paginate at Supabase level yet.
+     * Do not paginate at Supabase level.
      *
-     * Some filters are evaluated after the joined inventory,
-     * vendor serviceability and dynamic attributes are loaded.
-     *
-     * Pagination is therefore applied after filtering.
+     * Search, inventory, vendor serviceability,
+     * dynamic attributes and some filters are
+     * evaluated after the joined records load.
      */
 
     const { data, error } = await query;
@@ -1190,11 +1256,10 @@ export const catalogRepository = {
     };
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Search products
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Search products                                                           */
+  /* ------------------------------------------------------------------------ */
+
   async searchProducts(search, options = {}) {
     return this.queryCatalog({
       ...options,
@@ -1203,11 +1268,10 @@ export const catalogRepository = {
     });
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Products by category
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Products by category                                                      */
+  /* ------------------------------------------------------------------------ */
+
   async getProductsByCategory(categorySlug, options = {}) {
     if (!categorySlug) {
       return {
@@ -1227,11 +1291,10 @@ export const catalogRepository = {
     });
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Express products
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Express products                                                          */
+  /* ------------------------------------------------------------------------ */
+
   async getExpressProducts(options = {}) {
     return this.queryCatalog({
       ...options,
@@ -1240,11 +1303,10 @@ export const catalogRepository = {
     });
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * In-stock products
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* In-stock products                                                         */
+  /* ------------------------------------------------------------------------ */
+
   async getInStockProducts(options = {}) {
     return this.queryCatalog({
       ...options,
@@ -1253,64 +1315,56 @@ export const catalogRepository = {
     });
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Featured products
-   * ------------------------------------------------------------------------
-   *
-   * There is no featured flag in the supplied schema.
-   *
-   * Therefore this uses published products ordered by
-   * current catalogue relevance rather than inventing
-   * a database column.
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Featured products                                                         */
+  /* ------------------------------------------------------------------------ */
+
   async getFeaturedProducts(limit = 12) {
+    const requestedLimit = Math.max(1, Number(limit) || 12);
+
     const result = await this.queryCatalog({
       sort: "newest",
 
-      limit: Math.max(1, Number(limit) || 12),
+      /*
+       * Fetch enough products so that
+       * available products can be preferred.
+       */
+      limit: Math.max(requestedLimit, 50),
 
       offset: 0,
     });
 
     const products = result.products || [];
 
-    /*
-     * Prefer products that are actually available.
-     */
     const inStock = products.filter((product) => product.isInStock);
 
     const outOfStock = products.filter((product) => !product.isInStock);
 
-    return [...inStock, ...outOfStock].slice(
-      0,
-      Math.max(1, Number(limit) || 12),
-    );
+    return [...inStock, ...outOfStock].slice(0, requestedLimit);
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Filter facets
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Filter facets                                                             */
+  /* ------------------------------------------------------------------------ */
+
   async getFilterFacets() {
     const { data, error } = await supabase
       .from("vendor_products")
       .select(
         `
-          brand,
-          unit,
-          price,
-          category_slug,
-          dynamic_attributes,
-          is_express_30min_available,
-          vendor_inventory (
-            product_id,
-            vendor_id,
-            on_hand_stock,
-            reserved_stock
-          )
-        `,
+            brand,
+            unit,
+            price,
+            category_slug,
+            dynamic_attributes,
+            is_express_30min_available,
+            vendor_inventory (
+              product_id,
+              vendor_id,
+              on_hand_stock,
+              reserved_stock
+            )
+          `,
       )
       .eq("status", PUBLISHED_STATUS);
 
@@ -1421,11 +1475,10 @@ export const catalogRepository = {
     };
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Verify product is publicly available
-   * ------------------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* Verify product is publicly available                                      */
+  /* ------------------------------------------------------------------------ */
+
   async isProductPublished(productId) {
     if (!productId) {
       return false;
@@ -1450,6 +1503,12 @@ export const catalogRepository = {
 /* Named exports                                                              */
 /* -------------------------------------------------------------------------- */
 
-export { mapProductRow, getAvailableStock, isInStock };
+export {
+  mapProductRow,
+  getAvailableStock,
+  isInStock,
+  isOutOfStock,
+  isLowStock,
+};
 
 export default catalogRepository;
