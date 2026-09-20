@@ -363,73 +363,51 @@ export const ProductDetails = () => {
    * --------------------------------------------------------------------------
    */
 
-  const executeProtectedAction = (actionType) => {
-    if (!product) {
-      return;
-    }
-
+  const executeProtectedAction = async (actionType) => {
     if (!user) {
       setPendingAction(actionType);
       setAuthModalOpen(true);
       return;
     }
 
+    if (!product) {
+      return;
+    }
+
     if (actionType === "cart") {
-      if (!isInStock) {
-        setActionSuccessMsg("This product is currently out of stock.");
+      const selectedQuantity = Math.max(
+        Number(quantity || 1),
+        Number(product.moq || 1),
+      );
 
-        setTimeout(() => {
-          setActionSuccessMsg(null);
-        }, 3500);
+      const success = await addToCart(product, selectedQuantity);
 
+      if (!success) {
+        setActionSuccessMsg(null);
         return;
-      }
-
-      /*
-       * CartContext currently accepts a product object.
-       *
-       * Quantity is added one unit at a time to preserve compatibility
-       * with the existing cart implementation.
-       */
-      for (let index = 0; index < quantity; index += 1) {
-        addToCart(product);
       }
 
       setActionSuccessMsg(
-        `Added ${quantity} ${product.unit || "unit"}(s) to your shopping bag.`,
+        `Added ${selectedQuantity} ${
+          product.unit || "unit"
+        }(s) to your shopping bag.`,
       );
 
-      setTimeout(() => {
-        setActionSuccessMsg(null);
-      }, 3500);
+      setTimeout(() => setActionSuccessMsg(null), 3500);
+    } else if (actionType === "buy_now") {
+      const selectedQuantity = Math.max(
+        Number(quantity || 1),
+        Number(product.moq || 1),
+      );
 
-      return;
-    }
+      const success = await addToCart(product, selectedQuantity);
 
-    if (actionType === "buy_now") {
-      if (!isInStock) {
-        setActionSuccessMsg("This product is currently out of stock.");
-
-        setTimeout(() => {
-          setActionSuccessMsg(null);
-        }, 3500);
-
+      if (!success) {
         return;
       }
 
-      /*
-       * Preserve compatibility with the existing CartContext.
-       */
-      for (let index = 0; index < quantity; index += 1) {
-        addToCart(product);
-      }
-
       navigate("/checkout");
-
-      return;
-    }
-
-    if (actionType === "wishlist") {
+    } else if (actionType === "wishlist") {
       toggleWishlist(product);
     }
   };
