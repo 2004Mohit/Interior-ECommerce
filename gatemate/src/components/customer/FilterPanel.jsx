@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+
 import { productService } from "../../services/productService";
 
 export const FilterPanel = ({
@@ -21,6 +22,7 @@ export const FilterPanel = ({
   onCloseMobileDrawer,
 }) => {
   const [categories, setCategories] = useState([]);
+
   const [facets, setFacets] = useState({
     brands: [],
     units: [],
@@ -30,13 +32,24 @@ export const FilterPanel = ({
   });
 
   const [loading, setLoading] = useState(true);
+
   const [facetError, setFacetError] = useState("");
+
+  /*
+   * --------------------------------------------------------------------------
+   * LOAD CUSTOMER FILTER DATA
+   * --------------------------------------------------------------------------
+   *
+   * Categories come from the live Supabase product_categories table.
+   * Only active categories are allowed into the customer filter.
+   */
 
   useEffect(() => {
     let mounted = true;
 
     const loadFilterData = async () => {
       setLoading(true);
+
       setFacetError("");
 
       try {
@@ -45,21 +58,46 @@ export const FilterPanel = ({
           productService.getFilterFacets(),
         ]);
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
-        setCategories(Array.isArray(categoryData) ? categoryData : []);
+        /*
+         * Defensive active-category validation.
+         *
+         * productService should already return active categories,
+         * but the customer UI should never display an inactive category
+         * even if an unexpected service response contains one.
+         */
+        const activeCategories = Array.isArray(categoryData)
+          ? categoryData.filter(
+              (category) =>
+                category &&
+                category.slug &&
+                category.name &&
+                category.isActive !== false,
+            )
+          : [];
+
+        setCategories(activeCategories);
 
         setFacets({
           brands: Array.isArray(facetData?.brands) ? facetData.brands : [],
+
           units: Array.isArray(facetData?.units) ? facetData.units : [],
+
           grades: Array.isArray(facetData?.grades) ? facetData.grades : [],
+
           minPrice: Number(facetData?.minPrice) || 40,
+
           maxPrice: Number(facetData?.maxPrice) || 8000,
         });
       } catch (error) {
         console.error("Failed to load product filters:", error);
 
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         setFacetError(
           error?.message ||
@@ -67,6 +105,7 @@ export const FilterPanel = ({
         );
 
         setCategories([]);
+
         setFacets({
           brands: [],
           units: [],
@@ -88,27 +127,77 @@ export const FilterPanel = ({
     };
   }, []);
 
+  /*
+   * --------------------------------------------------------------------------
+   * NORMALIZED FILTERS
+   * --------------------------------------------------------------------------
+   */
+
   const normalizedFilters = useMemo(
     () => ({
       category: filters.category || "",
+
       brand: filters.brand || "",
+
       unit: filters.unit || "",
+
       grade: filters.grade || "",
+
       inStockOnly: Boolean(
         filters.inStockOnly === true || filters.inStockOnly === "true",
       ),
+
       minPrice: filters.minPrice || "",
+
       maxPrice: filters.maxPrice || "",
+
       expressOnly: Boolean(
         filters.expressOnly === true || filters.expressOnly === "true",
       ),
+
       pincode: filters.pincode || "",
     }),
     [filters],
   );
 
+  /*
+   * --------------------------------------------------------------------------
+   * VALID SELECTED CATEGORY
+   * --------------------------------------------------------------------------
+   *
+   * If a category is inactive or no longer exists, it should not remain
+   * visually selected in the filter panel.
+   */
+
+  const selectedCategory = useMemo(() => {
+    const selectedSlug = String(normalizedFilters.category || "")
+      .trim()
+      .toLowerCase();
+
+    if (!selectedSlug || selectedSlug === "all") {
+      return null;
+    }
+
+    return (
+      categories.find(
+        (category) =>
+          String(category?.slug || "")
+            .trim()
+            .toLowerCase() === selectedSlug,
+      ) || null
+    );
+  }, [categories, normalizedFilters.category]);
+
+  /*
+   * --------------------------------------------------------------------------
+   * ACTIVE FILTER STATE
+   * --------------------------------------------------------------------------
+   */
+
   const hasActiveFilters = Boolean(
-    (normalizedFilters.category && normalizedFilters.category !== "all") ||
+    (normalizedFilters.category &&
+      normalizedFilters.category !== "all" &&
+      selectedCategory) ||
     (normalizedFilters.brand && normalizedFilters.brand !== "all") ||
     (normalizedFilters.unit && normalizedFilters.unit !== "all") ||
     (normalizedFilters.grade && normalizedFilters.grade !== "all") ||
@@ -119,20 +208,54 @@ export const FilterPanel = ({
     normalizedFilters.pincode,
   );
 
+  /*
+   * --------------------------------------------------------------------------
+   * FILTER HANDLERS
+   * --------------------------------------------------------------------------
+   */
+
   const handleFilterChange = (key, value) => {
-    if (typeof onFilterChange !== "function") return;
+    if (typeof onFilterChange !== "function") {
+      return;
+    }
 
     onFilterChange(key, value);
   };
 
+  const handleCategoryChange = (categorySlug) => {
+    /*
+     * Only allow category slugs that belong to the active category list.
+     */
+    if (
+      categorySlug &&
+      categorySlug !== "all" &&
+      !categories.some(
+        (category) =>
+          String(category?.slug || "").toLowerCase() ===
+          String(categorySlug).toLowerCase(),
+      )
+    ) {
+      return;
+    }
+
+    handleFilterChange("category", categorySlug);
+  };
+
   const handlePincodeChange = (event) => {
     const value = event.target.value.replace(/\D/g, "").slice(0, 6);
+
     handleFilterChange("pincode", value);
   };
 
   const handleBooleanFilterChange = (key, checked) => {
     handleFilterChange(key, checked ? "true" : "");
   };
+
+  /*
+   * --------------------------------------------------------------------------
+   * PRICE HELPERS
+   * --------------------------------------------------------------------------
+   */
 
   const formatPrice = (value) => {
     const numericValue = Number(value);
@@ -148,13 +271,34 @@ export const FilterPanel = ({
     Number(normalizedFilters.maxPrice) || Number(facets.maxPrice) || 8000;
 
   const minPrice = Number(facets.minPrice) || 40;
+
   const maxPrice = Number(facets.maxPrice) || 8000;
 
+  /*
+   * --------------------------------------------------------------------------
+   * CATEGORY LIST
+   * --------------------------------------------------------------------------
+   */
+
   const categoryList = useMemo(() => {
-    return categories.filter(
-      (category) => category && category.slug && category.name,
-    );
+    return categories
+      .filter(
+        (category) =>
+          category &&
+          category.slug &&
+          category.name &&
+          category.isActive !== false,
+      )
+      .sort(
+        (a, b) => Number(a.displayOrder ?? 0) - Number(b.displayOrder ?? 0),
+      );
   }, [categories]);
+
+  /*
+   * --------------------------------------------------------------------------
+   * BRAND LIST
+   * --------------------------------------------------------------------------
+   */
 
   const brandList = useMemo(() => {
     return [
@@ -167,6 +311,12 @@ export const FilterPanel = ({
     ].sort((a, b) => a.localeCompare(b));
   }, [facets.brands]);
 
+  /*
+   * --------------------------------------------------------------------------
+   * UNIT LIST
+   * --------------------------------------------------------------------------
+   */
+
   const unitList = useMemo(() => {
     return [
       ...new Set(
@@ -177,6 +327,12 @@ export const FilterPanel = ({
       ),
     ].sort((a, b) => a.localeCompare(b));
   }, [facets.units]);
+
+  /*
+   * --------------------------------------------------------------------------
+   * GRADE LIST
+   * --------------------------------------------------------------------------
+   */
 
   const gradeList = useMemo(() => {
     return [
@@ -189,12 +345,20 @@ export const FilterPanel = ({
     ].sort((a, b) => a.localeCompare(b));
   }, [facets.grades]);
 
+  /*
+   * --------------------------------------------------------------------------
+   * RENDER
+   * --------------------------------------------------------------------------
+   */
+
   return (
     <div className="space-y-6">
       {/* Header */}
+
       <div className="flex items-center justify-between border-b border-[#D9E2EA] pb-3">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-[#173885]" />
+
           <h3 className="text-sm font-bold text-[#173885]">Filter Products</h3>
         </div>
 
@@ -207,6 +371,7 @@ export const FilterPanel = ({
               aria-label="Clear all filters"
             >
               <RotateCcw className="w-3 h-3" />
+
               <span>Clear All</span>
             </button>
           )}
@@ -225,9 +390,11 @@ export const FilterPanel = ({
       </div>
 
       {/* Loading State */}
+
       {loading && (
         <div className="flex items-center gap-2 rounded-xl border border-[#D9E2EA] bg-[#F7FAFC] px-3 py-2.5">
           <Loader2 className="w-4 h-4 text-[#3C7DDA] animate-spin" />
+
           <span className="text-xs font-semibold text-[#606460]">
             Loading product filters...
           </span>
@@ -235,6 +402,7 @@ export const FilterPanel = ({
       )}
 
       {/* Facet Error */}
+
       {!loading && facetError && (
         <div className="rounded-xl border border-[#F0C7BE] bg-[#FFF5F2] p-3">
           <div className="flex items-start gap-2">
@@ -254,6 +422,7 @@ export const FilterPanel = ({
       )}
 
       {/* 1. 30-Minute Express Filter */}
+
       <div className="p-3.5 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40">
         <label className="flex items-center justify-between cursor-pointer select-none min-h-[32px]">
           <div className="flex items-center gap-2">
@@ -283,12 +452,14 @@ export const FilterPanel = ({
       </div>
 
       {/* 2. Construction Site PIN Code */}
+
       <div className="space-y-1.5">
         <label
           htmlFor="filter-pincode-input"
           className="flex items-center gap-1.5 text-xs font-bold text-[#282926]"
         >
           <MapPin className="w-3.5 h-3.5 text-[#3C7DDA]" />
+
           <span>Construction Site PIN Code</span>
         </label>
 
@@ -326,6 +497,7 @@ export const FilterPanel = ({
       </div>
 
       {/* 3. Product Categories */}
+
       <div className="space-y-2">
         <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
           Product Category
@@ -334,10 +506,11 @@ export const FilterPanel = ({
         <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
           <button
             type="button"
-            onClick={() => handleFilterChange("category", "all")}
+            onClick={() => handleCategoryChange("all")}
             className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition flex items-center justify-between min-h-[38px] ${
               !normalizedFilters.category ||
-              normalizedFilters.category === "all"
+              normalizedFilters.category === "all" ||
+              !selectedCategory
                 ? "bg-[#E4EEF3] text-[#173885] border border-[#9AAED4]/40 font-bold"
                 : "text-[#282926] hover:bg-[#F4F6FA]"
             }`}
@@ -345,19 +518,20 @@ export const FilterPanel = ({
             <span>All Categories</span>
 
             {(!normalizedFilters.category ||
-              normalizedFilters.category === "all") && (
+              normalizedFilters.category === "all" ||
+              !selectedCategory) && (
               <Check className="w-3.5 h-3.5 text-[#173885]" />
             )}
           </button>
 
           {categoryList.map((category) => {
-            const isSelected = normalizedFilters.category === category.slug;
+            const isSelected = selectedCategory?.slug === category.slug;
 
             return (
               <button
                 key={category.id || category.slug}
                 type="button"
-                onClick={() => handleFilterChange("category", category.slug)}
+                onClick={() => handleCategoryChange(category.slug)}
                 className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center justify-between min-h-[38px] ${
                   isSelected
                     ? "bg-[#E4EEF3] text-[#173885] border border-[#9AAED4]/40 font-bold"
@@ -365,9 +539,9 @@ export const FilterPanel = ({
                 }`}
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  {category.image ? (
+                  {category.image || category.imageUrl ? (
                     <img
-                      src={category.image}
+                      src={category.image || category.imageUrl}
                       alt=""
                       className="w-6 h-6 rounded-md object-cover bg-[#D9E2EA] shrink-0"
                       loading="lazy"
@@ -393,7 +567,7 @@ export const FilterPanel = ({
               <Package className="w-5 h-5 mx-auto text-[#9AAED4]" />
 
               <p className="text-[11px] text-[#6F8A92] mt-1">
-                No product categories available.
+                No active product categories available.
               </p>
             </div>
           )}
@@ -401,6 +575,7 @@ export const FilterPanel = ({
       </div>
 
       {/* 4. Brand / Manufacturer */}
+
       {brandList.length > 0 && (
         <div className="space-y-2">
           <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
@@ -454,6 +629,7 @@ export const FilterPanel = ({
       )}
 
       {/* 5. Unit */}
+
       {unitList.length > 0 && (
         <div className="space-y-2">
           <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
@@ -497,6 +673,7 @@ export const FilterPanel = ({
       )}
 
       {/* 6. Grade */}
+
       {gradeList.length > 0 && (
         <div className="space-y-2">
           <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
@@ -549,6 +726,7 @@ export const FilterPanel = ({
       )}
 
       {/* 7. In-Stock Availability */}
+
       <div className="p-3 rounded-2xl bg-[#E4EEF3]/60 border border-[#D9E2EA]">
         <label className="flex items-center justify-between cursor-pointer select-none min-h-[28px]">
           <div className="flex items-center gap-2">
@@ -578,6 +756,7 @@ export const FilterPanel = ({
       </div>
 
       {/* 8. Maximum Price */}
+
       <div className="space-y-2.5">
         <div className="flex justify-between items-center text-xs">
           <span className="font-bold text-[#606460] uppercase tracking-wider text-[11px]">
@@ -604,11 +783,13 @@ export const FilterPanel = ({
 
         <div className="flex justify-between text-[10px] text-[#6F8A92] font-mono">
           <span>₹{formatPrice(minPrice)}</span>
+
           <span>₹{formatPrice(maxPrice)}</span>
         </div>
       </div>
 
       {/* Active Filter Summary */}
+
       {hasActiveFilters && (
         <div className="pt-2 border-t border-[#D9E2EA]">
           <div className="flex items-center justify-between mb-2">
@@ -620,14 +801,23 @@ export const FilterPanel = ({
               {
                 [
                   normalizedFilters.category &&
-                    normalizedFilters.category !== "all",
+                    normalizedFilters.category !== "all" &&
+                    selectedCategory,
+
                   normalizedFilters.brand && normalizedFilters.brand !== "all",
+
                   normalizedFilters.unit && normalizedFilters.unit !== "all",
+
                   normalizedFilters.grade && normalizedFilters.grade !== "all",
+
                   normalizedFilters.inStockOnly,
+
                   normalizedFilters.maxPrice,
+
                   normalizedFilters.minPrice,
+
                   normalizedFilters.expressOnly,
+
                   normalizedFilters.pincode,
                 ].filter(Boolean).length
               }
@@ -640,6 +830,7 @@ export const FilterPanel = ({
             className="w-full py-2.5 rounded-xl bg-[#FBE3DE] hover:bg-[#FBE3DE]/80 text-[#B43D20] border border-[#B43D20]/30 text-xs font-bold flex items-center justify-center gap-2 transition active:scale-95"
           >
             <RotateCcw className="w-3.5 h-3.5" />
+
             <span>Clear All Product Filters</span>
           </button>
         </div>

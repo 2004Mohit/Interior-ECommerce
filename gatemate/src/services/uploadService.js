@@ -4,21 +4,37 @@ import { fileOptimizer } from "../utils/fileOptimizer";
 export const uploadService = {
   /**
    * Uploads an optimized product image to the 'product-images' public bucket.
-   * Path format: product-images/{productId}/{uniqueId}.webp
+   *
+   * IMPORTANT:
+   * The path must be relative to the bucket.
+   *
+   * Correct path:
+   * {productId}/{uniqueId}.webp
+   *
+   * NOT:
+   * product-images/{productId}/{uniqueId}.webp
    */
   async uploadProductImage(productId, file, onStatusChange) {
     try {
-      // 1. Optimize image (resizes to max 1600x1600, WebP conversion, ~200-500KB)
+      // 1. Optimize image
       const optimizedFile = await fileOptimizer.optimizeProductImage(
         file,
         onStatusChange,
       );
 
-      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const safeProductId = productId || "temp-product";
-      const filePath = `product-images/${safeProductId}/${uniqueId}.webp`;
+      const uniqueId = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 9)}`;
 
-      if (onStatusChange) onStatusChange("Uploading to storage...");
+      const safeProductId = productId || "temp-product";
+
+      // IMPORTANT:
+      // Storage path is relative to the "product-images" bucket.
+      const filePath = `${safeProductId}/${uniqueId}.webp`;
+
+      if (onStatusChange) {
+        onStatusChange("Uploading to storage...");
+      }
 
       // 2. Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -29,14 +45,18 @@ export const uploadService = {
           contentType: "image/webp",
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw uploadError;
+      }
 
       // 3. Get Public URL
       const { data: publicUrlData } = supabase.storage
         .from("product-images")
         .getPublicUrl(filePath);
 
-      if (onStatusChange) onStatusChange("Upload complete.");
+      if (onStatusChange) {
+        onStatusChange("Upload complete.");
+      }
 
       return {
         path: filePath,
@@ -49,22 +69,35 @@ export const uploadService = {
   },
 
   /**
-   * Uploads a vendor verification document to the 'vendor-verification-docs' private bucket.
-   * Path format: vendor-verification-docs/{vendorId}/{documentType}/{uniqueId}.{ext}
+   * Uploads a vendor verification document to the
+   * 'vendor-verification-docs' private bucket.
+   *
+   * Path format:
+   * {vendorId}/{documentType}/{uniqueId}.{ext}
    */
   async uploadVendorDocument(vendorId, documentType, file, onStatusChange) {
     try {
       // 1. Validate document size and readability limits
       await fileOptimizer.validateVerificationDocument(file);
 
-      if (onStatusChange) onStatusChange("Validating document...");
+      if (onStatusChange) {
+        onStatusChange("Validating document...");
+      }
 
       const fileExt = file.name.split(".").pop() || "pdf";
-      const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      const uniqueId = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 9)}`;
+
       const safeVendorId = vendorId || "temp-vendor";
+
+      // Path is relative to vendor-verification-docs bucket.
       const filePath = `${safeVendorId}/${documentType}/${uniqueId}.${fileExt}`;
 
-      if (onStatusChange) onStatusChange("Uploading secure document...");
+      if (onStatusChange) {
+        onStatusChange("Uploading secure document...");
+      }
 
       // 2. Upload to private Supabase Storage bucket
       const { error: uploadError } = await supabase.storage
@@ -75,9 +108,13 @@ export const uploadService = {
           contentType: file.type,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw uploadError;
+      }
 
-      if (onStatusChange) onStatusChange("Document uploaded securely.");
+      if (onStatusChange) {
+        onStatusChange("Document uploaded securely.");
+      }
 
       return {
         path: filePath,
@@ -94,9 +131,11 @@ export const uploadService = {
    */
   async removeFile(bucket, filePath) {
     if (!filePath) return;
+
     try {
       // Extract path relative to bucket if full URL was provided
       let cleanPath = filePath;
+
       if (filePath.includes(`/storage/v1/object/public/${bucket}/`)) {
         cleanPath = filePath.split(`/storage/v1/object/public/${bucket}/`)[1];
       } else if (filePath.includes(`/storage/v1/object/sign/${bucket}/`)) {

@@ -34,14 +34,8 @@ import { SITE_CONFIG } from "../../services/seoService";
  * STATIC HERO BANNER
  * =============================================================================
  *
- * Important:
- *
- * This is NOT a promotional/banner database system.
- *
- * The banner is intentionally static because banner/promotion management
- * has been removed from the GateMate project.
- *
- * Framer Motion is still used to keep the banner visually animated.
+ * This is intentionally static.
+ * GateMate does not use a banner/promotion management system.
  */
 const STATIC_HERO_BANNER = {
   badge: "GATEMATE CONSTRUCTION MARKETPLACE",
@@ -150,18 +144,13 @@ export const CustomerHome = () => {
    * LOAD CUSTOMER HOME CATALOGUE
    * ---------------------------------------------------------------------------
    *
-   * Data source:
+   * IMPORTANT:
    *
-   * productService
-   *      ↓
-   * Supabase
-   *      ↓
-   * product_categories
-   * vendor_products
-   * vendor_profiles
-   * vendor_inventory
+   * productService.getCategories()
+   * now returns ONLY active categories from product_categories.
    *
-   * There is intentionally NO banner/promotion request here.
+   * Therefore Customer Home does not maintain its own hard-coded category
+   * filtering. The database/service remains the source of truth.
    */
 
   const loadHomeCatalog = useCallback(async () => {
@@ -174,7 +163,49 @@ export const CustomerHome = () => {
         productService.getFeaturedProducts(),
       ]);
 
-      setCategories(Array.isArray(cats) ? cats : []);
+      /*
+       * Defensive filtering:
+       *
+       * Even though getCategories() already filters inactive categories,
+       * keep this small safeguard here so Customer Home never renders a
+       * category explicitly marked inactive by the service response.
+       *
+       * This also supports both:
+       *   isActive
+       *   is_active
+       *
+       * depending on the normalized service response.
+       */
+
+      const activeCategories = (Array.isArray(cats) ? cats : [])
+        .filter((category) => {
+          if (!category) {
+            return false;
+          }
+
+          if (category.isActive === false) {
+            return false;
+          }
+
+          if (category.is_active === false) {
+            return false;
+          }
+
+          return Boolean(category.slug && category.name);
+        })
+        .sort((a, b) => {
+          const aOrder = Number(a.displayOrder ?? a.display_order ?? 999999);
+
+          const bOrder = Number(b.displayOrder ?? b.display_order ?? 999999);
+
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+
+          return String(a.name || "").localeCompare(String(b.name || ""));
+        });
+
+      setCategories(activeCategories);
 
       setFeaturedProducts(Array.isArray(products) ? products : []);
     } catch (err) {
@@ -322,8 +353,6 @@ export const CustomerHome = () => {
         variants={sectionVariants}
         className="text-center space-y-5 max-w-4xl mx-auto"
       >
-        {/* Top badge */}
-
         <motion.div
           initial={{
             opacity: 0,
@@ -342,8 +371,6 @@ export const CustomerHome = () => {
           Pune & PCMC Verified Construction Marketplace
         </motion.div>
 
-        {/* Heading */}
-
         <motion.h1
           initial={{
             opacity: 0,
@@ -361,8 +388,6 @@ export const CustomerHome = () => {
         >
           Find Construction Products from Nearby Verified Vendors
         </motion.h1>
-
-        {/* Description */}
 
         <motion.p
           initial={{
@@ -384,9 +409,7 @@ export const CustomerHome = () => {
           Eligible products and orders can be delivered within 30 minutes.
         </motion.p>
 
-        {/* ---------------------------------------------------------------
-            NOTIFICATION BAR
-            --------------------------------------------------------------- */}
+        {/* NOTIFICATION BAR */}
 
         {user && unreadAlerts.length > 0 && (
           <motion.div
@@ -427,9 +450,7 @@ export const CustomerHome = () => {
           </motion.div>
         )}
 
-        {/* ---------------------------------------------------------------
-            SEARCH BAR
-            --------------------------------------------------------------- */}
+        {/* SEARCH BAR */}
 
         <motion.form
           initial={{
@@ -475,8 +496,6 @@ export const CustomerHome = () => {
         variants={sectionVariants}
         className="relative overflow-hidden rounded-3xl bg-[#173885] text-[#FEFEFE] p-6 sm:p-10 shadow-lg border border-[#173885]"
       >
-        {/* Animated background elements */}
-
         <motion.div
           animate={{
             x: [0, 35, 0],
@@ -521,8 +540,6 @@ export const CustomerHome = () => {
             }}
             className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8"
           >
-            {/* Banner content */}
-
             <div className="space-y-3.5 text-left max-w-2xl">
               <motion.div
                 initial={{
@@ -616,8 +633,6 @@ export const CustomerHome = () => {
                 </span>
               </motion.div>
             </div>
-
-            {/* Animated banner visual */}
 
             <motion.div
               animate={{
@@ -1003,7 +1018,7 @@ export const CustomerHome = () => {
             </p>
           </motion.div>
 
-          {/* DELIVERY SUPPORT */}
+          {/* CUSTOMER SUPPORT */}
 
           <motion.div
             variants={cardVariants}

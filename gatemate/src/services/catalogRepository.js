@@ -1,37 +1,4 @@
-/**
- * GateMate Customer Catalogue Repository
- *
- * LIVE SUPABASE CATALOGUE
- *
- * Customer catalogue sources:
- *   - vendor_products
- *   - vendor_profiles
- *   - product_categories
- *   - vendor_inventory
- *   - product_reviews
- *
- * Public catalogue rule:
- *   Only PUBLISHED products are visible.
- *
- * IMPORTANT:
- *   - No demoProducts.js
- *   - No categories.js
- *   - No mockData.js
- *   - No banners
- *   - No promotions
- *   - No localStorage catalogue
- *
- * Inventory rule:
- *   availableStock = on_hand_stock - reserved_stock
- *
- * The customer catalogue never exposes negative availability.
- */
-
 import { supabase } from "../lib/supabaseClient";
-
-/* -------------------------------------------------------------------------- */
-/* Constants                                                                  */
-/* -------------------------------------------------------------------------- */
 
 const PUBLISHED_STATUS = "PUBLISHED";
 
@@ -40,10 +7,6 @@ const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_MIN_PRICE = 0;
 
 const DEFAULT_MAX_PRICE = 1000000;
-
-/* -------------------------------------------------------------------------- */
-/* Generic helpers                                                            */
-/* -------------------------------------------------------------------------- */
 
 const cleanText = (value) => {
   if (value === null || value === undefined) {
@@ -55,6 +18,15 @@ const cleanText = (value) => {
 
 const normalizeText = (value) => {
   return cleanText(value).toLowerCase();
+};
+
+const isAllFilter = (value) => {
+  return (
+    value === null ||
+    value === undefined ||
+    String(value).trim() === "" ||
+    String(value).trim().toLowerCase() === "all"
+  );
 };
 
 const toNumber = (value, fallback = 0) => {
@@ -88,10 +60,6 @@ const toArray = (value) => {
 const uniqueValues = (values) => {
   return [...new Set(values.filter(Boolean))];
 };
-
-/* -------------------------------------------------------------------------- */
-/* Database relation helpers                                                  */
-/* -------------------------------------------------------------------------- */
 
 const getVendorRecord = (row) => {
   if (!row) {
@@ -129,10 +97,6 @@ const getInventoryRecord = (row) => {
   return row.vendor_inventory || null;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Image helpers                                                              */
-/* -------------------------------------------------------------------------- */
-
 const getImageUrls = (row) => {
   const imageUrls = toArray(row?.image_urls).filter(Boolean);
 
@@ -151,17 +115,6 @@ const getPrimaryImage = (row) => {
   return images[0] || "";
 };
 
-/* -------------------------------------------------------------------------- */
-/* Inventory                                                                  */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Available stock:
- *
- * on_hand_stock - reserved_stock
- *
- * Negative availability is never exposed.
- */
 const getAvailableStock = (row) => {
   const inventory = getInventoryRecord(row);
 
@@ -221,10 +174,6 @@ const isOutOfStock = (row) => {
   return getAvailableStock(row) <= 0;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Dynamic attributes                                                         */
-/* -------------------------------------------------------------------------- */
-
 const normalizeDynamicAttributes = (value) => {
   if (!value) {
     return {};
@@ -251,19 +200,6 @@ const normalizeDynamicAttributes = (value) => {
   return {};
 };
 
-/* -------------------------------------------------------------------------- */
-/* Reviews                                                                    */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Reviews are loaded separately so a review/RLS problem does not
- * prevent the customer catalogue from loading.
- *
- * Current GateMate schema:
- *   product_reviews
- *
- * Only PUBLISHED reviews are considered.
- */
 const getReviewStats = async (productIds = []) => {
   const ids = uniqueValues(productIds);
 
@@ -335,10 +271,6 @@ const getReviewStats = async (productIds = []) => {
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/* Product search text                                                        */
-/* -------------------------------------------------------------------------- */
-
 const buildSearchText = (row) => {
   const category = getCategoryRecord(row);
 
@@ -385,24 +317,18 @@ const matchesSearch = (row, search) => {
   return terms.every((term) => searchableText.includes(term));
 };
 
-/* -------------------------------------------------------------------------- */
-/* Category filter                                                            */
-/* -------------------------------------------------------------------------- */
-
 const matchesCategory = (row, categorySlug) => {
-  if (!categorySlug || categorySlug === "ALL") {
+  const normalizedCategory = normalizeText(categorySlug);
+
+  if (!normalizedCategory || normalizedCategory === "all") {
     return true;
   }
 
-  return normalizeText(row?.category_slug) === normalizeText(categorySlug);
+  return normalizeText(row?.category_slug) === normalizedCategory;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Brand filter                                                               */
-/* -------------------------------------------------------------------------- */
-
 const matchesBrand = (row, brand) => {
-  if (!brand || brand === "ALL") {
+  if (isAllFilter(brand)) {
     return true;
   }
 
@@ -419,12 +345,8 @@ const matchesBrand = (row, brand) => {
   return normalizeText(row?.brand) === normalizeText(brand);
 };
 
-/* -------------------------------------------------------------------------- */
-/* Unit filter                                                                */
-/* -------------------------------------------------------------------------- */
-
 const matchesUnit = (row, unit) => {
-  if (!unit || unit === "ALL") {
+  if (isAllFilter(unit)) {
     return true;
   }
 
@@ -441,12 +363,8 @@ const matchesUnit = (row, unit) => {
   return normalizeText(row?.unit) === normalizeText(unit);
 };
 
-/* -------------------------------------------------------------------------- */
-/* Grade filter                                                               */
-/* -------------------------------------------------------------------------- */
-
 const matchesGrade = (row, grade) => {
-  if (!grade || grade === "ALL") {
+  if (isAllFilter(grade)) {
     return true;
   }
 
@@ -479,10 +397,6 @@ const matchesGrade = (row, grade) => {
   return possibleValues.includes(normalizeText(grade));
 };
 
-/* -------------------------------------------------------------------------- */
-/* Price filter                                                               */
-/* -------------------------------------------------------------------------- */
-
 const matchesPrice = (row, minPrice, maxPrice) => {
   const price = toNumber(row?.price, 0);
 
@@ -501,10 +415,6 @@ const matchesPrice = (row, minPrice, maxPrice) => {
   return true;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Pincode filter                                                             */
-/* -------------------------------------------------------------------------- */
-
 const matchesPincode = (row, pincode) => {
   const requestedPincode = cleanText(pincode);
 
@@ -518,20 +428,12 @@ const matchesPincode = (row, pincode) => {
     cleanText,
   );
 
-  /*
-   * If vendor serviceability is not configured,
-   * don't incorrectly hide the product.
-   */
   if (!serviceablePincodes.length) {
     return true;
   }
 
   return serviceablePincodes.includes(requestedPincode);
 };
-
-/* -------------------------------------------------------------------------- */
-/* Express delivery filter                                                    */
-/* -------------------------------------------------------------------------- */
 
 const matchesExpress = (row, expressOnly) => {
   if (!expressOnly) {
@@ -546,10 +448,6 @@ const matchesExpress = (row, expressOnly) => {
 
   return productExpress && vendorExpress;
 };
-
-/* -------------------------------------------------------------------------- */
-/* Product mapper                                                             */
-/* -------------------------------------------------------------------------- */
 
 const mapProductRow = (row, reviewStats = {}) => {
   if (!row) {
@@ -591,17 +489,9 @@ const mapProductRow = (row, reviewStats = {}) => {
     !outOfStock && lowStockThreshold > 0 && availableStock <= lowStockThreshold;
 
   return {
-    /* ---------------------------------------------------------------------- */
-    /* Core identity                                                           */
-    /* ---------------------------------------------------------------------- */
-
     id: row.id,
 
     slug: row.slug,
-
-    /* ---------------------------------------------------------------------- */
-    /* Product information                                                     */
-    /* ---------------------------------------------------------------------- */
 
     name: row.name || "",
 
@@ -623,23 +513,11 @@ const mapProductRow = (row, reviewStats = {}) => {
 
     dynamicAttributes,
 
-    /* ---------------------------------------------------------------------- */
-    /* Pricing                                                                 */
-    /* ---------------------------------------------------------------------- */
-
     price,
 
     originalPrice,
 
-    /* ---------------------------------------------------------------------- */
-    /* Minimum order quantity                                                  */
-    /* ---------------------------------------------------------------------- */
-
     moq: Math.max(1, Math.floor(toNumber(row.moq, 1))),
-
-    /* ---------------------------------------------------------------------- */
-    /* Images                                                                  */
-    /* ---------------------------------------------------------------------- */
 
     img: getPrimaryImage(row),
 
@@ -652,10 +530,6 @@ const mapProductRow = (row, reviewStats = {}) => {
     gallery: images,
 
     imageUrls: images,
-
-    /* ---------------------------------------------------------------------- */
-    /* Inventory                                                               */
-    /* ---------------------------------------------------------------------- */
 
     stock: availableStock,
 
@@ -696,13 +570,6 @@ const mapProductRow = (row, reviewStats = {}) => {
           updatedAt: inventory.updated_at || null,
         }
       : {
-          /*
-           * Missing inventory means there is currently
-           * no readable inventory record.
-           *
-           * The actual RLS/public inventory fix must
-           * make this object populate for customer users.
-           */
           productId: row.id,
 
           vendorId: row.vendor_id || null,
@@ -718,17 +585,9 @@ const mapProductRow = (row, reviewStats = {}) => {
           updatedAt: null,
         },
 
-    /* ---------------------------------------------------------------------- */
-    /* Express delivery                                                       */
-    /* ---------------------------------------------------------------------- */
-
     isExpress30MinAvailable: isExpress,
 
     express: isExpress,
-
-    /* ---------------------------------------------------------------------- */
-    /* Vendor                                                                  */
-    /* ---------------------------------------------------------------------- */
 
     vendorId: row.vendor_id || null,
 
@@ -758,33 +617,17 @@ const mapProductRow = (row, reviewStats = {}) => {
 
     vendorName: vendor?.business_name || vendor?.trade_name || "",
 
-    /* ---------------------------------------------------------------------- */
-    /* Ratings                                                                 */
-    /* ---------------------------------------------------------------------- */
-
     rating: review.average || null,
 
     reviews: review.total,
 
     reviewCount: review.total,
 
-    /* ---------------------------------------------------------------------- */
-    /* Serviceability                                                          */
-    /* ---------------------------------------------------------------------- */
-
     serviceablePincodes: toArray(vendor?.serviceable_pincodes),
-
-    /* ---------------------------------------------------------------------- */
-    /* Publication                                                             */
-    /* ---------------------------------------------------------------------- */
 
     status: row.status,
 
     isPublished: row.status === PUBLISHED_STATUS,
-
-    /* ---------------------------------------------------------------------- */
-    /* Dates                                                                   */
-    /* ---------------------------------------------------------------------- */
 
     createdAt: row.created_at || null,
 
@@ -792,27 +635,15 @@ const mapProductRow = (row, reviewStats = {}) => {
 
     publishedAt: row.published_at || null,
 
-    /* ---------------------------------------------------------------------- */
-    /* Existing frontend compatibility                                         */
-    /* ---------------------------------------------------------------------- */
-
     tag: isExpress ? "30 Min Delivery" : "",
-
-    /* ---------------------------------------------------------------------- */
-    /* Original database row                                                   */
-    /* ---------------------------------------------------------------------- */
 
     originalRow: row,
   };
 };
 
-/* -------------------------------------------------------------------------- */
-/* Supabase select                                                            */
-/* -------------------------------------------------------------------------- */
-
 const PRODUCT_SELECT = `
   *,
-  product_categories:category_slug (
+  product_categories:category_slug!inner (
     id,
     slug,
     name,
@@ -843,10 +674,6 @@ const PRODUCT_SELECT = `
     updated_at
   )
 `;
-
-/* -------------------------------------------------------------------------- */
-/* Sorting                                                                    */
-/* -------------------------------------------------------------------------- */
 
 const sortProducts = (products, sort = "relevance", search = "") => {
   const sorted = [...products];
@@ -941,15 +768,7 @@ const sortProducts = (products, sort = "relevance", search = "") => {
   }
 };
 
-/* -------------------------------------------------------------------------- */
-/* Repository                                                                 */
-/* -------------------------------------------------------------------------- */
-
 export const catalogRepository = {
-  /* ------------------------------------------------------------------------ */
-  /* Get active categories                                                     */
-  /* ------------------------------------------------------------------------ */
-
   async getCategories() {
     const { data, error } = await supabase
       .from("product_categories")
@@ -991,10 +810,6 @@ export const catalogRepository = {
       isActive: category.is_active !== false,
     }));
   },
-
-  /* ------------------------------------------------------------------------ */
-  /* Get category by slug                                                      */
-  /* ------------------------------------------------------------------------ */
 
   async getCategoryBySlug(slug) {
     if (!slug) {
@@ -1045,10 +860,6 @@ export const catalogRepository = {
     };
   },
 
-  /* ------------------------------------------------------------------------ */
-  /* Get product by slug                                                       */
-  /* ------------------------------------------------------------------------ */
-
   async getProductBySlug(slug) {
     if (!slug) {
       return null;
@@ -1059,6 +870,7 @@ export const catalogRepository = {
       .select(PRODUCT_SELECT)
       .eq("slug", slug)
       .eq("status", PUBLISHED_STATUS)
+      .eq("product_categories.is_active", true)
       .maybeSingle();
 
     if (error) {
@@ -1073,10 +885,6 @@ export const catalogRepository = {
 
     return mapProductRow(data, reviewStats);
   },
-
-  /* ------------------------------------------------------------------------ */
-  /* Query customer catalogue                                                  */
-  /* ------------------------------------------------------------------------ */
 
   async queryCatalog({
     search = "",
@@ -1096,7 +904,7 @@ export const catalogRepository = {
   } = {}) {
     let query = supabase
       .from("vendor_products")
-      .select(PRODUCT_SELECT, {
+      .select("*", {
         count: "exact",
       })
       .eq("status", PUBLISHED_STATUS)
@@ -1104,13 +912,14 @@ export const catalogRepository = {
         ascending: false,
       });
 
-    const selectedCategory = categorySlug || category;
+    const rawSelectedCategory = categorySlug || category;
 
-    /* ---------------------------------------------------------------------- */
-    /* Database-level filters                                                  */
-    /* ---------------------------------------------------------------------- */
+    const selectedCategory =
+      cleanText(rawSelectedCategory).toLowerCase() === "all"
+        ? ""
+        : cleanText(rawSelectedCategory);
 
-    if (selectedCategory && selectedCategory !== "ALL") {
+    if (selectedCategory) {
       query = query.eq("category_slug", selectedCategory);
     }
 
@@ -1130,15 +939,38 @@ export const catalogRepository = {
       query = query.lte("price", Number(maxPrice));
     }
 
-    /*
-     * Do not paginate at Supabase level.
-     *
-     * Search, inventory, vendor serviceability,
-     * dynamic attributes and some filters are
-     * evaluated after the joined records load.
-     */
-
-    const { data, error } = await query;
+    const { data, error } = await supabase
+      .from("vendor_products")
+      .select(
+        `
+    *,
+    vendor_inventory (
+      product_id,
+      vendor_id,
+      on_hand_stock,
+      reserved_stock,
+      low_stock_threshold,
+      updated_at
+    ),
+    vendor_profiles:vendor_id (
+      id,
+      business_name,
+      trade_name,
+      contact_person,
+      designation,
+      city,
+      state,
+      locality,
+      pincode,
+      serviceable_pincodes,
+      is_express_30min_enabled
+    )
+  `,
+      )
+      .eq("status", PUBLISHED_STATUS)
+      .order("created_at", {
+        ascending: false,
+      });
 
     if (error) {
       throw new Error(`Unable to load product catalogue: ${error.message}`);
@@ -1146,85 +978,33 @@ export const catalogRepository = {
 
     let rows = Array.isArray(data) ? data : [];
 
-    /* ---------------------------------------------------------------------- */
-    /* Search                                                                  */
-    /* ---------------------------------------------------------------------- */
-
     rows = rows.filter((row) => matchesSearch(row, search));
-
-    /* ---------------------------------------------------------------------- */
-    /* Category                                                                */
-    /* ---------------------------------------------------------------------- */
 
     rows = rows.filter((row) => matchesCategory(row, selectedCategory));
 
-    /* ---------------------------------------------------------------------- */
-    /* Brand                                                                   */
-    /* ---------------------------------------------------------------------- */
-
     rows = rows.filter((row) => matchesBrand(row, brand));
-
-    /* ---------------------------------------------------------------------- */
-    /* Unit                                                                    */
-    /* ---------------------------------------------------------------------- */
 
     rows = rows.filter((row) => matchesUnit(row, unit));
 
-    /* ---------------------------------------------------------------------- */
-    /* Grade                                                                   */
-    /* ---------------------------------------------------------------------- */
-
     rows = rows.filter((row) => matchesGrade(row, grade));
-
-    /* ---------------------------------------------------------------------- */
-    /* Price                                                                   */
-    /* ---------------------------------------------------------------------- */
 
     rows = rows.filter((row) => matchesPrice(row, minPrice, maxPrice));
 
-    /* ---------------------------------------------------------------------- */
-    /* Pincode                                                                 */
-    /* ---------------------------------------------------------------------- */
-
     rows = rows.filter((row) => matchesPincode(row, pincode));
 
-    /* ---------------------------------------------------------------------- */
-    /* Express                                                                 */
-    /* ---------------------------------------------------------------------- */
-
     rows = rows.filter((row) => matchesExpress(row, expressOnly));
-
-    /* ---------------------------------------------------------------------- */
-    /* Inventory                                                               */
-    /* ---------------------------------------------------------------------- */
 
     if (inStockOnly) {
       rows = rows.filter((row) => isInStock(row));
     }
 
-    /* ---------------------------------------------------------------------- */
-    /* Reviews                                                                 */
-    /* ---------------------------------------------------------------------- */
-
     const reviewStats = await getReviewStats(rows.map((row) => row.id));
-
-    /* ---------------------------------------------------------------------- */
-    /* Map                                                                     */
-    /* ---------------------------------------------------------------------- */
 
     let products = rows
       .map((row) => mapProductRow(row, reviewStats))
       .filter(Boolean);
 
-    /* ---------------------------------------------------------------------- */
-    /* Sort                                                                    */
-    /* ---------------------------------------------------------------------- */
-
     products = sortProducts(products, sort, search);
-
-    /* ---------------------------------------------------------------------- */
-    /* Pagination                                                              */
-    /* ---------------------------------------------------------------------- */
 
     const totalFiltered = products.length;
 
@@ -1256,10 +1036,6 @@ export const catalogRepository = {
     };
   },
 
-  /* ------------------------------------------------------------------------ */
-  /* Search products                                                           */
-  /* ------------------------------------------------------------------------ */
-
   async searchProducts(search, options = {}) {
     return this.queryCatalog({
       ...options,
@@ -1267,10 +1043,6 @@ export const catalogRepository = {
       search: search || "",
     });
   },
-
-  /* ------------------------------------------------------------------------ */
-  /* Products by category                                                      */
-  /* ------------------------------------------------------------------------ */
 
   async getProductsByCategory(categorySlug, options = {}) {
     if (!categorySlug) {
@@ -1291,10 +1063,6 @@ export const catalogRepository = {
     });
   },
 
-  /* ------------------------------------------------------------------------ */
-  /* Express products                                                          */
-  /* ------------------------------------------------------------------------ */
-
   async getExpressProducts(options = {}) {
     return this.queryCatalog({
       ...options,
@@ -1302,10 +1070,6 @@ export const catalogRepository = {
       expressOnly: true,
     });
   },
-
-  /* ------------------------------------------------------------------------ */
-  /* In-stock products                                                         */
-  /* ------------------------------------------------------------------------ */
 
   async getInStockProducts(options = {}) {
     return this.queryCatalog({
@@ -1315,20 +1079,12 @@ export const catalogRepository = {
     });
   },
 
-  /* ------------------------------------------------------------------------ */
-  /* Featured products                                                         */
-  /* ------------------------------------------------------------------------ */
-
   async getFeaturedProducts(limit = 12) {
     const requestedLimit = Math.max(1, Number(limit) || 12);
 
     const result = await this.queryCatalog({
       sort: "newest",
 
-      /*
-       * Fetch enough products so that
-       * available products can be preferred.
-       */
       limit: Math.max(requestedLimit, 50),
 
       offset: 0,
@@ -1343,10 +1099,6 @@ export const catalogRepository = {
     return [...inStock, ...outOfStock].slice(0, requestedLimit);
   },
 
-  /* ------------------------------------------------------------------------ */
-  /* Filter facets                                                             */
-  /* ------------------------------------------------------------------------ */
-
   async getFilterFacets() {
     const { data, error } = await supabase
       .from("vendor_products")
@@ -1358,6 +1110,10 @@ export const catalogRepository = {
             category_slug,
             dynamic_attributes,
             is_express_30min_available,
+            product_categories:category_slug!inner (
+              slug,
+              is_active
+            ),
             vendor_inventory (
               product_id,
               vendor_id,
@@ -1366,7 +1122,8 @@ export const catalogRepository = {
             )
           `,
       )
-      .eq("status", PUBLISHED_STATUS);
+      .eq("status", PUBLISHED_STATUS)
+      .eq("product_categories.is_active", true);
 
     if (error) {
       throw new Error(`Unable to load product filters: ${error.message}`);
@@ -1374,33 +1131,17 @@ export const catalogRepository = {
 
     const rows = data || [];
 
-    /* ---------------------------------------------------------------------- */
-    /* Brands                                                                  */
-    /* ---------------------------------------------------------------------- */
-
     const brands = uniqueValues(
       rows.map((row) => cleanText(row.brand)).filter(Boolean),
     ).sort((a, b) => a.localeCompare(b));
-
-    /* ---------------------------------------------------------------------- */
-    /* Units                                                                   */
-    /* ---------------------------------------------------------------------- */
 
     const units = uniqueValues(
       rows.map((row) => cleanText(row.unit)).filter(Boolean),
     ).sort((a, b) => a.localeCompare(b));
 
-    /* ---------------------------------------------------------------------- */
-    /* Categories                                                              */
-    /* ---------------------------------------------------------------------- */
-
     const categories = uniqueValues(
       rows.map((row) => cleanText(row.category_slug)).filter(Boolean),
     ).sort((a, b) => a.localeCompare(b));
-
-    /* ---------------------------------------------------------------------- */
-    /* Grades                                                                  */
-    /* ---------------------------------------------------------------------- */
 
     const gradeSet = new Set();
 
@@ -1426,10 +1167,6 @@ export const catalogRepository = {
 
     const grades = [...gradeSet].sort((a, b) => a.localeCompare(b));
 
-    /* ---------------------------------------------------------------------- */
-    /* Prices                                                                  */
-    /* ---------------------------------------------------------------------- */
-
     const prices = rows
       .map((row) => toNumber(row.price, 0))
       .filter((price) => price > 0);
@@ -1438,17 +1175,9 @@ export const catalogRepository = {
 
     const maxPrice = prices.length ? Math.max(...prices) : DEFAULT_MAX_PRICE;
 
-    /* ---------------------------------------------------------------------- */
-    /* Express count                                                           */
-    /* ---------------------------------------------------------------------- */
-
     const expressCount = rows.filter((row) =>
       Boolean(row.is_express_30min_available),
     ).length;
-
-    /* ---------------------------------------------------------------------- */
-    /* In-stock count                                                          */
-    /* ---------------------------------------------------------------------- */
 
     const inStockCount = rows.filter(
       (row) => getAvailableStock(row) > 0,
@@ -1475,10 +1204,6 @@ export const catalogRepository = {
     };
   },
 
-  /* ------------------------------------------------------------------------ */
-  /* Verify product is publicly available                                      */
-  /* ------------------------------------------------------------------------ */
-
   async isProductPublished(productId) {
     if (!productId) {
       return false;
@@ -1498,10 +1223,6 @@ export const catalogRepository = {
     return Boolean(data);
   },
 };
-
-/* -------------------------------------------------------------------------- */
-/* Named exports                                                              */
-/* -------------------------------------------------------------------------- */
 
 export {
   mapProductRow,
