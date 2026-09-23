@@ -55,3 +55,5 @@ export const AdminPermissionGuard = ({
 
   return children;
 };
+
+export default AdminPermissionGuard;

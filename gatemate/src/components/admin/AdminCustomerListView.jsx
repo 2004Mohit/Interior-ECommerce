@@ -15,7 +15,7 @@ import {
   Mail,
   Ban,
 } from "lucide-react";
-import { adminContentService } from "../../services/adminContentService";
+import { adminCustomerService } from "../../services/adminCustomerService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
 import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";
 import { SeoHead } from "../common/SeoHead";
@@ -31,7 +31,7 @@ export const AdminCustomerListView = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await adminContentService.getCustomers({
+      const res = await adminCustomerService.getCustomers({
         search,
         limit: 100,
       });

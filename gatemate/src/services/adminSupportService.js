@@ -2,6 +2,24 @@ import { supabase } from "../lib/supabaseClient";
 
 const REVIEW_STATUSES = new Set(["PUBLISHED", "PENDING_REVIEW", "FLAGGED"]);
 
+const COMPLAINT_STATUSES = new Set([
+  "OPEN",
+  "UNDER_REVIEW",
+  "WAITING_FOR_INFORMATION",
+  "RESOLVED",
+  "REJECTED",
+  "ESCALATED",
+]);
+
+const COMPLAINT_CATEGORIES = new Set([
+  "DELIVERY_DELAY",
+  "DAMAGED_MATERIAL",
+  "WRONG_ITEM",
+  "QUALITY_DISPUTE",
+  "BILLING",
+  "OTHER",
+]);
+
 const normalizeRelation = (value) => {
   if (Array.isArray(value)) {
     return value[0] || null;
@@ -10,17 +28,30 @@ const normalizeRelation = (value) => {
   return value || null;
 };
 
+const normalizeLimit = (value, fallback = 50, maximum = 100) => {
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(parsed, 1), maximum);
+};
+
+const normalizeOffset = (value) => {
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed)) {
+    return 0;
+  }
+
+  return Math.max(parsed, 0);
+};
+
 export const adminSupportService = {
   /**
-   * Fetches Customer Product Reviews with linked product and vendor details.
-   *
-   * Current GateMate schema:
-   *   public.product_reviews
-   *
-   * Moderation statuses:
-   *   PUBLISHED
-   *   PENDING_REVIEW
-   *   FLAGGED
+   * Fetch Customer Product Reviews with linked
+   * product and vendor details.
    */
   async getProductReviews({
     status = "ALL",
@@ -36,32 +67,28 @@ export const adminSupportService = {
       throw new Error(`Invalid review status: ${normalizedStatus}`);
     }
 
-    const safeLimit = Math.min(
-      Math.max(Number.parseInt(limit, 10) || 50, 1),
-      100,
-    );
-
-    const safeOffset = Math.max(Number.parseInt(offset, 10) || 0, 0);
+    const safeLimit = normalizeLimit(limit);
+    const safeOffset = normalizeOffset(offset);
 
     let query = supabase
       .from("product_reviews")
       .select(
         `
-        *,
-        vendor_products:product_id (
-          id,
-          name,
-          brand,
-          category_slug,
-          cover_image_url,
-          vendor_id,
-          vendor_profiles:vendor_id (
+          *,
+          vendor_products:product_id (
             id,
-            business_name,
-            locality,
-            city
+            name,
+            brand,
+            category_slug,
+            cover_image_url,
+            vendor_id,
+            vendor_profiles:vendor_id (
+              id,
+              business_name,
+              locality,
+              city
+            )
           )
-        )
         `,
         { count: "exact" },
       )
@@ -84,24 +111,15 @@ export const adminSupportService = {
 
       return {
         ...review,
-
-        // Current schema names
         rating: Number(review.rating || 0),
         comment: review.comment || "",
         headline: review.headline || "",
         moderation_status: review.moderation_status || "PENDING_REVIEW",
-
-        // UI-friendly relation names
         product,
         vendor,
       };
     });
 
-    /*
-     * Search is intentionally performed after fetching the current
-     * review page because the searchable content includes related
-     * product/vendor fields.
-     */
     const searchTerm = String(search || "")
       .trim()
       .toLowerCase();
@@ -140,14 +158,9 @@ export const adminSupportService = {
   },
 
   /**
-   * Moderates a Customer Product Review.
+   * Moderate a Customer Product Review.
    *
-   * Valid decisions:
-   *   PUBLISHED
-   *   PENDING_REVIEW
-   *   FLAGGED
-   *
-   * The actual authorization and database update are performed
+   * Authorization and database mutation are performed
    * by the admin RPC.
    */
   async moderateProductReview({ reviewId, decision, moderationReason }) {
@@ -188,8 +201,16 @@ export const adminSupportService = {
   },
 
   /**
-   * Fetches customer complaints / tickets with links to orders,
-   * products, and vendors.
+   * Fetch customer Help & Inquiry tickets.
+   *
+   * Current customer_complaints schema:
+   *
+   * OPEN
+   * UNDER_REVIEW
+   * WAITING_FOR_INFORMATION
+   * RESOLVED
+   * REJECTED
+   * ESCALATED
    */
   async getComplaints({
     status = "ALL",
@@ -198,94 +219,104 @@ export const adminSupportService = {
     limit = 50,
     offset = 0,
   } = {}) {
-    let query = supabase
-      .from("customer_complaints")
-      .select(
-        `
-        *,
-        vendor_profiles:vendor_id (
-          id,
-          business_name,
-          city
-        ),
-        vendor_products:product_id (
-          id,
-          name
-        )
-      `,
-        { count: "exact" },
-      )
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (status && status !== "ALL") {
-      query = query.eq("status", status);
-    }
-
-    if (category && category !== "ALL") {
-      query = query.eq("category", category);
-    }
-
-    const { data, count, error } = await query;
+    const { data, error } = await supabase.rpc(
+      "get_admin_customer_complaints",
+      {
+        p_status: status || "ALL",
+        p_category: category || "ALL",
+        p_search: search?.trim() || "",
+        p_limit: limit,
+        p_offset: offset,
+      },
+    );
 
     if (error) {
       throw error;
     }
 
-    let processed = (data || []).map((complaint) => ({
-      ...complaint,
-      vendor: normalizeRelation(complaint.vendor_profiles),
-      product: normalizeRelation(complaint.vendor_products),
-    }));
+    const complaints = Array.isArray(data?.complaints)
+      ? data.complaints.map((complaint) => ({
+          ...complaint,
 
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
+          // Keep the shape expected by AdminComplaintsView.
+          vendor: complaint.vendor || null,
+          product: complaint.product || null,
 
-      processed = processed.filter((complaint) => {
-        const subject = String(complaint.subject || "").toLowerCase();
+          vendor_name:
+            complaint.vendor?.business_name || complaint.vendor_name || null,
 
-        const description = String(complaint.description || "").toLowerCase();
+          product_name:
+            complaint.product?.name || complaint.product_name || null,
 
-        const orderId = String(complaint.order_id || "").toLowerCase();
-
-        return (
-          subject.includes(q) || description.includes(q) || orderId.includes(q)
-        );
-      });
-    }
+          // Customer contact number.
+          customer_phone:
+            complaint.customer_phone ||
+            complaint.phone ||
+            complaint.customer?.phone ||
+            null,
+        }))
+      : [];
 
     return {
-      complaints: processed,
-      totalCount: count ?? processed.length,
+      complaints,
+      totalCount: Number(data?.totalCount || 0),
     };
   },
 
   /**
-   * Updates complaint state, internal investigation notes,
-   * and resolution.
+   * Process a customer complaint.
+   *
+   * Admin workflow:
+   *
+   * 1. Admin contacts the customer manually.
+   * 2. Admin investigates the complaint.
+   * 3. Admin updates the complaint status.
+   * 4. Admin records internal notes.
+   *
+   * There is NO customer-facing message field.
+   *
+   * Authorization, validation and database mutation
+   * are performed by the admin RPC.
    */
   async processComplaintUpdate({
     complaintId,
     status,
     internalNotes,
-    resolutionNotes = null,
     vendorId = null,
     productId = null,
     orderId = null,
     escalatedTo = null,
   }) {
+    if (!complaintId) {
+      throw new Error("Complaint ID is required.");
+    }
+
+    const normalizedStatus = String(status || "")
+      .trim()
+      .toUpperCase();
+
+    if (!COMPLAINT_STATUSES.has(normalizedStatus)) {
+      throw new Error(`Invalid complaint status: ${normalizedStatus}`);
+    }
+
+    const cleanInternalNotes = String(internalNotes || "").trim();
+
+    const cleanEscalatedTo = String(escalatedTo || "").trim();
+
+    if (normalizedStatus === "ESCALATED" && !cleanEscalatedTo) {
+      throw new Error("Escalation destination is required.");
+    }
+
     const { data, error } = await supabase.rpc(
       "admin_process_complaint_update",
       {
         p_complaint_id: complaintId,
-        p_status: status,
-        p_internal_notes:
-          internalNotes?.trim() || "Internal investigation update",
-        p_resolution_notes: resolutionNotes?.trim() || null,
-        p_vendor_id: vendorId,
-        p_product_id: productId,
-        p_order_id: orderId,
-        p_escalated_to: escalatedTo?.trim() || null,
+        p_status: normalizedStatus,
+        p_internal_notes: cleanInternalNotes || "Internal investigation update",
+        p_vendor_id: vendorId || null,
+        p_product_id: productId || null,
+        p_order_id: orderId || null,
+        p_escalated_to: cleanEscalatedTo || null,
       },
     );
 
@@ -296,3 +327,5 @@ export const adminSupportService = {
     return data;
   },
 };
+
+export default adminSupportService;
