@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   Star,
   Upload,
-  CheckCircle2,
   AlertCircle,
   ShieldCheck,
-  Sparkles,
+  MessageSquare,
 } from "lucide-react";
 import { reviewService } from "../../services/reviewService";
 
@@ -21,40 +20,163 @@ export const ReviewFormModal = ({
   const [hoverRating, setHoverRating] = useState(0);
   const [headline, setHeadline] = useState("");
   const [comment, setComment] = useState("");
+
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  if (!isOpen || !product) return null;
+  /*
+   * Reset the form whenever the modal is opened.
+   */
+  useEffect(() => {
+    if (!isOpen) return;
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length + selectedFiles.length > 3) {
-      setFormError("You can upload a maximum of 3 Product Images.");
+    setRating(5);
+    setHoverRating(0);
+    setHeadline("");
+    setComment("");
+    setSelectedFiles([]);
+    setPreviews([]);
+    setIsSubmitting(false);
+    setFormError(null);
+  }, [isOpen, product?.id]);
+
+  /*
+   * Clean up temporary browser preview URLs.
+   */
+  useEffect(() => {
+    return () => {
+      previews.forEach((url) => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // Ignore cleanup errors.
+        }
+      });
+    };
+  }, [previews]);
+
+  if (!isOpen || !product) {
+    return null;
+  }
+
+  /**
+   * --------------------------------------------------------------------------
+   * IMAGE SELECTION
+   * --------------------------------------------------------------------------
+   *
+   * Review images are currently not persisted because the product_reviews
+   * table has no image column. The selected files are therefore only used
+   * for local preview and passed to reviewService for compatibility.
+   */
+  const handleFileChange = (event) => {
+    const incomingFiles = Array.from(event.target.files || []);
+
+    if (incomingFiles.length === 0) {
       return;
     }
 
-    setSelectedFiles((prev) => [...prev, ...files]);
-    const newPreviews = files.map((f) => URL.createObjectURL(f));
-    setPreviews((prev) => [...prev, ...newPreviews]);
+    const remainingSlots = 3 - selectedFiles.length;
+
+    if (remainingSlots <= 0) {
+      setFormError("You can attach a maximum of 3 Product Images.");
+      return;
+    }
+
+    const files = incomingFiles.slice(0, remainingSlots);
+
+    const invalidFile = files.find((file) => !file.type?.startsWith("image/"));
+
+    if (invalidFile) {
+      setFormError("Only image files can be attached.");
+      return;
+    }
+
+    const oversizedFile = files.find((file) => file.size > 5 * 1024 * 1024);
+
+    if (oversizedFile) {
+      setFormError("Each Product Image must be 5 MB or smaller.");
+      return;
+    }
+
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+
+    setSelectedFiles((previous) => [...previous, ...files]);
+
+    setPreviews((previous) => [...previous, ...newPreviews]);
+
+    setFormError(null);
+
+    /*
+     * Reset input so selecting the same file again still triggers change.
+     */
+    event.target.value = "";
+  };
+
+  const removeFile = (index) => {
+    const previewToRemove = previews[index];
+
+    if (previewToRemove) {
+      try {
+        URL.revokeObjectURL(previewToRemove);
+      } catch {
+        // Ignore cleanup errors.
+      }
+    }
+
+    setSelectedFiles((previous) =>
+      previous.filter((_, itemIndex) => itemIndex !== index),
+    );
+
+    setPreviews((previous) =>
+      previous.filter((_, itemIndex) => itemIndex !== index),
+    );
+
     setFormError(null);
   };
 
-  const removeFile = (idx) => {
-    setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
-    setPreviews((prev) => prev.filter((_, i) => i !== idx));
-  };
+  /**
+   * --------------------------------------------------------------------------
+   * SUBMIT REVIEW
+   * --------------------------------------------------------------------------
+   */
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!rating) {
+    if (!user?.id) {
+      setFormError("Please sign in before submitting a Customer Review.");
+      return;
+    }
+
+    if (!product?.id) {
+      setFormError(
+        "The Product could not be identified. Please refresh the page.",
+      );
+      return;
+    }
+
+    const cleanHeadline = headline.trim();
+    const cleanComment = comment.trim();
+
+    if (!rating || rating < 1 || rating > 5) {
       setFormError("Please select a Customer Rating.");
       return;
     }
-    if (!comment.trim() || comment.trim().length < 10) {
+
+    if (cleanComment.length < 10) {
       setFormError("Please write a Customer Review of at least 10 characters.");
+      return;
+    }
+
+    if (cleanComment.length > 5000) {
+      setFormError("Customer Review cannot exceed 5000 characters.");
+      return;
+    }
+
+    if (cleanHeadline.length > 150) {
+      setFormError("Review Headline cannot exceed 150 characters.");
       return;
     }
 
@@ -65,200 +187,345 @@ export const ReviewFormModal = ({
       const response = await reviewService.submitReview({
         productId: product.id,
         userId: user.id,
-        userName: user.user_metadata?.full_name || user.email?.split("@")[0],
+
+        userName:
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email?.split("@")[0] ||
+          "Customer",
+
         userLocation: "Pune / PCMC Region",
-        rating,
-        headline,
-        comment,
+
+        rating: Number(rating),
+
+        headline: cleanHeadline || null,
+
+        comment: cleanComment,
+
         imageFiles: selectedFiles,
       });
 
-      if (response.success) {
-        onReviewSubmitted(response.review);
-        onClose();
+      if (!response?.success) {
+        throw new Error(
+          response?.message || "Unable to submit Customer Review.",
+        );
       }
-    } catch (err) {
-      setFormError(err.message || "Unable to submit Customer Review.");
+
+      /*
+       * reviewService submits the review as PENDING_REVIEW.
+       * It is not immediately published.
+       */
+      if (typeof onReviewSubmitted === "function") {
+        await onReviewSubmitted(response.review);
+      }
+
+      /*
+       * Parent component normally closes the modal.
+       * Keep this as a fallback.
+       */
+      onClose?.();
+    } catch (error) {
+      console.error("ReviewFormModal: review submission failed", error);
+
+      setFormError(
+        error?.message || "Unable to submit Customer Review. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  /**
+   * --------------------------------------------------------------------------
+   * RATING LABEL
+   * --------------------------------------------------------------------------
+   */
+  const ratingLabel =
+    rating === 5
+      ? "Exceptional"
+      : rating === 4
+        ? "Very Good"
+        : rating === 3
+          ? "Average"
+          : rating === 2
+            ? "Below Average"
+            : "Poor";
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0a1424] border border-white/10 w-full max-w-lg p-6 sm:p-8 rounded-3xl relative shadow-2xl overflow-y-auto max-h-[90vh]">
-        <button
-          onClick={onClose}
-          disabled={isSubmitting}
-          className="absolute top-5 right-5 text-slate-400 hover:text-dark transition"
-          aria-label="Close modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="review-modal-title"
+    >
+      <div className="bg-[#FEFEFE] border border-[#D9E2EA] w-full max-w-lg rounded-3xl relative shadow-2xl overflow-hidden">
+        {/* ---------------------------------------------------------------- */}
+        {/* HEADER                                                           */}
+        {/* ---------------------------------------------------------------- */}
 
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-5 h-5 text-dark-400" />
-          <h3 className="text-xl font-black text-dark">
-            Write a Customer Review
-          </h3>
-        </div>
-        <p className="text-xs text-slate-400 mb-4 truncate">
-          Reviewing Product:{" "}
-          <span className="text-dark font-semibold">{product.name}</span>
-        </p>
+        <div className="flex items-start justify-between gap-4 p-6 sm:p-7 border-b border-[#D9E2EA]">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1.5">
+              <MessageSquare className="w-5 h-5 text-[#173885] shrink-0" />
 
-        {formError && (
-          <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{formError}</span>
-          </div>
-        )}
+              <h3
+                id="review-modal-title"
+                className="text-xl font-black text-[#173885]"
+              >
+                Write a Customer Review
+              </h3>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Customer Rating Stars Input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300 block">
-              Overall Customer Rating *
-            </label>
-            <div className="flex items-center gap-1.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  onClick={() => setRating(star)}
-                  className="p-1 text-slate-600 hover:scale-110 transition"
-                  aria-label={`Rate ${star} star`}
-                >
-                  <Star
-                    className={`w-7 h-7 ${
-                      (hoverRating || rating) >= star
-                        ? "text-dark-400 fill-dark-400"
-                        : "text-slate-600"
-                    }`}
-                  />
-                </button>
-              ))}
-              <span className="ml-2 text-xs font-bold text-dark-400">
-                {rating === 5
-                  ? "Exceptional"
-                  : rating === 4
-                    ? "Very Good"
-                    : rating === 3
-                      ? "Average"
-                      : rating === 2
-                        ? "Below Average"
-                        : "Poor"}
+            <p className="text-xs text-[#606460] truncate">
+              Reviewing Product:{" "}
+              <span className="text-[#282926] font-semibold">
+                {product.name}
               </span>
-            </div>
-          </div>
-
-          {/* Headline */}
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">
-              Review Headline (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Fresh batch cement, fast site delivery in PCMC"
-              value={headline}
-              onChange={(e) => setHeadline(e.target.value)}
-              className="w-full premium-input px-3.5 py-2.5 rounded-xl text-xs"
-            />
-          </div>
-
-          {/* Written Comment */}
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">
-              Detailed Customer Review *
-            </label>
-            <textarea
-              rows={4}
-              required
-              placeholder="Share details about test batch quality, compressive strength, rebar ductility, or site unloading speed..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="w-full premium-input p-3 rounded-xl text-xs leading-relaxed"
-            />
-          </div>
-
-          {/* Product Images Attachment */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-slate-300 block">
-              Attach Product Images (Max 3)
-            </label>
-            <div className="flex flex-wrap items-center gap-3">
-              {previews.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/20"
-                >
-                  <img
-                    src={src}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="absolute top-1 right-1 bg-black/70 p-0.5 rounded text-dark hover:text-rose-400"
-                    aria-label="Remove image"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-
-              {selectedFiles.length < 3 && (
-                <label className="w-16 h-16 rounded-xl border border-dashed border-white/20 flex flex-col items-center justify-center text-slate-400 hover:text-dark-400 hover:border-dark-400 cursor-pointer transition">
-                  <Upload className="w-4 h-4 mb-0.5" />
-                  <span className="text-[9px] font-bold">Upload</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-            <p className="text-[10px] text-slate-500">
-              [Note: Image upload is prepared for Supabase Storage bucket
-              `review-images`].
             </p>
           </div>
 
-          {/* Verification Badge Notice */}
-          <div className="p-3 rounded-xl bg-[#091526] border border-white/5 flex items-center gap-2 text-[11px] text-emerald-400">
-            <ShieldCheck className="w-4 h-4 shrink-0" />
-            <span>
-              Your review will appear with a verified purchaser badge for the
-              Pune / PCMC region.
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-[#6F8A92] hover:text-[#173885] hover:bg-[#F4F6FA] transition disabled:opacity-50 shrink-0"
+            aria-label="Close review modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Action CTAs */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="flex-1 premium-card hover:bg-white/5 py-3 rounded-xl text-xs font-bold text-slate-300 transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 dark-gradient-btn py-3 rounded-xl text-xs font-bold transition disabled:opacity-50 text-slate-950"
-            >
-              {isSubmitting
-                ? "Verifying & Submitting..."
-                : "Submit Customer Review"}
-            </button>
-          </div>
-        </form>
+        {/* ---------------------------------------------------------------- */}
+        {/* BODY                                                             */}
+        {/* ---------------------------------------------------------------- */}
+
+        <div className="p-6 sm:p-7 overflow-y-auto max-h-[75vh]">
+          {formError && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-[#FDECEC] border border-[#E5A7A7] text-[#9E2F2F] text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-[#B43D20] shrink-0 mt-0.5" />
+
+              <span>{formError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* ------------------------------------------------------------ */}
+            {/* CUSTOMER RATING                                              */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[#282926] block">
+                Overall Customer Rating *
+              </label>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const active = (hoverRating || rating) >= star;
+
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onFocus={() => setHoverRating(star)}
+                      onBlur={() => setHoverRating(0)}
+                      onClick={() => setRating(star)}
+                      className="p-1 hover:scale-110 transition focus:outline-none focus:ring-2 focus:ring-[#3C7DDA]/30 rounded-lg"
+                      aria-label={`Rate ${star} out of 5`}
+                    >
+                      <Star
+                        className={`w-7 h-7 ${
+                          active
+                            ? "text-[#3C7DDA] fill-[#3C7DDA]"
+                            : "text-[#B8C5CF]"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+
+                <span className="ml-2 text-xs font-bold text-[#173885]">
+                  {ratingLabel}
+                </span>
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* HEADLINE                                                      */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="space-y-2">
+              <label
+                htmlFor="review-headline"
+                className="text-xs font-bold text-[#282926] block"
+              >
+                Review Headline
+                <span className="font-normal text-[#6F8A92]"> (Optional)</span>
+              </label>
+
+              <input
+                id="review-headline"
+                type="text"
+                maxLength={150}
+                placeholder="e.g. Good product quality and site delivery"
+                value={headline}
+                onChange={(event) => setHeadline(event.target.value)}
+                disabled={isSubmitting}
+                className="w-full bg-[#F4F6FA] border border-[#D9E2EA] text-[#282926] placeholder:text-[#9AA6AE] px-3.5 py-3 rounded-xl text-xs outline-none focus:border-[#3C7DDA] focus:ring-2 focus:ring-[#3C7DDA]/10 transition disabled:opacity-60"
+              />
+
+              <div className="text-right text-[10px] text-[#8A969E]">
+                {headline.length}/150
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* COMMENT                                                        */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="space-y-2">
+              <label
+                htmlFor="review-comment"
+                className="text-xs font-bold text-[#282926] block"
+              >
+                Detailed Customer Review *
+              </label>
+
+              <textarea
+                id="review-comment"
+                rows={5}
+                required
+                minLength={10}
+                maxLength={5000}
+                placeholder="Share your experience with product quality, packaging, delivery, or site use..."
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+                disabled={isSubmitting}
+                className="w-full bg-[#F4F6FA] border border-[#D9E2EA] text-[#282926] placeholder:text-[#9AA6AE] p-3.5 rounded-xl text-xs leading-relaxed outline-none focus:border-[#3C7DDA] focus:ring-2 focus:ring-[#3C7DDA]/10 transition resize-y disabled:opacity-60"
+              />
+
+              <div className="flex justify-between text-[10px] text-[#8A969E]">
+                <span>Minimum 10 characters</span>
+                <span>{comment.length}/5000</span>
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* PRODUCT IMAGE ATTACHMENTS                                    */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[#282926] block">
+                Attach Product Images
+                <span className="font-normal text-[#6F8A92]">
+                  {" "}
+                  (Optional, Max 3)
+                </span>
+              </label>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {previews.map((src, index) => (
+                  <div
+                    key={`${src}-${index}`}
+                    className="relative w-16 h-16 rounded-xl overflow-hidden border border-[#D9E2EA] bg-[#F4F6FA]"
+                  >
+                    <img
+                      src={src}
+                      alt={`Selected Product Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      disabled={isSubmitting}
+                      className="absolute top-1 right-1 w-5 h-5 bg-black/70 rounded-full text-white flex items-center justify-center hover:bg-black transition disabled:opacity-50"
+                      aria-label={`Remove image ${index + 1}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+
+                {selectedFiles.length < 3 && (
+                  <label className="w-16 h-16 rounded-xl border border-dashed border-[#B8C5CF] bg-[#F4F6FA] flex flex-col items-center justify-center text-[#6F8A92] hover:text-[#173885] hover:border-[#3C7DDA] cursor-pointer transition">
+                    <Upload className="w-4 h-4 mb-1" />
+
+                    <span className="text-[9px] font-bold">Upload</span>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileChange}
+                      disabled={isSubmitting}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              <p className="text-[10px] text-[#8A969E]">
+                Maximum 3 images. Each image must be 5 MB or smaller.
+              </p>
+
+              <p className="text-[10px] text-[#8A969E]">
+                Review image storage will be enabled separately. Your written
+                review and rating will still be submitted normally.
+              </p>
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* VERIFIED PURCHASE NOTICE                                     */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="p-3.5 rounded-2xl bg-[#E1F2D9]/60 border border-[#3F7D20]/20 flex items-start gap-2.5 text-[11px] text-[#3F7D20]">
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+
+              <div>
+                <p className="font-bold">Verified Customer Review</p>
+
+                <p className="mt-0.5 leading-relaxed">
+                  Your review is linked to your delivered order and will carry a
+                  Verified Purchase badge after publication.
+                </p>
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* MODERATION NOTICE                                             */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="p-3.5 rounded-2xl bg-[#E3EBFA] border border-[#2E4D94]/20 text-[#2E4D94] text-[11px] leading-relaxed">
+              Your Customer Review will be submitted for moderation. It will
+              become publicly visible after it is approved.
+            </div>
+
+            {/* ------------------------------------------------------------ */}
+            {/* ACTIONS                                                        */}
+            {/* ------------------------------------------------------------ */}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="flex-1 bg-[#F4F6FA] border border-[#D9E2EA] hover:bg-[#E4EEF3] py-3 rounded-xl text-xs font-bold text-[#606460] transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-[#173885] hover:bg-[#21479D] py-3 rounded-xl text-xs font-bold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Customer Review"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
