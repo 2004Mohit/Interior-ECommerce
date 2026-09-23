@@ -11,8 +11,8 @@ export const Footer = () => {
           <div className="space-y-3">
             <div className="flex flex-col select-none">
               <span className="text-2xl font-black tracking-tight leading-none">
-                <span className="text-[#FEFEFE]">GATE</span>
-                <span className="text-[#A5D6FA]">MATE</span>
+                <span className="text-[#FEFEFE]">FERRA</span>
+                <span className="text-[#A5D6FA]">DO</span>
               </span>
               <span className="text-[9px] font-bold uppercase tracking-widest text-[#A5D6FA] mt-1">
                 Pune & PCMC Construction Hub
@@ -70,7 +70,7 @@ export const Footer = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#A5D6FA] shrink-0" />
-                <span>support@gatemate.in</span>
+                <span>support@ferrado.in</span>
               </div>
             </div>
           </div>

@@ -38,7 +38,7 @@ import { SITE_CONFIG } from "../../services/seoService";
  * GateMate does not use a banner/promotion management system.
  */
 const STATIC_HERO_BANNER = {
-  badge: "GATEMATE CONSTRUCTION MARKETPLACE",
+  badge: "FERRADO CONSTRUCTION MARKETPLACE",
 
   title: "Construction Products. Nearby Vendors. Faster Delivery.",
 

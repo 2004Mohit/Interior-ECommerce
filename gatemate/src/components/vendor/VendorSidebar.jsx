@@ -96,8 +96,8 @@ export const VendorSidebar = ({ isMobileOpen, onCloseMobile }) => {
         <div className="p-3.5 sm:p-4 border-b border-[#D9E2EA] flex items-center justify-between shrink-0 bg-[#FEFEFE]">
           <NavLink to="/vendor/dashboard" className="flex flex-col select-none">
             <span className="text-xl font-black tracking-tight leading-none">
-              <span className="text-[#173885]">GATE</span>
-              <span className="text-[#3C7DDA]">MATE</span>
+              <span className="text-[#173885]">FERRA</span>
+              <span className="text-[#3C7DDA]">DO</span>
             </span>
             <span className="text-[9px] font-bold uppercase tracking-widest text-[#6F8A92] mt-0.5">
               Vendor Terminal

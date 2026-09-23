@@ -23,8 +23,8 @@ export const VendorPublicHeader = () => {
         >
           <div className="flex flex-col">
             <span className="text-2xl font-black tracking-tight leading-none">
-              <span className="text-[#173885]">GATE</span>
-              <span className="text-[#3C7DDA]">MATE</span>
+              <span className="text-[#173885]">FERRA</span>
+              <span className="text-[#3C7DDA]">DO</span>
             </span>
             <span className="text-[9px] font-bold uppercase tracking-widest text-[#3C7DDA] mt-0.5">
               Stockist & Vendor Portal

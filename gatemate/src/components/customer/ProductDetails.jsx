@@ -58,12 +58,6 @@ export const ProductDetails = () => {
   useEffect(() => {
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getSession();
-
-      console.log("=== GATEMATE SESSION CHECK ===");
-      console.log("Session:", data.session);
-      console.log("User ID:", data.session?.user?.id);
-      console.log("Email:", data.session?.user?.email);
-      console.log("Error:", error);
     };
 
     checkSession();

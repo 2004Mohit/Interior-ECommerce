@@ -10,14 +10,14 @@
  */
 
 export const SITE_CONFIG = {
-  siteName: "GateMate",
+  siteName: "Ferrado",
   siteUrl: "https://gatemate.in",
   defaultTitle:
     "GateMate | Hyperlocal Construction Products & Supplies Marketplace in Pune & PCMC",
   defaultDescription:
     "Buy certified cement, TMT steel, AAC blocks, sand, aggregates, plumbing, electrical, and building hardware with 30-minute delivery on eligible Products/orders across Pune & PCMC.",
   defaultImage: "https://gatemate.in/og-construction-marketplace.jpg",
-  twitterHandle: "@gatemate_in",
+  twitterHandle: "@ferrado_in",
   region: "IN-MH",
   city: "Pune",
 };

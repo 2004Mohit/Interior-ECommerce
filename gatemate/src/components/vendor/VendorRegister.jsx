@@ -196,8 +196,8 @@ export const VendorRegister = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
         <Link to="/sell" className="inline-flex flex-col select-none">
           <span className="text-3xl font-black tracking-tight leading-none">
-            <span className="text-[#173885]">GATE</span>
-            <span className="text-[#3C7DDA]">MATE</span>
+            <span className="text-[#173885]">FERRA</span>
+            <span className="text-[#3C7DDA]">DO</span>
           </span>
 
           <span className="text-[10px] font-bold uppercase tracking-widest text-[#3C7DDA] mt-1">

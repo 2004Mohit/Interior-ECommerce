@@ -321,7 +321,7 @@ export const AdminStaffView = () => {
                   <input
                     type="email"
                     required
-                    placeholder="name@gatemate.in"
+                    placeholder="name@ferrado.in"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full gm-input pl-10 pr-3.5 py-2.5 rounded-xl text-xs"
