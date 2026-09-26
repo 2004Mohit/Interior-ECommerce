@@ -114,7 +114,7 @@ export const VendorNotifications = () => {
   return (
     <div className="space-y-6 pb-24 font-sans">
       <SeoHead
-        title="Vendor Notifications & Dispatch Alerts | GateMate"
+        title="Vendor Notifications & Dispatch Alerts | Ferrado"
         description="Real-time alerts on new site orders, commercial project RFQ bids, product moderation updates, and bank settlements."
         canonicalUrl="/vendor/notifications"
         noIndex={true}

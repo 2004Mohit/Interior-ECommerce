@@ -186,8 +186,8 @@ export const VendorVerificationStatus = () => {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 pb-28 font-sans">
       <SeoHead
-        title="Vendor Verification Status | GateMate"
-        description="Inspect your GateMate vendor onboarding review state, submitted business documents, and reviewer remarks."
+        title="Vendor Verification Status | Ferrado"
+        description="Inspect your Ferrado vendor onboarding review state, submitted business documents, and reviewer remarks."
         canonicalUrl="/vendor/verification"
       />
 

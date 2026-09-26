@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Financials, Transactions & Settlements Service
+ * Ferrado Vendor Financials, Transactions & Settlements Service
  *
  * Commission Policy:
  * - Fixed standard rate: 5% of Product Subtotal (COMMISSION_RATE = 0.05).

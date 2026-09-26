@@ -57,7 +57,7 @@ export const AdminDeliveryConsoleView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_DELIVERY}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Delivery & 30-Min SLA Operations | GateMate Admin"
+          title="Delivery & 30-Min SLA Operations | Ferrado Admin"
           description="Live Pune & PCMC dispatch radar, 30-minute priority delivery monitoring, and fleet exception handling."
           canonicalUrl="/admin/delivery"
           noIndex={true}

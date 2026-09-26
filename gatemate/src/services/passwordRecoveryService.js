@@ -1,5 +1,5 @@
 /**
- * GateMate Real Email Password Recovery Service
+ * Ferrado Real Email Password Recovery Service
  * Powered by Supabase Auth (Magic Link / PKCE Email Verification)
  */
 

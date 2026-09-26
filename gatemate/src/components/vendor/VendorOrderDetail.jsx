@@ -417,7 +417,7 @@ export const VendorOrderDetail = () => {
   return (
     <div className="max-w-5xl mx-auto py-6 space-y-6 pb-24 font-sans">
       <SeoHead
-        title={`Order ${order.id} | GateMate Vendor Fulfillment`}
+        title={`Order ${order.id} | Ferrado Vendor Fulfillment`}
         description="Manage live stage advancement, inspect customer delivery destination, and reconcile payments."
         canonicalUrl={`/vendor/orders/${order.id}`}
         noIndex={true}

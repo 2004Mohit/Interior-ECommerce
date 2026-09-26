@@ -57,8 +57,8 @@ export const VendorBenefits = () => {
   const content = (
     <div className="space-y-8 pb-16 font-sans">
       <SeoHead
-        title="GateMate Stockist Partner Benefits & Growth Program"
-        description="Discover the advantages of becoming an authorized GateMate construction supplies vendor in Pune and Pimpri-Chinchwad."
+        title="Ferrado Stockist Partner Benefits & Growth Program"
+        description="Discover the advantages of becoming an authorized Ferrado construction supplies vendor in Pune and Pimpri-Chinchwad."
         canonicalUrl="/vendor/benefits"
       />
 
@@ -69,7 +69,7 @@ export const VendorBenefits = () => {
             Stockist Network Growth
           </span>
           <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
-            GateMate Stockist Partner Benefits
+            Ferrado Stockist Partner Benefits
           </h1>
           <p className="text-xs text-[#606460]">
             Empowering regional construction material stockists with digital

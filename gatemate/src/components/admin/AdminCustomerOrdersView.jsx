@@ -57,7 +57,7 @@ export const AdminCustomerOrdersView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_CUSTOMERS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Customer Orders Ledger | GateMate Admin"
+          title="Customer Orders Ledger | Ferrado Admin"
           description="Platform-wide ledger of orders placed by contractor buyers and site customers across Pune & PCMC."
           canonicalUrl="/admin/customer-orders"
           noIndex={true}

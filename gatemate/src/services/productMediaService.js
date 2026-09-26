@@ -1,5 +1,5 @@
 /**
- * GateMate Product Media Service
+ * Ferrado Product Media Service
  *
  * Canonical product-image uploader.
  *

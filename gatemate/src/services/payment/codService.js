@@ -1,7 +1,7 @@
 import { supabase } from "../../lib/supabaseClient";
 
 /**
- * GateMate Pay on Delivery (POD / COD) Service
+ * Ferrado Pay on Delivery (POD / COD) Service
  *
  * Creates real customer orders through the Supabase
  * place_customer_order() RPC.
@@ -48,7 +48,7 @@ export const codService = {
 
       if (sessionError) {
         console.error(
-          "GateMate COD: Failed to get authentication session:",
+          "Ferrado COD: Failed to get authentication session:",
           sessionError,
         );
 
@@ -76,7 +76,7 @@ export const codService = {
 
       if (user?.id && user.id !== authenticatedUser.id) {
         console.warn(
-          "GateMate COD: Provided user does not match authenticated user.",
+          "Ferrado COD: Provided user does not match authenticated user.",
           {
             providedUserId: user.id,
             authenticatedUserId: authenticatedUser.id,
@@ -179,7 +179,7 @@ export const codService = {
       // ------------------------------------------------------------
 
       if (error) {
-        console.error("GateMate COD: place_customer_order failed:", error);
+        console.error("Ferrado COD: place_customer_order failed:", error);
 
         let message =
           "We could not place your order. Please review your cart and try again.";
@@ -219,7 +219,7 @@ export const codService = {
       // ------------------------------------------------------------
 
       if (!data) {
-        console.error("GateMate COD: RPC returned an empty response.");
+        console.error("Ferrado COD: RPC returned an empty response.");
 
         return {
           success: false,
@@ -230,10 +230,7 @@ export const codService = {
       }
 
       if (data.success === false) {
-        console.error(
-          "GateMate COD: RPC returned unsuccessful response:",
-          data,
-        );
+        console.error("Ferrado COD: RPC returned unsuccessful response:", data);
 
         return {
           success: false,
@@ -305,7 +302,7 @@ export const codService = {
 
       if (!primaryOrderId) {
         console.error(
-          "GateMate COD: RPC succeeded but no valid order ID was returned.",
+          "Ferrado COD: RPC succeeded but no valid order ID was returned.",
           data,
         );
 
@@ -394,7 +391,7 @@ export const codService = {
       // 14. Unexpected error protection
       // ------------------------------------------------------------
 
-      console.error("GateMate COD: Unexpected order placement error:", error);
+      console.error("Ferrado COD: Unexpected order placement error:", error);
 
       return {
         success: false,

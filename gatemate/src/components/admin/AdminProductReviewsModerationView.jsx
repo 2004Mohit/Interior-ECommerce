@@ -193,7 +193,7 @@ export const AdminProductReviewsModerationView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_REVIEWS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Customer Product Reviews Moderation | GateMate Admin"
+          title="Customer Product Reviews Moderation | Ferrado Admin"
           description="Inspect and moderate Customer Product Ratings and Reviews across construction products."
           canonicalUrl="/admin/reviews"
           noIndex={true}
@@ -212,7 +212,7 @@ export const AdminProductReviewsModerationView = () => {
 
             <p className="text-xs text-[#606460] mt-1 max-w-2xl">
               Review verified Customer Product feedback before it becomes
-              visible in the GateMate storefront.
+              visible in the Ferrado storefront.
             </p>
           </div>
 

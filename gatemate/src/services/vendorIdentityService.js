@@ -1,7 +1,7 @@
 import { supabase } from "../lib/supabaseClient";
 
 /**
- * GateMate Vendor Identity Service
+ * Ferrado Vendor Identity Service
  *
  * There are two different IDs in the vendor system:
  *
@@ -11,7 +11,7 @@ import { supabase } from "../lib/supabaseClient";
  *    - Used by vendor_profiles.user_id
  *
  * 2. vendor_profiles.id
- *    - GateMate vendor profile UUID
+ *    - Ferrado vendor profile UUID
  *    - Used by vendor_products.vendor_id
  *    - Used by other vendor-owned tables that reference vendor_profiles.id
  *
@@ -57,7 +57,7 @@ export const vendorIdentityService = {
   },
 
   /**
-   * Get the GateMate vendor_profiles.id belonging to
+   * Get the Ferrado vendor_profiles.id belonging to
    * the currently authenticated Supabase user.
    *
    * This ID must be used for vendor-owned tables such as:

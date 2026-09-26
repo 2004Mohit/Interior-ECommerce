@@ -490,7 +490,7 @@ export const VendorRfqDetail = () => {
   return (
     <div className="max-w-5xl mx-auto py-6 space-y-6 pb-24 font-sans">
       <SeoHead
-        title={`RFQ ${rfq.id} | ${rfq.projectName} | GateMate`}
+        title={`RFQ ${rfq.id} | ${rfq.projectName} | Ferrado`}
         description="Review project RFQ requirements and submit a commercial quotation."
         canonicalUrl={`/vendor/rfqs/${rfq.id}`}
         noIndex={true}

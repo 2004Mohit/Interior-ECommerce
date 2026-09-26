@@ -253,7 +253,7 @@ export const VendorQuotations = () => {
   return (
     <div className="space-y-6 pb-24 font-sans">
       <SeoHead
-        title="Commercial Quotations | GateMate Vendor Portal"
+        title="Commercial Quotations | Ferrado Vendor Portal"
         description="Manage commercial quotations, customer decisions, and wholesale order conversion."
         canonicalUrl="/vendor/quotations"
         noIndex={true}

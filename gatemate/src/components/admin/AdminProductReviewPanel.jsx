@@ -165,7 +165,7 @@ export const AdminProductReviewPanel = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.REVIEW_PRODUCTS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Product Approvals & Moderation | GateMate Admin"
+          title="Product Approvals & Moderation | Ferrado Admin"
           description="Review product listings, technical attributes, dynamic pricing, and stock readiness before publication."
           canonicalUrl="/admin/product-reviews"
           noIndex={true}

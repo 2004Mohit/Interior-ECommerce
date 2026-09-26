@@ -232,7 +232,7 @@ export const SuggestAttributeModal = ({
             </strong>
             <p className="text-[11px] text-[#606460] mt-0.5">
               Your suggestion will enter a pending state. Once approved by
-              GateMate reviewers, this field will automatically become available
+              Ferrado reviewers, this field will automatically become available
               to all vendors listing products in {categoryName}.
             </p>
           </div>

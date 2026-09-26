@@ -7,7 +7,7 @@ export const VendorPublicHeader = () => {
   const { user } = useAuth();
 
   const links = [
-    { label: "Sell on GateMate", path: "/sell" },
+    { label: "Sell on Ferrado", path: "/sell" },
     { label: "Vendor Guidelines", path: "/vendor/guidelines" },
     { label: "Partner Benefits", path: "/vendor/benefits" },
   ];
@@ -19,7 +19,7 @@ export const VendorPublicHeader = () => {
         <Link
           to="/sell"
           className="flex items-center gap-3 select-none shrink-0"
-          aria-label="GateMate Vendor Home"
+          aria-label="Ferrado Vendor Home"
         >
           <div className="flex flex-col">
             <span className="text-2xl font-black tracking-tight leading-none">

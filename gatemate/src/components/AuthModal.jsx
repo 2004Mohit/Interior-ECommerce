@@ -134,7 +134,7 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }) => {
           <div className="text-center space-y-1 mb-5">
             <h3 className="text-2xl font-black text-[#173885]">
               {authView === "SIGN_IN"
-                ? "Sign In to GateMate"
+                ? "Sign In to Ferrado"
                 : "Create Customer Account"}
             </h3>
             <p className="text-xs text-[#606460]">

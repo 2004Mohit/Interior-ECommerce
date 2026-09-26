@@ -1,5 +1,5 @@
 /**
- * GateMate File Optimization & Validation Utility
+ * Ferrado File Optimization & Validation Utility
  * Handles browser-native image resizing, WebP conversion, and strict validation.
  */
 

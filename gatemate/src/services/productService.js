@@ -1,217 +1,408 @@
-/**
- * GateMate Customer Product Service
+import catalogRepository from "./catalogRepository";
+
+/*
+ * =============================================================================
+ * PRODUCT SERVICE
+ * =============================================================================
  *
- * Customer-facing product catalogue service.
+ * Customer-facing product service.
  *
- * Data source:
- *   catalogRepository -> Supabase
+ * Responsibilities:
  *
- * The customer catalogue must never use demoProducts,
- * mockData, static categories, or localStorage.
+ * - Normalize customer search/filter parameters
+ * - Pass them to catalogRepository
+ * - Keep the response shape consistent for the UI
+ * - Avoid demo/mock catalogue data
  *
- * Public catalogue rule:
- *   Only PUBLISHED vendor products are visible.
+ * The actual catalogue/search/filter logic lives in catalogRepository.js.
  */
 
-import { catalogRepository } from "./catalogRepository";
+/*
+ * =============================================================================
+ * HELPERS
+ * =============================================================================
+ */
 
-/* -------------------------------------------------------------------------- */
-/* Product Service                                                            */
-/* -------------------------------------------------------------------------- */
+const cleanText = (value) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value).trim();
+};
+
+const normalizeSearch = (value) => {
+  return cleanText(value).replace(/\s+/g, " ").trim();
+};
+
+const normalizeOption = (value) => {
+  const normalized = cleanText(value);
+
+  if (!normalized || normalized.toLowerCase() === "all") {
+    return "";
+  }
+
+  return normalized;
+};
+
+const normalizeBoolean = (value) => {
+  return value === true || String(value).toLowerCase() === "true";
+};
+
+const normalizeNumber = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return undefined;
+  }
+
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : undefined;
+};
+
+const normalizeLimit = (value, fallback = 50) => {
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number <= 0) {
+    return fallback;
+  }
+
+  return Math.min(Math.floor(number), 200);
+};
+
+const normalizeOffset = (value) => {
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number < 0) {
+    return 0;
+  }
+
+  return Math.floor(number);
+};
+
+/*
+ * =============================================================================
+ * EMPTY RESPONSE
+ * =============================================================================
+ */
+
+const emptyCatalogueResponse = () => ({
+  products: [],
+  items: [],
+  totalCount: 0,
+  total: 0,
+  count: 0,
+  offset: 0,
+  limit: 50,
+  hasMore: false,
+});
+
+/*
+ * =============================================================================
+ * PRODUCT SERVICE
+ * =============================================================================
+ */
 
 export const productService = {
-  /**
-   * ------------------------------------------------------------------------
-   * Get a single published product by slug
-   * ------------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------------
+   * QUERY PRODUCTS
+   * ---------------------------------------------------------------------------
    *
-   * Used by:
-   *   - ProductDetails
-   *   - ProductCard links
-   *   - Product SEO pages
+   * Main method used by Customer Search Results.
+   *
+   * Supported parameters:
+   *
+   * search
+   * category
+   * categorySlug
+   * brand
+   * unit
+   * grade
+   * inStockOnly
+   * minPrice
+   * maxPrice
+   * sort
+   * expressOnly
+   * pincode
+   * limit
+   * offset
    */
-  async getProductBySlug(slug) {
-    if (!slug) {
-      return null;
+
+  async queryProducts(params = {}) {
+    const normalizedParams = {
+      search: normalizeSearch(params.search),
+
+      category: normalizeOption(params.category),
+
+      categorySlug: normalizeOption(params.categorySlug),
+
+      brand: normalizeOption(params.brand),
+
+      unit: normalizeOption(params.unit),
+
+      grade: normalizeOption(params.grade),
+
+      inStockOnly: normalizeBoolean(params.inStockOnly),
+
+      minPrice: normalizeNumber(params.minPrice),
+
+      maxPrice: normalizeNumber(params.maxPrice),
+
+      expressOnly: normalizeBoolean(params.expressOnly),
+
+      pincode: cleanText(params.pincode),
+
+      sort: normalizeOption(params.sort) || "relevance",
+
+      limit: normalizeLimit(params.limit, 50),
+
+      offset: normalizeOffset(params.offset),
+    };
+
+    /*
+     * If both category and categorySlug are provided,
+     * catalogRepository decides which one takes precedence.
+     */
+
+    const result = await catalogRepository.queryCatalog(normalizedParams);
+
+    /*
+     * Defensive response normalization.
+     */
+
+    if (!result || typeof result !== "object") {
+      return emptyCatalogueResponse();
     }
 
-    return catalogRepository.getProductBySlug(slug);
+    const products = Array.isArray(result.products)
+      ? result.products
+      : Array.isArray(result.items)
+        ? result.items
+        : [];
+
+    const totalCount =
+      Number(
+        result.totalCount ?? result.total ?? result.count ?? products.length,
+      ) || 0;
+
+    return {
+      ...result,
+
+      products,
+
+      items: products,
+
+      totalCount,
+
+      total:
+        Number(
+          result.total ?? result.totalCount ?? result.count ?? products.length,
+        ) || 0,
+
+      count:
+        Number(
+          result.count ?? result.totalCount ?? result.total ?? products.length,
+        ) || 0,
+
+      offset: normalizedParams.offset,
+
+      limit: normalizedParams.limit,
+
+      hasMore:
+        typeof result.hasMore === "boolean"
+          ? result.hasMore
+          : normalizedParams.offset + products.length < totalCount,
+    };
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Query customer product catalogue
-   * ------------------------------------------------------------------------
-   *
-   * Supported filters:
-   *
-   *   search
-   *   category
-   *   categorySlug
-   *   brand
-   *   unit
-   *   grade
-   *   inStockOnly
-   *   minPrice
-   *   maxPrice
-   *   expressOnly
-   *   pincode
-   *   sort
-   *   limit
-   *   offset
+  /*
+   * ---------------------------------------------------------------------------
+   * SEARCH PRODUCTS
+   * ---------------------------------------------------------------------------
    */
-  async queryProducts(params = {}) {
-    return catalogRepository.queryCatalog({
-      search: params.search || "",
 
-      category: params.category || "",
+  async searchProducts(search, options = {}) {
+    const normalizedSearch = normalizeSearch(search);
 
-      categorySlug: params.categorySlug || "",
-
-      brand: params.brand || "",
-
-      unit: params.unit || "",
-
-      grade: params.grade || "",
-
-      inStockOnly: Boolean(params.inStockOnly),
-
-      minPrice: params.minPrice ?? "",
-
-      maxPrice: params.maxPrice ?? "",
-
-      expressOnly: Boolean(params.expressOnly),
-
-      pincode: params.pincode || "",
-
-      sort: params.sort || "relevance",
-
-      limit: params.limit ?? 50,
-
-      offset: params.offset ?? 0,
+    return catalogRepository.searchProducts(normalizedSearch, {
+      ...options,
+      search: normalizedSearch,
     });
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Search products
-   * ------------------------------------------------------------------------
-   */
-  async searchProducts(search, options = {}) {
-    return catalogRepository.searchProducts(search, options);
-  },
-
-  /**
-   * ------------------------------------------------------------------------
-   * Get products by category
-   * ------------------------------------------------------------------------
-   */
-  async getProductsByCategory(categorySlug, options = {}) {
-    if (!categorySlug) {
-      return {
-        products: [],
-        items: [],
-        totalCount: 0,
-        total: 0,
-        count: 0,
-      };
-    }
-
-    return catalogRepository.getProductsByCategory(categorySlug, options);
-  },
-
-  /**
-   * ------------------------------------------------------------------------
-   * Get active product categories
-   * ------------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------------
+   * GET PRODUCT BY SLUG
+   * ---------------------------------------------------------------------------
    *
-   * Categories come directly from:
+   * Used by:
    *
-   *   public.product_categories
+   * Customer Product Details page
+   * Product card navigation
+   * Direct product URLs
    *
-   * Static categories.js is not used.
+   * Example:
+   *
+   * productService.getProductBySlug(
+   *   "ultratech-cement-ppc"
+   * )
    */
-  async getCategories() {
-    return catalogRepository.getCategories();
-  },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Get category by slug
-   * ------------------------------------------------------------------------
-   */
-  async getCategoryBySlug(slug) {
-    if (!slug) {
+  async getProductBySlug(slug) {
+    const normalizedSlug = cleanText(slug);
+
+    if (!normalizedSlug) {
       return null;
     }
 
-    return catalogRepository.getCategoryBySlug(slug);
+    return catalogRepository.getProductBySlug(normalizedSlug);
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Get customer filter facets
-   * ------------------------------------------------------------------------
-   *
-   * Returns:
-   *
-   *   brands
-   *   units
-   *   categories
-   *   grades
-   *   minPrice
-   *   maxPrice
-   *   expressCount
-   *   inStockCount
-   *   totalProducts
+  /*
+   * ---------------------------------------------------------------------------
+   * GET PRODUCTS BY CATEGORY
+   * ---------------------------------------------------------------------------
    */
+
+  async getProductsByCategory(categorySlug, options = {}) {
+    const normalizedCategory = normalizeOption(categorySlug);
+
+    if (!normalizedCategory) {
+      return emptyCatalogueResponse();
+    }
+
+    return catalogRepository.getProductsByCategory(normalizedCategory, options);
+  },
+
+  /*
+   * ---------------------------------------------------------------------------
+   * GET CATEGORIES
+   * ---------------------------------------------------------------------------
+   */
+
+  async getCategories() {
+    const categories = await catalogRepository.getCategories();
+
+    return Array.isArray(categories) ? categories : [];
+  },
+
+  /*
+   * ---------------------------------------------------------------------------
+   * GET CATEGORY BY SLUG
+   * ---------------------------------------------------------------------------
+   */
+
+  async getCategoryBySlug(slug) {
+    const normalizedSlug = normalizeOption(slug);
+
+    if (!normalizedSlug) {
+      return null;
+    }
+
+    return catalogRepository.getCategoryBySlug(normalizedSlug);
+  },
+
+  /*
+   * ---------------------------------------------------------------------------
+   * GET FILTER FACETS
+   * ---------------------------------------------------------------------------
+   */
+
   async getFilterFacets() {
-    return catalogRepository.getFilterFacets();
+    const facets = await catalogRepository.getFilterFacets();
+
+    if (!facets || typeof facets !== "object") {
+      return {
+        brands: [],
+        units: [],
+        categories: [],
+        grades: [],
+        minPrice: 0,
+        maxPrice: 0,
+        expressCount: 0,
+        inStockCount: 0,
+        totalProducts: 0,
+      };
+    }
+
+    return {
+      brands: Array.isArray(facets.brands) ? facets.brands : [],
+
+      units: Array.isArray(facets.units) ? facets.units : [],
+
+      categories: Array.isArray(facets.categories) ? facets.categories : [],
+
+      grades: Array.isArray(facets.grades) ? facets.grades : [],
+
+      minPrice: Number.isFinite(Number(facets.minPrice))
+        ? Number(facets.minPrice)
+        : 0,
+
+      maxPrice: Number.isFinite(Number(facets.maxPrice))
+        ? Number(facets.maxPrice)
+        : 0,
+
+      expressCount: Number(facets.expressCount) || 0,
+
+      inStockCount: Number(facets.inStockCount) || 0,
+
+      totalProducts: Number(facets.totalProducts) || 0,
+    };
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Get featured products
-   * ------------------------------------------------------------------------
-   *
-   * There is currently no "featured" column in vendor_products.
-   *
-   * The repository therefore determines featured products from
-   * currently published products rather than using demo data.
+  /*
+   * ---------------------------------------------------------------------------
+   * GET FEATURED PRODUCTS
+   * ---------------------------------------------------------------------------
    */
+
   async getFeaturedProducts(limit = 12) {
-    return catalogRepository.getFeaturedProducts(limit);
+    const normalizedLimit = normalizeLimit(limit, 12);
+
+    const products =
+      await catalogRepository.getFeaturedProducts(normalizedLimit);
+
+    return Array.isArray(products) ? products : [];
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Get products eligible for 30-minute delivery
-   * ------------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------------
+   * GET EXPRESS PRODUCTS
+   * ---------------------------------------------------------------------------
    */
+
   async getExpressProducts(options = {}) {
-    return catalogRepository.getExpressProducts(options);
+    const result = await catalogRepository.getExpressProducts(options);
+
+    return result || emptyCatalogueResponse();
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Get products currently in stock
-   * ------------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------------
+   * GET IN-STOCK PRODUCTS
+   * ---------------------------------------------------------------------------
    */
+
   async getInStockProducts(options = {}) {
-    return catalogRepository.getInStockProducts(options);
+    const result = await catalogRepository.getInStockProducts(options);
+
+    return result || emptyCatalogueResponse();
   },
 
-  /**
-   * ------------------------------------------------------------------------
-   * Check whether a product is publicly available
-   * ------------------------------------------------------------------------
+  /*
+   * ---------------------------------------------------------------------------
+   * CHECK PRODUCT PUBLISHED STATUS
+   * ---------------------------------------------------------------------------
    */
+
   async isProductPublished(productId) {
-    if (!productId) {
+    const id = cleanText(productId);
+
+    if (!id) {
       return false;
     }
 
-    return catalogRepository.isProductPublished(productId);
+    return catalogRepository.isProductPublished(id);
   },
 };
 

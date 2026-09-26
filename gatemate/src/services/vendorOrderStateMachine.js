@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Order State Machine & Transition Rules
+ * Ferrado Vendor Order State Machine & Transition Rules
  *
  * Strict Vendor Normal Order Lifecycle:
  * - NEW -> ACCEPTED or REJECTED

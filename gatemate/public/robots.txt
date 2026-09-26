@@ -1,4 +1,4 @@
-# GateMate Production Crawl Directives
+# Ferrado Production Crawl Directives
 User-agent: *
 Allow: /
 Allow: /products

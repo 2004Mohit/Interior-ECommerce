@@ -105,7 +105,7 @@ export const AdminAuthProvider = ({ children }) => {
 
       /*
        * Verify that the authenticated account is actually
-       * registered as an active GateMate Admin.
+       * registered as an active Ferrado Admin.
        */
       const { data: role, error: roleError } =
         await supabaseAdmin.rpc("get_auth_role");
@@ -125,8 +125,7 @@ export const AdminAuthProvider = ({ children }) => {
 
         return {
           error: {
-            message:
-              "This account does not have GateMate administrator access.",
+            message: "This account does not have Ferrado administrator access.",
           },
         };
       }

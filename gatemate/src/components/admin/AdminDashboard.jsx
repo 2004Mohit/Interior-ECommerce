@@ -65,7 +65,7 @@ export const AdminDashboard = () => {
   return (
     <div className="space-y-8 pb-24 font-sans">
       <SeoHead
-        title="Admin Operations Control Center | GateMate"
+        title="Admin Operations Control Center | Ferrado"
         description="Central platform moderation console for vendor verification, product moderation, and financial commissions."
         canonicalUrl="/admin/dashboard"
         noIndex={true}

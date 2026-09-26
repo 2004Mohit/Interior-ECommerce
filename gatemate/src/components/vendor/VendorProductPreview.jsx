@@ -65,7 +65,7 @@ export const VendorProductPreview = () => {
   return (
     <div className="max-w-5xl mx-auto py-6 space-y-6 pb-24 font-sans">
       <SeoHead
-        title={`Guest Storefront Preview - ${product.name} | GateMate Vendor`}
+        title={`Guest Storefront Preview - ${product.name} | Ferrado Vendor`}
         description="Inspect how your construction product listing appears to guest customers."
         canonicalUrl={`/vendor/products/${product.id}/preview`}
         noIndex={true}

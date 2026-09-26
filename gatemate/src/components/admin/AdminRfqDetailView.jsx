@@ -112,7 +112,7 @@ export const AdminRfqDetailView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_RFQ}>
       <div className="max-w-5xl mx-auto space-y-6 pb-24 font-sans">
         <SeoHead
-          title={`RFQ: ${rfq.project_name || "Inquiry"} | GateMate Admin`}
+          title={`RFQ: ${rfq.project_name || "Inquiry"} | Ferrado Admin`}
           description="Detailed commercial RFQ inspection, technical product specifications, vendor bid submissions, and order conversions."
           canonicalUrl={`/admin/rfqs/${id}`}
           noIndex={true}

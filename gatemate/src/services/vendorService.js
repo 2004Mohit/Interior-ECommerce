@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Data & Operations Service
+ * Ferrado Vendor Data & Operations Service
  *
  * Reusable architecture supporting:
  * - Vendor profile onboarding & GST verification

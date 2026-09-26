@@ -363,7 +363,7 @@ export const ProductListing = () => {
       {/* ------------------------------------------------------------------ */}
 
       <SeoHead
-        title={`${categoryTitle} | GateMate Construction Products`}
+        title={`${categoryTitle} | Ferrado Construction Products`}
         description={`Explore verified ${categoryTitle} construction products in Pune & PCMC. Competitive vendor pricing, product availability, and 30-minute delivery on eligible products/orders.`}
         canonicalUrl={canonicalPath}
         structuredData={collectionSchema}

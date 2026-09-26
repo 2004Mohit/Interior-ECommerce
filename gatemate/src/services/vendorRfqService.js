@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor RFQ Management Service
+ * Ferrado Vendor RFQ Management Service
  *
  * Uses the actual Supabase schema:
  * - vendor_rfqs

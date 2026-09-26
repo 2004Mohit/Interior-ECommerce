@@ -79,7 +79,7 @@ export const Footer = () => {
         {/* Bottom Compliance & Policy Bar */}
         <div className="pt-6 border-t border-[#0F255C] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#A5D6FA]">
           <p>
-            © 2026 GateMate Marketplace Private Limited. All rights reserved.
+            © 2026 Ferrado Marketplace Private Limited. All rights reserved.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-1 text-[#FEFEFE]">

@@ -228,8 +228,8 @@ export const VendorLogin = () => {
   return (
     <div className="min-h-screen bg-[#F4F6FA] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <SeoHead
-        title="Vendor Sign In | GateMate Vendor Portal"
-        description="Sign in to your GateMate vendor portal to manage construction products, orders, inventory, and business operations."
+        title="Vendor Sign In | Ferrado Vendor Portal"
+        description="Sign in to your Ferrado vendor portal to manage construction products, orders, inventory, and business operations."
         canonicalUrl="/vendor/login"
         noIndex={true}
       />

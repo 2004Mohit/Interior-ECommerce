@@ -69,7 +69,7 @@ export const AdminCommissionsView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_COMMISSIONS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="5% Platform Commission Ledger | GateMate Admin"
+          title="5% Platform Commission Ledger | Ferrado Admin"
           description="Auditable marketplace revenue ledger strictly computing 5% platform fees on net product subtotals."
           canonicalUrl="/admin/commissions"
           noIndex={true}

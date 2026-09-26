@@ -119,8 +119,8 @@ export const VendorRegister = () => {
     return (
       <div className="min-h-screen bg-[#F4F6FA] flex items-center justify-center px-4 font-sans">
         <SeoHead
-          title="Verify Your Email | GateMate Vendor"
-          description="Verify your GateMate vendor account email address."
+          title="Verify Your Email | Ferrado Vendor"
+          description="Verify your Ferrado vendor account email address."
           canonicalUrl="/vendor/register"
           noIndex={true}
         />
@@ -158,7 +158,7 @@ export const VendorRegister = () => {
                   </p>
 
                   <p className="mt-2 text-xs leading-5 text-[#606460]">
-                    After verification, GateMate will bring you back to the
+                    After verification, Ferrado will bring you back to the
                     Vendor Sign In page. You will not be signed into the
                     customer portal.
                   </p>
@@ -187,8 +187,8 @@ export const VendorRegister = () => {
   return (
     <div className="min-h-screen bg-[#F4F6FA] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <SeoHead
-        title="Register as Vendor | GateMate Vendor Portal"
-        description="Create your GateMate vendor account to list construction products."
+        title="Register as Vendor | Ferrado Vendor Portal"
+        description="Create your Ferrado vendor account to list construction products."
         canonicalUrl="/vendor/register"
         noIndex={true}
       />
@@ -210,7 +210,7 @@ export const VendorRegister = () => {
         </h2>
 
         <p className="text-xs text-[#606460]">
-          Register your business to sell construction products on GateMate.
+          Register your business to sell construction products on Ferrado.
         </p>
       </div>
 

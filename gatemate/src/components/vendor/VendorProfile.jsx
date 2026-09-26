@@ -143,7 +143,7 @@ export const VendorProfile = () => {
   return (
     <div className="space-y-6 pb-20 font-sans">
       <SeoHead
-        title="Vendor Business Profile | GateMate Partner Terminal"
+        title="Vendor Business Profile | Ferrado Partner Terminal"
         description="View protected legal identities, tax credentials, bank accounts, and submit verified change requests."
         canonicalUrl="/vendor/profile"
         noIndex={true}

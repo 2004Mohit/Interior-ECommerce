@@ -190,8 +190,8 @@ export const Checkout = () => {
     return (
       <div className="max-w-xl mx-auto px-4 py-16 text-center space-y-6">
         <SeoHead
-          title="Order Confirmed | GateMate"
-          description="Your GateMate order has been placed successfully."
+          title="Order Confirmed | Ferrado"
+          description="Your Ferrado order has been placed successfully."
           noIndex={true}
         />
         <div className="gm-panel p-8 rounded-3xl border border-[#3F7D20]/30 space-y-4">
@@ -255,7 +255,7 @@ export const Checkout = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24">
       <SeoHead
-        title="Secure Checkout | GateMate"
+        title="Secure Checkout | Ferrado"
         description="Complete your order with 30-minute priority delivery in Pune & PCMC."
         noIndex={true}
       />
@@ -720,11 +720,6 @@ export const Checkout = () => {
                     : `Confirm & Place Order (₹${calculatedTotals?.grandTotal || 0})`}
               </span>
             </button>
-
-            <div className="flex items-center justify-center gap-2 text-[#3F7D20] text-[11px] pt-1">
-              <ShieldCheck className="w-4 h-4" /> 256-Bit Encrypted Order
-              Dispatch
-            </div>
           </div>
         </div>
       </form>

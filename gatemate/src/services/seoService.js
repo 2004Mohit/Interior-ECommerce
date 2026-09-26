@@ -1,5 +1,5 @@
 /**
- * GateMate SEO & Schema.org Structured Data Service
+ * Ferrado SEO & Schema.org Structured Data Service
  *
  * Construction Products Marketplace Focus:
  * - Dynamic Construction Product Titles & Descriptions
@@ -11,12 +11,12 @@
 
 export const SITE_CONFIG = {
   siteName: "Ferrado",
-  siteUrl: "https://gatemate.in",
+  siteUrl: "https://ferrado.in",
   defaultTitle:
-    "GateMate | Hyperlocal Construction Products & Supplies Marketplace in Pune & PCMC",
+    "Ferrado | Hyperlocal Construction Products & Supplies Marketplace in Pune & PCMC",
   defaultDescription:
     "Buy certified cement, TMT steel, AAC blocks, sand, aggregates, plumbing, electrical, and building hardware with 30-minute delivery on eligible Products/orders across Pune & PCMC.",
-  defaultImage: "https://gatemate.in/og-construction-marketplace.jpg",
+  defaultImage: "https://ferrado.in/og-construction-marketplace.jpg",
   twitterHandle: "@ferrado_in",
   region: "IN-MH",
   city: "Pune",
@@ -41,7 +41,7 @@ export const seoService = {
       sku: product.sku || `GM-PROD-${product.id}`,
       brand: {
         "@type": "Brand",
-        name: product.brand || "GateMate Certified Brand",
+        name: product.brand || "Ferrado Certified Brand",
       },
       category: product.category,
       offers: {
@@ -57,7 +57,7 @@ export const seoService = {
             : "https://schema.org/OutOfStock",
         seller: {
           "@type": "Organization",
-          name: product.seller?.name || "GateMate Construction Depot Hub",
+          name: product.seller?.name || "Ferrado Construction Depot Hub",
         },
       },
       aggregateRating:
@@ -102,7 +102,7 @@ export const seoService = {
     return {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: `${categoryName} Products | GateMate Construction Marketplace`,
+      name: `${categoryName} Products | Ferrado Construction Marketplace`,
       description:
         categoryDescription ||
         `Explore certified ${categoryName} construction supplies with 30-minute delivery on eligible Products/orders across Pune & PCMC.`,

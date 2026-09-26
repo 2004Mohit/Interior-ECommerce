@@ -172,7 +172,7 @@ export const AdminCustomerDetailView = () => {
         <SeoHead
           title={`Customer 360: ${
             profile.fullName || "Customer"
-          } | GateMate Admin`}
+          } | Ferrado Admin`}
           description="360 view of customer identity, contact information, delivery addresses, orders, reviews, complaints, and account status."
           canonicalUrl={`/admin/customers/${profile.id}`}
           noIndex={true}

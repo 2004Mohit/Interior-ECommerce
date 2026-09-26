@@ -1,8 +1,8 @@
 /**
- * GateMate Vendor Customer Product Reviews Service
+ * Ferrado Vendor Customer Product Reviews Service
  *
  * Rules:
- * - GateMate strictly supports CUSTOMER PRODUCT RATINGS/REVIEWS ONLY.
+ * - Ferrado strictly supports CUSTOMER PRODUCT RATINGS/REVIEWS ONLY.
  * - ZERO vendor-performance ratings, seller ratings, or delivery-partner ratings.
  * - Customer reviews are read-only for vendors.
  */

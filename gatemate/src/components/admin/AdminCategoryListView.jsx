@@ -71,7 +71,7 @@ export const AdminCategoryListView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_CATEGORIES}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Product Category Management | GateMate Admin"
+          title="Product Category Management | Ferrado Admin"
           description="Create, reorder, update SEO metadata, and safely deactivate construction material categories."
           canonicalUrl="/admin/categories"
           noIndex={true}

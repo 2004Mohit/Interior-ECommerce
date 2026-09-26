@@ -1,5 +1,5 @@
 /**
- * GateMate Cashfree Integration Service
+ * Ferrado Cashfree Integration Service
  *
  * IMPORTANT ARCHITECTURE SECURITY RULES:
  * 1. CASHFREE_SECRET_KEY MUST NEVER BE EXPOSED TO THE FRONTEND.

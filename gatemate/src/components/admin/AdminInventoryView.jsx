@@ -160,7 +160,7 @@ export const AdminInventoryView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_INVENTORY}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Platform Inventory Oversight | GateMate Admin"
+          title="Platform Inventory Oversight | Ferrado Admin"
           description="Platform-wide visibility into vendor product inventory, reserved stock, out-of-stock states, and administrative adjustments."
           canonicalUrl="/admin/inventory"
           noIndex={true}

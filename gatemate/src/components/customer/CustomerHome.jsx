@@ -35,7 +35,7 @@ import { SITE_CONFIG } from "../../services/seoService";
  * =============================================================================
  *
  * This is intentionally static.
- * GateMate does not use a banner/promotion management system.
+ * Ferrado does not use a banner/promotion management system.
  */
 const STATIC_HERO_BANNER = {
   badge: "FERRADO CONSTRUCTION MARKETPLACE",
@@ -339,7 +339,7 @@ export const CustomerHome = () => {
           ===================================================================== */}
 
       <SeoHead
-        title="GateMate | Hyperlocal Construction Products Marketplace in Pune & PCMC"
+        title="Ferrado | Hyperlocal Construction Products Marketplace in Pune & PCMC"
         description="Find construction products from nearby verified vendors with 30-minute delivery on eligible products and orders across Pune and Pimpri-Chinchwad."
         canonicalUrl="/"
         structuredData={organizationSchema}
@@ -472,7 +472,7 @@ export const CustomerHome = () => {
 
           <input
             type="text"
-            placeholder="Search Cement, TMT Steel, AAC Blocks, M-Sand, CPVC, Waterproofing..."
+            placeholder="Search Product here"
             value={homeSearch}
             onChange={(event) => setHomeSearch(event.target.value)}
             className="w-full gm-input pl-12 pr-28 py-3.5 rounded-2xl text-sm shadow-xs"
@@ -989,7 +989,7 @@ export const CustomerHome = () => {
             </h4>
 
             <p className="text-[11px] text-[#606460] leading-relaxed">
-              Products are supplied by vendors who complete the GateMate
+              Products are supplied by vendors who complete the Ferrado
               onboarding and verification process.
             </p>
           </motion.div>
@@ -1076,7 +1076,7 @@ export const CustomerHome = () => {
             </h3>
 
             <p className="text-xs sm:text-sm text-[#606460] leading-relaxed max-w-2xl">
-              GateMate connects customers with nearby vendors so product
+              Ferrado connects customers with nearby vendors so product
               availability, delivery distance and eligible 30-minute delivery
               can be considered before placing an order.
             </p>
@@ -1152,7 +1152,7 @@ export const CustomerHome = () => {
             </h3>
 
             <p className="text-xs text-[#606460] max-w-2xl leading-relaxed">
-              Register your business on GateMate to list construction products,
+              Register your business on Ferrado to list construction products,
               manage inventory and receive customer orders from your serviceable
               locations.
             </p>

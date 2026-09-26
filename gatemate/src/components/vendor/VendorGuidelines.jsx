@@ -34,7 +34,7 @@ export const VendorGuidelines = () => {
     },
     {
       title: "Accurate Weighment & Measurement Compliance",
-      desc: "Aggregates, M-Sand, and structural steel must comply with standard brass and metric ton weighbridge slips. GateMate conducts random unannounced physical depot audits across Pune & PCMC.",
+      desc: "Aggregates, M-Sand, and structural steel must comply with standard brass and metric ton weighbridge slips. Ferrado conducts random unannounced physical depot audits across Pune & PCMC.",
       icon: Scale,
     },
     {
@@ -47,8 +47,8 @@ export const VendorGuidelines = () => {
   const content = (
     <div className="space-y-8 pb-16 font-sans">
       <SeoHead
-        title="Vendor Quality Guidelines & Fulfillment SLAs | GateMate"
-        description="Official GateMate stockist compliance guidelines, dispatch SLAs, and quality standards for Pune and PCMC construction supply depots."
+        title="Vendor Quality Guidelines & Fulfillment SLAs | Ferrado"
+        description="Official Ferrado stockist compliance guidelines, dispatch SLAs, and quality standards for Pune and PCMC construction supply depots."
         canonicalUrl="/vendor/guidelines"
       />
 
@@ -128,7 +128,7 @@ export const VendorGuidelines = () => {
               2. Product Subtotal Commission Model (5%)
             </h3>
             <p className="text-[#606460] leading-relaxed">
-              GateMate deducts a flat 5% platform service fee solely on the
+              Ferrado deducts a flat 5% platform service fee solely on the
               Product Subtotal. Freight logistics, packaging fees, and taxes are
               excluded from commission deductions.
             </p>

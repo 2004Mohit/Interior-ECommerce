@@ -1,5 +1,5 @@
 /**
- * GateMate Product Category Service
+ * Ferrado Product Category Service
  *
  * Categories are loaded from the Supabase product_categories table.
  *

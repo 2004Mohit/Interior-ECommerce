@@ -118,7 +118,7 @@ export const AdminRfqListView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_RFQ}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Commercial RFQ Oversight | GateMate Admin"
+          title="Commercial RFQ Oversight | Ferrado Admin"
           description="Track high-volume contractor material inquiries, vendor bid submissions, and commercial quotation conversions."
           canonicalUrl="/admin/rfqs"
           noIndex={true}

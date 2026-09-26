@@ -205,7 +205,7 @@ export const VendorOrders = () => {
   return (
     <div className="space-y-6 pb-24 font-sans">
       <SeoHead
-        title="Normal Site Orders | GateMate Vendor Portal"
+        title="Normal Site Orders | Ferrado Vendor Portal"
         description="Live normal site orders, 30-minute priority dispatch queue, and customer fulfillment tracking."
         canonicalUrl="/vendor/orders"
         noIndex={true}

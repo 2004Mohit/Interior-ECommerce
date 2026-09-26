@@ -262,7 +262,7 @@ export const transferAuthSession = async (session, targetClient) => {
  *
  * IMPORTANT:
  *
- * Keep this export because many existing GateMate services
+ * Keep this export because many existing Ferrado services
  * already import:
  *
  *   import { supabase } from "../lib/supabaseClient";

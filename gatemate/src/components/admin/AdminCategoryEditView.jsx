@@ -261,7 +261,7 @@ export const AdminCategoryEditView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_CATEGORIES}>
       <div className="max-w-3xl mx-auto space-y-6 pb-24 font-sans">
         <SeoHead
-          title={`${isNew ? "Create" : "Edit"} Category | GateMate Admin`}
+          title={`${isNew ? "Create" : "Edit"} Category | Ferrado Admin`}
           description="Manage construction category details, ordering, and marketplace visibility."
           canonicalUrl={`/admin/categories/${id}`}
           noIndex={true}

@@ -1,5 +1,5 @@
 /**
- * GateMate B2B Contractor & Project RFQ Service
+ * Ferrado B2B Contractor & Project RFQ Service
  *
  * Customer RFQ lifecycle:
  *

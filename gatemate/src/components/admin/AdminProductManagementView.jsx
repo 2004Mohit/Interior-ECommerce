@@ -92,7 +92,7 @@ export const AdminProductManagementView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_PRODUCTS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Product Catalogue Management | GateMate Admin"
+          title="Product Catalogue Management | Ferrado Admin"
           description="Oversee construction products, vendor pricing, stock levels, and publication states across Pune & PCMC."
           canonicalUrl="/admin/products"
           noIndex={true}

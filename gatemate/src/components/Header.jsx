@@ -55,7 +55,7 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
         <Link
           to="/"
           className="flex flex-col select-none shrink-0"
-          aria-label="GateMate Home"
+          aria-label="Ferrado Home"
         >
           <span className="text-2xl font-black tracking-tight leading-none">
             <span className="text-[#173885]">FERRA</span>
@@ -78,10 +78,10 @@ export const Header = ({ onOpenAuth, onOpenCart }) => {
           />
           <input
             type="search"
-            placeholder="Search cement, TMT rebars, AAC blocks, CPVC pipes..."
+            placeholder="Search Product here"
             value={navSearch}
             onChange={(e) => setNavSearch(e.target.value)}
-            className="w-full gm-input pl-10 pr-9 py-2 rounded-xl text-xs"
+            className="w-full gm-input pl-10 pr-9 py-2 rounded-xl text-xs [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
             aria-label="Search construction products"
           />
           {navSearch && (

@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Notifications Service
+ * Ferrado Vendor Notifications Service
  *
  * Notification Categories:
  * - VERIFICATION: Depot onboarding verification approvals, changes requested

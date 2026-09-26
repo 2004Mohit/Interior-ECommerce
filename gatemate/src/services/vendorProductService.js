@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Product Service
+ * Ferrado Vendor Product Service
  *
  * Supabase-backed product CRUD + moderation + inventory initialization.
  *

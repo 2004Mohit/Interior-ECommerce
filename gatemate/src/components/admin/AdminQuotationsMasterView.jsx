@@ -59,7 +59,7 @@ export const AdminQuotationsMasterView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_RFQ}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Quotations Master Ledger | GateMate Admin"
+          title="Quotations Master Ledger | Ferrado Admin"
           description="Platform-wide ledger of vendor commercial quotations, proposal pricing, and acceptance metrics."
           canonicalUrl="/admin/quotations"
           noIndex={true}

@@ -181,7 +181,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
           <div className="flex items-center justify-between pb-3 border-b border-[#D9E2EA]">
             <div>
               <span className="text-[10px] font-black uppercase tracking-widest text-[#3C7DDA]">
-                GateMate Checkout
+                Ferrado Checkout
               </span>
               <h2 className="text-lg sm:text-xl font-black text-[#173885]">
                 Step {currentStep}: {stepLabels[currentStep - 1]}

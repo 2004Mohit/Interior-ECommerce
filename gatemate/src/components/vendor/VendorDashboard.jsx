@@ -174,7 +174,7 @@ export const VendorDashboard = () => {
   return (
     <div className="space-y-8 pb-24 font-sans">
       <SeoHead
-        title="Vendor Terminal Dashboard | GateMate"
+        title="Vendor Terminal Dashboard | Ferrado"
         description="Actionable operational dashboard for site orders, gross sales, commercial RFQs, and inventory warnings."
         canonicalUrl="/vendor/dashboard"
         noIndex={true}
@@ -337,7 +337,7 @@ export const VendorDashboard = () => {
           </div>
         </Link>
 
-        {/* 4. Net Revenue (After 5% GateMate Commission) */}
+        {/* 4. Net Revenue (After 5% Ferrado Commission) */}
         <Link
           to="/vendor/payments"
           className="gm-card gm-card-hover p-4 sm:p-5 rounded-2xl flex flex-col justify-between border border-[#D9E2EA] bg-[#E1F2D9]/30"

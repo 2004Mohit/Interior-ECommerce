@@ -540,7 +540,7 @@ export const DEMO_PRODUCTS = [
     id: "prod-hdw-001",
     slug: "heavy-duty-ss304-concrete-anchor-fasteners-pack-of-50",
     name: "Heavy Duty Stainless Steel SS 304 Wedge Anchor Through-Bolts (12x100mm Pack of 50)",
-    brand: "GateMate Forge Works",
+    brand: "Ferrado Forge Works",
     category: "Hardware",
     categorySlug: "hardware",
     unit: "Box (50 Pcs)",
@@ -590,7 +590,7 @@ export const DEMO_PRODUCTS = [
     ],
     seller: {
       id: "sel-hardware-depot",
-      name: "GateMate Engineering Hardware Depot",
+      name: "Ferrado Engineering Hardware Depot",
       location: "Bhosari Industrial Estate, PCMC",
       joinedDate: "2023",
     },

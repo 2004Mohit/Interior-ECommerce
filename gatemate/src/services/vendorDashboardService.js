@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Dashboard Aggregation Service
+ * Ferrado Vendor Dashboard Aggregation Service
  *
  * Resolves the authenticated user's vendor profile and
  * aggregates operational metrics for that vendor.

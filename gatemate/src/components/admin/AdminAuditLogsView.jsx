@@ -60,7 +60,7 @@ export const AdminAuditLogsView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.VIEW_AUDIT_LOGS}>
       <div className="space-y-6 pb-16 font-sans">
         <SeoHead
-          title="Administrative Audit Logs | GateMate Console"
+          title="Administrative Audit Logs | Ferrado Console"
           description="Tamper-evident operational audit trail of platform modifications, approvals, and financial overrides."
           canonicalUrl="/admin/audit-logs"
           noIndex={true}

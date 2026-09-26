@@ -7,7 +7,7 @@ import { ImageOff, Sparkles } from "lucide-react";
 
 export const ProductImage = ({
   src,
-  alt = "GateMate construction product",
+  alt = "Ferrado construction product",
   aspectRatio = "aspect-square",
   className = "",
   imageClassName = "",

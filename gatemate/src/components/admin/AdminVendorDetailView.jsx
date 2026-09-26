@@ -164,7 +164,7 @@ export const AdminVendorDetailView = () => {
     >
       <div className="max-w-5xl mx-auto space-y-6 pb-24 font-sans">
         <SeoHead
-          title={`Inspect Vendor: ${bDetails.legalBusinessName || "Depot"} | GateMate Admin`}
+          title={`Inspect Vendor: ${bDetails.legalBusinessName || "Depot"} | Ferrado Admin`}
           description="Detailed inspection of vendor legal identities, depot loading docks, and verification documents."
           canonicalUrl={`/admin/vendors/${id}`}
           noIndex={true}

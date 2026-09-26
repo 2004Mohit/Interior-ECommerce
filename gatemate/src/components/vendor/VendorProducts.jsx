@@ -196,7 +196,7 @@ export const VendorProducts = () => {
   return (
     <div className="space-y-6">
       <SeoHead
-        title="Vendor Products Management | GateMate"
+        title="Vendor Products Management | Ferrado"
         description="Manage your construction product catalogue, inspect approval status, and update available inventory."
         canonicalUrl="/vendor/products"
         noIndex={true}

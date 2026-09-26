@@ -62,8 +62,8 @@ export const VendorPayments = () => {
   return (
     <div className="space-y-6 pb-24 font-sans">
       <SeoHead
-        title="Vendor Payments & Transactions Ledger | GateMate"
-        description="Transparent ledger showing Product Subtotals, 5% GateMate commission, and net vendor payable disbursements."
+        title="Vendor Payments & Transactions Ledger | Ferrado"
+        description="Transparent ledger showing Product Subtotals, 5% Ferrado commission, and net vendor payable disbursements."
         canonicalUrl="/vendor/payments"
         noIndex={true}
       />
@@ -78,7 +78,7 @@ export const VendorPayments = () => {
             Vendor Payments & Transactions
           </h1>
           <p className="text-xs text-[#606460]">
-            Itemized breakdown of product sales, GateMate 5% commission
+            Itemized breakdown of product sales, Ferrado 5% commission
             deductions, and net vendor disbursements.
           </p>
         </div>
@@ -97,10 +97,10 @@ export const VendorPayments = () => {
         <Info className="w-4 h-4 text-[#3C7DDA] shrink-0 mt-0.5" />
         <div className="space-y-0.5">
           <strong className="font-bold">
-            Transparent GateMate Commission Policy (5%):
+            Transparent Ferrado Commission Policy (5%):
           </strong>
           <p className="text-[11px] text-[#606460] leading-relaxed">
-            GateMate charges a flat 5% commission strictly on the{" "}
+            Ferrado charges a flat 5% commission strictly on the{" "}
             <strong>Product Subtotal</strong>. Commission is never calculated on
             delivery charges, platform packaging fees, or GST taxes.
           </p>
@@ -123,7 +123,7 @@ export const VendorPayments = () => {
 
         <div className="gm-card p-5 rounded-2xl border border-[#D9E2EA]">
           <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
-            GateMate Commission (5%)
+            Ferrado Commission (5%)
           </span>
           <div className="text-2xl font-black text-[#173885] mt-1 font-mono">
             -₹{summary?.totalPlatformCommission?.toLocaleString("en-IN") || 0}

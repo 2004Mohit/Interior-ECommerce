@@ -62,7 +62,7 @@ export const AdminPaymentsView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_PAYMENTS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Payment Transactions & Gateways | GateMate Admin"
+          title="Payment Transactions & Gateways | Ferrado Admin"
           description="Inspect server-verified Cashfree online payments, UPI transactions, and Pay on Delivery collections."
           canonicalUrl="/admin/payments"
           noIndex={true}

@@ -1,7 +1,7 @@
 import { supabase } from "../lib/supabaseClient";
 
 /**
- * GateMate Notification System
+ * Ferrado Notification System
  *
  * Current customer notification channels:
  * - IN_APP: Persistent notification inbox

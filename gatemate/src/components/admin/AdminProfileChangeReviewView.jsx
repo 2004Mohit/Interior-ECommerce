@@ -132,7 +132,7 @@ export const AdminProfileChangeReviewView = () => {
     >
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Vendor Profile Change Moderation | GateMate Admin"
+          title="Vendor Profile Change Moderation | Ferrado Admin"
           description="Review, verify, approve, or reject vendor legal profile change requests across Pune & PCMC."
           canonicalUrl="/admin/vendor-profile-changes"
           noIndex={true}

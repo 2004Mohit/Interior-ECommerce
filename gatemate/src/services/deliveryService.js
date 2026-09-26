@@ -1,5 +1,5 @@
 /**
- * GateMate Delivery & Serviceability Architecture
+ * Ferrado Delivery & Serviceability Architecture
  *
  * Future Backend Contract:
  * Endpoint: POST /functions/v1/check-delivery-serviceability

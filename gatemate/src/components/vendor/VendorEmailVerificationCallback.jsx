@@ -70,8 +70,8 @@ export const VendorEmailVerificationCallback = () => {
   return (
     <div className="min-h-screen bg-[#F4F6FA] flex items-center justify-center px-4 font-sans">
       <SeoHead
-        title="Email Verification | GateMate Vendor"
-        description="GateMate vendor email verification."
+        title="Email Verification | Ferrado Vendor"
+        description="Ferrado vendor email verification."
         canonicalUrl="/vendor/auth/callback"
         noIndex={true}
       />

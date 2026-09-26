@@ -246,7 +246,7 @@ export const VendorInventory = () => {
   return (
     <>
       <SeoHead
-        title="Inventory Management | GateMate Vendor"
+        title="Inventory Management | Ferrado Vendor"
         description="Manage vendor inventory, stock quantities, reservations, and inventory history."
       />
 

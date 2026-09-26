@@ -28,7 +28,7 @@ const getLocalCart = () => {
 
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    console.error("GateMate Cart: failed to read local cart:", error);
+    console.error("Ferrado Cart: failed to read local cart:", error);
 
     return [];
   }
@@ -339,7 +339,7 @@ export const CartProvider = ({ children }) => {
         localStorage.removeItem(LOCAL_CART_KEY);
       } catch (error) {
         console.error(
-          "GateMate Cart: failed to hydrate authenticated cart:",
+          "Ferrado Cart: failed to hydrate authenticated cart:",
           error,
         );
 
@@ -379,7 +379,7 @@ export const CartProvider = ({ children }) => {
     try {
       localStorage.setItem(LOCAL_CART_KEY, JSON.stringify(cart));
     } catch (error) {
-      console.error("GateMate Cart: failed to save local cart:", error);
+      console.error("Ferrado Cart: failed to save local cart:", error);
     }
   }, [cart, user?.id]);
 
@@ -400,7 +400,7 @@ export const CartProvider = ({ children }) => {
    */
   const addToCart = async (product, quantity = 1) => {
     if (!product?.id) {
-      console.error("GateMate Cart: cannot add product without an id.");
+      console.error("Ferrado Cart: cannot add product without an id.");
 
       return false;
     }
@@ -502,7 +502,7 @@ export const CartProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error(
-        "GateMate Cart: failed to synchronize added product:",
+        "Ferrado Cart: failed to synchronize added product:",
         error,
       );
 
@@ -553,7 +553,7 @@ export const CartProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error(
-        "GateMate Cart: failed to remove database cart item:",
+        "Ferrado Cart: failed to remove database cart item:",
         error,
       );
 
@@ -642,7 +642,7 @@ export const CartProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error(
-        "GateMate Cart: failed to update database cart quantity:",
+        "Ferrado Cart: failed to update database cart quantity:",
         error,
       );
 
@@ -685,7 +685,7 @@ export const CartProvider = ({ children }) => {
 
       return true;
     } catch (error) {
-      console.error("GateMate Cart: failed to clear database cart:", error);
+      console.error("Ferrado Cart: failed to clear database cart:", error);
 
       cartRef.current = previousCart;
 

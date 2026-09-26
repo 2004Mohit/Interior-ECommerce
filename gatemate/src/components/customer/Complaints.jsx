@@ -502,7 +502,7 @@ export const Complaints = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24 font-sans">
       <SeoHead
-        title="Help & Inquiries | GateMate Customer Support"
+        title="Help & Inquiries | Ferrado Customer Support"
         description="Register and track construction order inquiries, delivery issues, product disputes, and billing inquiries."
         canonicalUrl="/account/complaints"
         noIndex={true}
@@ -774,7 +774,7 @@ export const Complaints = () => {
                   <ShieldCheck className="w-4 h-4 text-[#173885] shrink-0 mt-0.5" />
 
                   <p className="text-[10px] leading-5 text-[#606460]">
-                    Your inquiry will be reviewed by the GateMate support team.
+                    Your inquiry will be reviewed by the Ferrado support team.
                     You can return to this page to track its status and any
                     resolution notes.
                   </p>

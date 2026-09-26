@@ -377,7 +377,7 @@ export const AdminAttributeReviewPanel = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_ATTRIBUTES}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Category Attributes & Attribute Suggestions | GateMate Admin"
+          title="Category Attributes & Attribute Suggestions | Ferrado Admin"
           description="Standardize technical construction attributes, merge duplicates, and review vendor attribute proposals."
           canonicalUrl="/admin/attributes"
           noIndex={true}

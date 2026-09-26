@@ -398,7 +398,7 @@ export const VendorOnboarding = () => {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 pb-28 font-sans">
       <SeoHead
-        title="Vendor Onboarding & Verification | GateMate"
+        title="Vendor Onboarding & Verification | Ferrado"
         description="Register your construction depot or stockist dealership. Multi-step credentials, category mappings, and bank settlement setup."
         canonicalUrl="/vendor/onboarding"
       />

@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Normal Orders Lifecycle & Transition Service
+ * Ferrado Vendor Normal Orders Lifecycle & Transition Service
  *
  * Order Lifecycle:
  *

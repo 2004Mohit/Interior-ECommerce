@@ -1,5 +1,5 @@
 /**
- * GateMate Vendor Quotation Management & Wholesale Order Conversion
+ * Ferrado Vendor Quotation Management & Wholesale Order Conversion
  *
  * Quotation Lifecycle:
  *

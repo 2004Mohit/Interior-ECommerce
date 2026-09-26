@@ -866,8 +866,8 @@ export const VendorProductForm = () => {
       <SeoHead
         title={
           isEditing
-            ? "Edit Product Listing | GateMate Vendor"
-            : "Add New Product | GateMate Vendor"
+            ? "Edit Product Listing | Ferrado Vendor"
+            : "Add New Product | Ferrado Vendor"
         }
         description="Create or update construction product listings with inventory specifications and MOQ terms."
         canonicalUrl="/vendor/products/new"
@@ -934,7 +934,7 @@ export const VendorProductForm = () => {
 
               <p className="text-[11px] text-[#606460] mt-0.5 leading-relaxed">
                 Editing product information or photographs on an approved
-                product requires review by GateMate before the changes appear on
+                product requires review by Ferrado before the changes appear on
                 the customer storefront.
               </p>
             </div>

@@ -1,5 +1,5 @@
 /**
- * GateMate Customer Profile Service
+ * Ferrado Customer Profile Service
  *
  * Responsibilities:
  * - Customer profile persistence through Supabase

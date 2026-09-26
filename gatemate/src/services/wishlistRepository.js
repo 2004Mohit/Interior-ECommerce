@@ -1,5 +1,5 @@
 /**
- * GateMate Wishlist Repository
+ * Ferrado Wishlist Repository
  *
  * Responsibilities:
  * - Persist customer wishlist items in Supabase

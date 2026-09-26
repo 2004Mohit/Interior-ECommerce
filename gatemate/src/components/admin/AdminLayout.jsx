@@ -31,7 +31,7 @@ export const AdminLayout = () => {
             </button>
             <div className="flex items-center gap-2">
               <span className="text-xs font-black text-[#173885] uppercase tracking-wider hidden sm:inline">
-                GateMate Console:
+                Ferrado Console:
               </span>
               <span className="text-xs font-bold text-[#282926] truncate max-w-[220px] sm:max-w-md">
                 Pune & PCMC Hyperlocal Marketplace Oversight

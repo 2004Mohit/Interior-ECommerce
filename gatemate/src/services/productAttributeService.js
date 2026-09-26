@@ -1,5 +1,5 @@
 /**
- * GateMate Category Product Attribute & Vendor Suggestion Engine
+ * Ferrado Category Product Attribute & Vendor Suggestion Engine
  */
 
 import { supabase } from "../lib/supabaseClient";

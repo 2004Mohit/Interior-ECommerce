@@ -1,5 +1,5 @@
 /**
- * GateMate Order Lifecycle & Repository Architecture
+ * Ferrado Order Lifecycle & Repository Architecture
  * Clean construction supply order records.
  */
 
@@ -24,7 +24,7 @@ export const ORDER_STATUS_TIMELINE_STEPS = [
   {
     key: ORDER_LIFECYCLE_STATUS.PLACED,
     label: "Order Placed",
-    desc: "Received & logged at GateMate Logistics Hub",
+    desc: "Received & logged at Ferrado Logistics Hub",
   },
   {
     key: ORDER_LIFECYCLE_STATUS.CONFIRMED,

@@ -25,8 +25,7 @@ import { ProductReviewsSection } from "./ProductReviewsSection";
 import { ProductImage } from "./ProductImage";
 import { SeoHead } from "../common/SeoHead";
 import { seoService } from "../../services/seoService";
-
-import { supabase } from "../../lib/supabaseClient";
+import FeatureComingSoonModal from "../common/FeatureComingSoonModal";
 
 export const ProductDetails = () => {
   const { slug } = useParams();
@@ -55,13 +54,7 @@ export const ProductDetails = () => {
 
   const [actionSuccessMsg, setActionSuccessMsg] = useState(null);
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-    };
-
-    checkSession();
-  }, []);
+  const [comingSoonModalOpen, setComingSoonModalOpen] = useState(false);
 
   /*
    * --------------------------------------------------------------------------
@@ -353,55 +346,91 @@ export const ProductDetails = () => {
 
   /*
    * --------------------------------------------------------------------------
+   * COMING SOON
+   * --------------------------------------------------------------------------
+   *
+   * B2B/RFQ functionality is intentionally disabled for the current MVP.
+   * The button remains visible so customers can discover the future feature,
+   * but it does not navigate into the unfinished RFQ workflow.
+   */
+
+  const handleProjectRFQClick = () => {
+    setComingSoonModalOpen(true);
+  };
+
+  /*
+   * --------------------------------------------------------------------------
    * PROTECTED CUSTOMER ACTIONS
    * --------------------------------------------------------------------------
    */
 
-  const executeProtectedAction = async (actionType) => {
+  const executeProtectedAction = (actionType) => {
+    if (!product) {
+      return;
+    }
+
     if (!user) {
       setPendingAction(actionType);
       setAuthModalOpen(true);
       return;
     }
 
-    if (!product) {
-      return;
-    }
-
     if (actionType === "cart") {
-      const selectedQuantity = Math.max(
-        Number(quantity || 1),
-        Number(product.moq || 1),
-      );
+      if (!isInStock) {
+        setActionSuccessMsg("This product is currently out of stock.");
 
-      const success = await addToCart(product, selectedQuantity);
+        setTimeout(() => {
+          setActionSuccessMsg(null);
+        }, 3500);
 
-      if (!success) {
-        setActionSuccessMsg(null);
         return;
+      }
+
+      /*
+       * CartContext currently accepts a product object.
+       *
+       * Quantity is added one unit at a time to preserve compatibility
+       * with the existing cart implementation.
+       */
+      for (let index = 0; index < quantity; index += 1) {
+        addToCart(product);
       }
 
       setActionSuccessMsg(
-        `Added ${selectedQuantity} ${
-          product.unit || "unit"
-        }(s) to your shopping bag.`,
+        `Added ${quantity} ${product.unit || "unit"}(s) to your shopping bag.`,
       );
 
-      setTimeout(() => setActionSuccessMsg(null), 3500);
-    } else if (actionType === "buy_now") {
-      const selectedQuantity = Math.max(
-        Number(quantity || 1),
-        Number(product.moq || 1),
-      );
+      setTimeout(() => {
+        setActionSuccessMsg(null);
+      }, 3500);
 
-      const success = await addToCart(product, selectedQuantity);
+      return;
+    }
 
-      if (!success) {
+    if (actionType === "buy_now") {
+      if (!isInStock) {
+        setActionSuccessMsg("This product is currently out of stock.");
+
+        setTimeout(() => {
+          setActionSuccessMsg(null);
+        }, 3500);
+
         return;
       }
 
+      /*
+       * Preserve compatibility with the existing CartContext.
+       */
+      for (let index = 0; index < quantity; index += 1) {
+        addToCart(product);
+      }
+
       navigate("/checkout");
-    } else if (actionType === "wishlist") {
+
+      return;
+    }
+
+    if (actionType === "wishlist") {
       toggleWishlist(product);
     }
   };
@@ -469,8 +498,8 @@ export const ProductDetails = () => {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
         <SeoHead
-          title="Product Not Found | GateMate"
-          description="The requested construction product was not found in the GateMate catalogue."
+          title="Product Not Found | Ferrado"
+          description="The requested construction product was not found in the Ferrado catalogue."
           noIndex={true}
         />
 
@@ -544,7 +573,7 @@ export const ProductDetails = () => {
     product.vendorName ||
     product.vendor?.businessName ||
     product.vendor?.tradeName ||
-    "Verified GateMate Vendor";
+    "Verified Ferrado Vendor";
 
   const vendorLocation = [
     product.vendor?.locality,
@@ -587,11 +616,11 @@ export const ProductDetails = () => {
       {/* ------------------------------------------------------------------ */}
 
       <SeoHead
-        title={`${product.name} | ${product.brand || "GateMate"}`}
+        title={`${product.name} | ${product.brand || "Ferrado"}`}
         description={`${product.name} - Buy online in Pune & PCMC. ${
           product.description
             ? product.description.slice(0, 140)
-            : "Verified construction product available from GateMate vendors."
+            : "Verified construction product available from Ferrado vendors."
         }`}
         canonicalUrl={`/products/${product.slug}`}
         ogImage={currentMediaUrl}
@@ -1012,8 +1041,8 @@ export const ProductDetails = () => {
             </div>
 
             <div className="p-3 rounded-xl bg-[#F4F6FA] border border-[#D9E2EA] text-[11px] text-[#606460] leading-relaxed">
-              Product supplied by a GateMate vendor. Vendor verification and
-              product approval are managed through the GateMate marketplace.
+              Product supplied by a Ferrado vendor. Vendor verification and
+              product approval are managed through the Ferrado marketplace.
             </div>
           </div>
 
@@ -1035,12 +1064,13 @@ export const ProductDetails = () => {
               product?
             </p>
 
-            <Link
-              to="/account/b2b"
+            <button
+              type="button"
+              onClick={handleProjectRFQClick}
               className="w-full btn-gm-primary py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
             >
               <span>Submit Project RFQ</span>
-            </Link>
+            </button>
           </div>
 
           {/* -------------------------------------------------------------- */}
@@ -1108,6 +1138,18 @@ export const ProductDetails = () => {
           setPendingAction(null);
         }}
         onSuccess={handleAuthSuccess}
+      />
+
+      {/* ------------------------------------------------------------------ */}
+      {/* B2B / RFQ COMING SOON MODAL                                       */}
+      {/* ------------------------------------------------------------------ */}
+
+      <FeatureComingSoonModal
+        isOpen={comingSoonModalOpen}
+        onClose={() => setComingSoonModalOpen(false)}
+        featureName="B2B Procurement"
+        title="Project RFQs Are Coming Soon"
+        description="Commercial project RFQs and bulk procurement are currently being prepared for Ferrado. This feature will be available in a future update."
       />
     </div>
   );

@@ -54,7 +54,7 @@ export const VendorSettlements = () => {
   return (
     <div className="space-y-6 pb-24 font-sans">
       <SeoHead
-        title="Weekly Bank Settlements & UTR Payouts | GateMate Vendor"
+        title="Weekly Bank Settlements & UTR Payouts | Ferrado Vendor"
         description="Inspect weekly NEFT/RTGS settlement payout batches, UTR numbers, and bank disbursal logs."
         canonicalUrl="/vendor/settlements"
         noIndex={true}

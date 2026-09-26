@@ -152,8 +152,8 @@ export const Preferences = () => {
     return (
       <>
         <SeoHead
-          title="Account Preferences | GateMate"
-          description="Manage your GateMate customer communication preferences."
+          title="Account Preferences | Ferrado"
+          description="Manage your Ferrado customer communication preferences."
         />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
@@ -183,7 +183,7 @@ export const Preferences = () => {
                 </h2>
 
                 <p className="text-xs text-[#606460]">
-                  Sign in to manage your GateMate communication preferences.
+                  Sign in to manage your Ferrado communication preferences.
                 </p>
 
                 <button
@@ -209,8 +209,8 @@ export const Preferences = () => {
   return (
     <>
       <SeoHead
-        title="Account Preferences | GateMate"
-        description="Manage your GateMate customer communication preferences."
+        title="Account Preferences | Ferrado"
+        description="Manage your Ferrado customer communication preferences."
       />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">

@@ -110,7 +110,7 @@ export const AdminStaffView = () => {
   return (
     <div className="space-y-6 pb-20 font-sans">
       <SeoHead
-        title="Admin Staff Management | GateMate Operations"
+        title="Admin Staff Management | Ferrado Operations"
         description="Provision new administrator credentials, manage operations staff access, and control console permissions."
         canonicalUrl="/admin/staff"
         noIndex={true}
@@ -291,7 +291,7 @@ export const AdminStaffView = () => {
 
             <p className="text-xs text-[#606460]">
               Create an administrative account with sign-in credentials for
-              GateMate Operations.
+              Ferrado Operations.
             </p>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">

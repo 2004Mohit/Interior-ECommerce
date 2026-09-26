@@ -131,7 +131,7 @@ export const AdminOrderListView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_ORDERS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Orders Oversight & Management | GateMate Admin"
+          title="Orders Oversight & Management | Ferrado Admin"
           description="Track customer site orders, dispatch logistics, 30-minute express promises, and delivery SLA exceptions."
           canonicalUrl="/admin/orders"
           noIndex={true}

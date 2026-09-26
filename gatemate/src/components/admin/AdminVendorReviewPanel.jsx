@@ -112,7 +112,7 @@ export const AdminVendorReviewPanel = () => {
     >
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Vendor Reviews & Onboarding Queue | GateMate Admin"
+          title="Vendor Reviews & Onboarding Queue | Ferrado Admin"
           description="Review, inspect, approve, or reject vendor onboarding applications across Pune & PCMC."
           canonicalUrl="/admin/vendor-reviews"
           noIndex={true}

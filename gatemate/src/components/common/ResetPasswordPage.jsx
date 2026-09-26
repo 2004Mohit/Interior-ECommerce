@@ -128,8 +128,8 @@ export const ResetPasswordPage = () => {
   return (
     <div className="min-h-screen bg-[#F4F6FA] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <SeoHead
-        title="Reset Account Password | GateMate"
-        description="Set a new password for your verified GateMate account."
+        title="Reset Account Password | Ferrado"
+        description="Set a new password for your verified Ferrado account."
         canonicalUrl="/reset-password"
         noIndex={true}
       />

@@ -112,7 +112,7 @@ export const VendorLanding = () => {
   return (
     <div className="min-h-screen bg-[#F4F6FA] text-[#282926] flex flex-col font-sans">
       <SeoHead
-        title="Sell Construction Products on GateMate | Pune & PCMC Stockist Partner Network"
+        title="Sell Construction Products on Ferrado | Pune & PCMC Stockist Partner Network"
         description="Expand your building supplies and hardware business. Connect with nearby contractors, fulfill site dispatches, manage digital product listings, and receive weekly bank settlements."
         canonicalUrl="/sell"
       />
@@ -131,7 +131,7 @@ export const VendorLanding = () => {
           </h1>
 
           <p className="text-sm sm:text-base text-[#606460] leading-relaxed max-w-3xl mx-auto">
-            GateMate connects authorized stockists, manufacturers, and building
+            Ferrado connects authorized stockists, manufacturers, and building
             supply depots in Pune and Pimpri-Chinchwad directly with active
             construction sites, contractors, and project engineers.
           </p>

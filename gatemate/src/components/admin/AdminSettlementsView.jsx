@@ -86,7 +86,7 @@ export const AdminSettlementsView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_SETTLEMENTS}>
       <div className="space-y-8 pb-20 font-sans">
         <SeoHead
-          title="Bank Settlements & Disbursals | GateMate Admin"
+          title="Bank Settlements & Disbursals | Ferrado Admin"
           description="Process verified vendor bank disbursals with UTR confirmation and platform commission reconciliation."
           canonicalUrl="/admin/settlements"
           noIndex={true}

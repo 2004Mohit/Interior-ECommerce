@@ -60,7 +60,7 @@ export const AdminCustomerListView = () => {
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_CUSTOMERS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Customer Accounts & Contractor Directory | GateMate Admin"
+          title="Customer Accounts & Contractor Directory | Ferrado Admin"
           description="Inspect verified contractor buyer accounts, lifetime order spend, RFQ history, and account statuses."
           canonicalUrl="/admin/customers"
           noIndex={true}

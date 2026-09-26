@@ -24,7 +24,7 @@ export const Cart = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24">
       <SeoHead
-        title="Shopping Bag | GateMate Construction Marketplace"
+        title="Shopping Bag | Ferrado Construction Marketplace"
         description="Review your selected construction Products, cement bags, TMT rebars, and building hardware."
         noIndex={true}
       />
