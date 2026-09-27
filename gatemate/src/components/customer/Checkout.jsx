@@ -45,10 +45,8 @@ export const Checkout = () => {
 
   const [deliveryOptionId, setDeliveryOptionId] = useState("express_30min");
   const [paymentMethod, setPaymentMethod] = useState(
-    PAYMENT_METHODS.PAY_ON_DELIVERY,
+    PAYMENT_METHODS.CASHFREE_ONLINE,
   );
-  const [upiIdInput, setUpiIdInput] = useState("");
-  const [selectedBank, setSelectedBank] = useState("HDFC");
 
   const [calculatedTotals, setCalculatedTotals] = useState(null);
   const [isCalculating, setIsCalculating] = useState(false);

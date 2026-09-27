@@ -11,7 +11,6 @@ import {
   Zap,
   ShieldCheck,
   CreditCard,
-  Banknote,
   AlertCircle,
   ShoppingBag,
   Check,
@@ -27,6 +26,7 @@ import {
   DELIVERY_OPTIONS,
 } from "../../services/orderService";
 import { paymentService } from "../../services/payment/paymentService";
+import { cashfreeService } from "../../services/payment/cashfreeService";
 import { AddressFormModal } from "./AddressFormModal";
 
 export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
@@ -47,9 +47,9 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
 
   // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState(
-    PAYMENT_METHODS.PAY_ON_DELIVERY,
+    PAYMENT_METHODS.CASHFREE_ONLINE,
   );
-  const [upiIdInput, setUpiIdInput] = useState("");
+  const [paymentInitiated, setPaymentInitiated] = useState(false);
 
   // Calculation & Execution States
   const [calculatedTotals, setCalculatedTotals] = useState(null);
@@ -140,16 +140,41 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
       });
 
       if (!result.success) {
-        setSubmissionError(result.message);
-        setIsSubmitting(false);
+        setSubmissionError(result.message || "Unable to create order.");
         return;
       }
 
+      if (!result.paymentSessionId) {
+        setSubmissionError("Cashfree payment session was not created.");
+        return;
+      }
+
+      /*
+       * Store the order immediately.
+       *
+       * Do NOT mark payment as paid here.
+       */
       setConfirmedOrder(result);
-      clearCart();
-      setCurrentStep(7);
-    } catch (e) {
-      setSubmissionError("Network error while processing order.");
+      setCurrentStep(6);
+
+      const checkoutResult = await cashfreeService.startPayment({
+        paymentSessionId: result.paymentSessionId,
+      });
+
+      if (!checkoutResult.success) {
+        setSubmissionError(
+          checkoutResult.message || "Unable to open Cashfree Checkout.",
+        );
+        return;
+      }
+
+      setPaymentInitiated(true);
+    } catch (error) {
+      console.error("Checkout payment error:", error);
+
+      setSubmissionError(
+        error?.message || "Network error while processing payment.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -497,98 +522,55 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                 Choose Payment Option
               </span>
 
-              <div className="space-y-2.5">
-                <div
-                  onClick={() =>
-                    setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY)
-                  }
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition ${
-                    paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
-                      ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
-                      : "gm-card"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Banknote className="w-5 h-5 text-[#3F7D20] shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
-                        <span>Pay on Delivery (Cash / UPI on Arrival)</span>
-                        <span className="text-[10px] text-[#173885] font-bold">
-                          +₹49 Convenience
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-[#606460]">
-                        Pay safely after inspecting the delivery package.
-                      </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setPaymentMethod(PAYMENT_METHODS.CASHFREE_ONLINE)
+                }
+                className={`w-full p-4 rounded-2xl border text-left transition ${
+                  paymentMethod === PAYMENT_METHODS.CASHFREE_ONLINE
+                    ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                    : "gm-card hover:border-[#9AAED4]"
+                }`}
+                aria-pressed={paymentMethod === PAYMENT_METHODS.CASHFREE_ONLINE}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-4 h-4 rounded-full mt-0.5 flex items-center justify-center border shrink-0 ${
+                      paymentMethod === PAYMENT_METHODS.CASHFREE_ONLINE
+                        ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                        : "border-[#9AAED4]"
+                    }`}
+                  >
+                    {paymentMethod === PAYMENT_METHODS.CASHFREE_ONLINE && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
+                    )}
+                  </div>
+
+                  <CreditCard className="w-5 h-5 text-[#173885] shrink-0" />
+
+                  <div className="flex-1">
+                    <div className="text-xs font-bold text-[#282926] flex items-center justify-between gap-3">
+                      <span>Pay Online with Cashfree</span>
+                      <span className="text-[9px] text-[#3F7D20] font-bold">
+                        SECURE
+                      </span>
                     </div>
+                    <p className="text-[10px] text-[#606460] mt-1 leading-5">
+                      Pay securely using UPI, cards, net banking and other
+                      payment methods available in Cashfree Checkout.
+                    </p>
                   </div>
                 </div>
+              </button>
 
-                <div
-                  onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_COLLECT)}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition ${
-                    paymentMethod === PAYMENT_METHODS.UPI_COLLECT
-                      ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
-                      : "gm-card"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-[#3C7DDA] shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
-                        <span>UPI Collect (GPay, PhonePe, Paytm)</span>
-                        <span className="text-[9px] text-[#3F7D20] font-bold">
-                          ZERO FEES
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-[#606460]">
-                        Direct instant bank transfer via UPI VPA.
-                      </p>
-                    </div>
-                  </div>
-                  {paymentMethod === PAYMENT_METHODS.UPI_COLLECT && (
-                    <div className="mt-3 pt-3 border-t border-[#D9E2EA]">
-                      <input
-                        type="text"
-                        placeholder="yourname@upi or yourname@okhdfcbank"
-                        value={upiIdInput}
-                        onChange={(e) => setUpiIdInput(e.target.value)}
-                        className="w-full gm-input px-3 py-2 rounded-xl text-xs"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div
-                  onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition ${
-                    paymentMethod === PAYMENT_METHODS.CARD
-                      ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
-                      : "gm-card"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="w-5 h-5 text-[#173885] shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-xs font-bold text-[#282926]">
-                        Credit / Debit Card
-                      </div>
-                      <p className="text-[10px] text-[#606460]">
-                        Visa, MasterCard, RuPay (256-bit encrypted).
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {isOnlinePaymentSelected && !onlinePaymentStatus.ready && (
+              {!onlinePaymentStatus.ready && (
                 <div className="p-3.5 rounded-2xl bg-[#FFF0D5] border border-[#A66A08]/20 text-[#A66A08] text-xs flex items-start gap-2">
-                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-[#A66A08]" />
-                  <div className="space-y-0.5">
+                  <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div>
                     <span className="font-bold">Gateway Notice:</span>
-                    <p className="text-[11px] text-[#606460]">
-                      Online payments are not configured yet. Select "Pay on
-                      Delivery" to complete testing.
+                    <p className="text-[11px] text-[#606460] mt-0.5">
+                      Cashfree online payment is currently unavailable.
                     </p>
                   </div>
                 </div>
@@ -634,9 +616,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                 <div className="flex justify-between items-center text-[11px]">
                   <span className="text-[#606460]">Payment:</span>
                   <span className="font-bold text-[#173885]">
-                    {paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
-                      ? "Pay on Delivery"
-                      : "Online Gateway"}
+                    Pay Online with Cashfree
                   </span>
                 </div>
               </div>
@@ -662,14 +642,6 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                     ₹{calculatedTotals?.packagingFee}
                   </span>
                 </div>
-                {calculatedTotals?.codConvenienceFee > 0 && (
-                  <div className="flex justify-between text-[#606460]">
-                    <span>Pay on Delivery Handling Fee:</span>
-                    <span className="font-mono text-[#173885]">
-                      +₹{calculatedTotals?.codConvenienceFee}
-                    </span>
-                  </div>
-                )}
                 <div className="flex justify-between text-sm font-black text-[#282926] pt-2 border-t border-[#D9E2EA]">
                   <span>Authoritative Total:</span>
                   <span className="text-[#173885] text-base font-mono">
@@ -687,28 +659,47 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
                 <Zap className="w-7 h-7 fill-current" />
               </div>
               <h3 className="text-base font-bold text-[#173885]">
-                Processing Order...
+                Cashfree Checkout
               </h3>
               <p className="text-xs text-[#606460] max-w-sm mx-auto">
-                Authorizing inventory reservation with backend order dispatcher.
+                Complete your payment in the secure Cashfree checkout window.
+                Ferrado will verify the final payment status on the server.
               </p>
+
+              {paymentInitiated && !submissionError && (
+                <div className="p-4 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40 text-[#173885] text-xs text-left max-w-md mx-auto space-y-2">
+                  <div className="font-bold">Payment session created</div>
+                  <p className="leading-relaxed">
+                    Cashfree Checkout was opened. Do not treat the browser
+                    result as payment confirmation; server-side verification is
+                    required.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(4)}
+                    className="mt-2 w-full btn-gm-secondary py-2 rounded-xl text-xs font-bold"
+                  >
+                    Return to Payment
+                  </button>
+                </div>
+              )}
 
               {submissionError && (
                 <div className="p-4 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs text-left max-w-md mx-auto space-y-2">
                   <div className="flex items-center gap-2 font-bold">
                     <AlertCircle className="w-4 h-4 text-[#B43D20] shrink-0" />
-                    <span>Order Notice</span>
+                    <span>Payment Notice</span>
                   </div>
                   <p className="leading-relaxed">{submissionError}</p>
                   <button
                     type="button"
                     onClick={() => {
-                      setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY);
-                      setCurrentStep(5);
+                      setSubmissionError(null);
+                      setCurrentStep(4);
                     }}
                     className="mt-2 w-full btn-gm-primary py-2 rounded-xl text-xs font-bold"
                   >
-                    Switch to "Pay on Delivery" & Complete Order
+                    Try Payment Again
                   </button>
                 </div>
               )}
@@ -853,14 +844,13 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
               {currentStep === 5 && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setCurrentStep(6);
-                    handlePlaceOrder();
-                  }}
+                  onClick={handlePlaceOrder}
                   className="flex-1 min-h-[44px] py-2.5 rounded-xl btn-gm-primary text-xs font-bold flex items-center justify-center gap-2 shadow-xs active:scale-98"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Confirm Order (₹{calculatedTotals?.grandTotal})</span>
+                  <span>
+                    Continue to Cashfree (₹{calculatedTotals?.grandTotal})
+                  </span>
                 </button>
               )}
             </div>

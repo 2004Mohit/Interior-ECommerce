@@ -1,0 +1,5 @@
+[functions.create-cashfree-order]
+verify_jwt = true
+
+[functions.cashfree-payment-return]
+verify_jwt = false

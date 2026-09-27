@@ -364,7 +364,7 @@ export const ProductDetails = () => {
    * --------------------------------------------------------------------------
    */
 
-  const executeProtectedAction = (actionType) => {
+  const executeProtectedAction = async (actionType) => {
     if (!product) {
       return;
     }
@@ -387,13 +387,32 @@ export const ProductDetails = () => {
       }
 
       /*
-       * CartContext currently accepts a product object.
+       * IMPORTANT:
+       * CartContext already handles:
+       * - requested quantity
+       * - MOQ
+       * - existing cart quantity
+       * - database synchronization
        *
-       * Quantity is added one unit at a time to preserve compatibility
-       * with the existing cart implementation.
+       * Therefore, pass the selected quantity ONCE.
+       *
+       * Example:
+       * quantity = 10
+       * MOQ = 10
+       * addToCart(product, 10)
+       *
+       * Result = 10, NOT 100.
        */
-      for (let index = 0; index < quantity; index += 1) {
-        addToCart(product);
+      const success = await addToCart(product, quantity);
+
+      if (!success) {
+        setActionSuccessMsg("Unable to add the product to your shopping bag.");
+
+        setTimeout(() => {
+          setActionSuccessMsg(null);
+        }, 3500);
+
+        return;
       }
 
       setActionSuccessMsg(
@@ -419,10 +438,20 @@ export const ProductDetails = () => {
       }
 
       /*
-       * Preserve compatibility with the existing CartContext.
+       * Same quantity handling as Add to Bag.
+       *
+       * Pass the selected quantity once.
        */
-      for (let index = 0; index < quantity; index += 1) {
-        addToCart(product);
+      const success = await addToCart(product, quantity);
+
+      if (!success) {
+        setActionSuccessMsg("Unable to add the product to your shopping bag.");
+
+        setTimeout(() => {
+          setActionSuccessMsg(null);
+        }, 3500);
+
+        return;
       }
 
       navigate("/checkout");
