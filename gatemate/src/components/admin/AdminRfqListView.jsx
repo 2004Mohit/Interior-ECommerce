@@ -1,314 +1,295 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import {
   FileText,
-  Search,
-  Filter,
-  RotateCcw,
-  Building2,
-  Calendar,
-  MapPin,
-  Eye,
-  ArrowRight,
+  Clock3,
   CheckCircle2,
-  AlertCircle,
-  Clock,
+  Circle,
+  AlertTriangle,
+  ArrowLeft,
+  ShieldCheck,
+  Users,
+  MessageSquareQuote,
   ShoppingCart,
+  Bell,
+  GitBranch,
 } from "lucide-react";
-import { adminRfqService } from "../../services/adminRfqService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
 import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";
 import { SeoHead } from "../common/SeoHead";
 
-const STATUS_FILTERS = [
-  { label: "All RFQs", value: "ALL" },
-  { label: "Open / Submitted", value: "OPEN" },
-  { label: "Quotations Received", value: "QUOTATIONS_RECEIVED" },
-  { label: "Quotation Accepted", value: "QUOTATION_ACCEPTED" },
-  { label: "Converted to Order", value: "CONVERTED_TO_ORDER" },
-  { label: "Cancelled", value: "CANCELLED" },
-  { label: "Expired", value: "EXPIRED" },
+const REMAINING_FEATURES = [
+  {
+    icon: FileText,
+    title: "Commercial RFQ Creation & Lifecycle",
+    description:
+      "Complete the end-to-end commercial project RFQ workflow from request creation through closure.",
+  },
+  {
+    icon: Users,
+    title: "Vendor Quotation Workflow",
+    description:
+      "Complete the vendor-side quotation submission, revision, response, and lifecycle handling.",
+  },
+  {
+    icon: MessageSquareQuote,
+    title: "Quotation Comparison & Negotiation",
+    description:
+      "Complete the Admin workflow for reviewing, comparing, and managing vendor quotations.",
+  },
+  {
+    icon: GitBranch,
+    title: "RFQ Status & Conversion Flow",
+    description:
+      "Complete and validate the RFQ lifecycle, quotation acceptance, and conversion into an order.",
+  },
+  {
+    icon: Bell,
+    title: "RFQ Notifications",
+    description:
+      "Complete notifications and operational communication for RFQ and quotation status changes.",
+  },
+];
+
+const EXISTING_FOUNDATION = [
+  "Commercial RFQ database structure",
+  "Vendor quotation data structure",
+  "Admin RFQ permission",
+  "Admin RFQ service layer",
+  "RFQ status management foundation",
 ];
 
 export const AdminRfqListView = () => {
-  const [rfqs, setRfqs] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await adminRfqService.getRfqs({
-        search,
-        status: statusFilter,
-        limit: 100,
-      });
-      setRfqs(res.rfqs);
-      setTotalCount(res.totalCount);
-    } catch (err) {
-      setError(err.message || "Failed to load commercial RFQs.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [statusFilter]);
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    loadData();
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "CONVERTED_TO_ORDER":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30">
-            CONVERTED TO ORDER
-          </span>
-        );
-      case "QUOTATION_ACCEPTED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30">
-            QUOTATION ACCEPTED
-          </span>
-        );
-      case "QUOTATIONS_RECEIVED":
-      case "RESPONDED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#E4EEF3] text-[#3C7DDA] border border-[#3C7DDA]/30">
-            QUOTATIONS RECEIVED
-          </span>
-        );
-      case "OPEN":
-      case "NEW":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30">
-            OPEN FOR BIDDING
-          </span>
-        );
-      case "EXPIRED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#F4F6FA] text-[#606460] border border-[#D9E2EA]">
-            EXPIRED
-          </span>
-        );
-      case "CANCELLED":
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30">
-            CANCELLED
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#F4F6FA] text-[#606460]">
-            {status}
-          </span>
-        );
-    }
-  };
-
   return (
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_RFQ}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
-          title="Commercial RFQ Oversight | Ferrado Admin"
-          description="Track high-volume contractor material inquiries, vendor bid submissions, and commercial quotation conversions."
+          title="Commercial Project RFQs | Feature Paused | Ferrado Admin"
+          description="Commercial Project RFQ administration is currently paused while the remaining workflow is completed."
           canonicalUrl="/admin/rfqs"
           noIndex={true}
         />
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5 border-b border-[#D9E2EA] pb-5">
           <div>
-            <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              Commercial Project Inquiries
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
-              Commercial RFQ Command Center
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30">
+                Feature Paused
+              </span>
+
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#F4F6FA] text-[#606460] border border-[#D9E2EA]">
+                Remaining to Complete
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-2">
+              Commercial Project RFQs
             </h1>
-            <p className="text-xs text-[#606460]">
-              Oversee B2B project inquiries, bulk material requirements, vendor
-              bid timelines, and order conversions.
+
+            <p className="text-xs text-[#606460] mt-1 max-w-2xl">
+              Commercial project RFQ operations are currently paused during MVP
+              development. This module will be enabled after the remaining RFQ,
+              quotation, and conversion workflows are completed and validated.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Link
-              to="/admin/quotations"
-              className="btn-gm-secondary px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
+              to="/admin"
+              className="btn-gm-secondary px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5"
             >
-              <FileText className="w-3.5 h-3.5 text-[#3C7DDA]" />
-              <span>Quotations Master Ledger</span>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Operations</span>
             </Link>
-            <button
-              onClick={loadData}
-              disabled={loading}
-              className="btn-gm-secondary px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5"
-            >
-              <RotateCcw
-                className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
-              />
-              <span>Refresh</span>
-            </button>
           </div>
         </div>
 
-        {error && (
-          <div className="p-4 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        {/* Main Status Banner */}
+        <section className="relative overflow-hidden rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] shadow-2xs">
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-[#A66A08]" />
 
-        {/* Toolbar */}
-        <div className="gm-panel p-4 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-2xs">
-          <form
-            onSubmit={handleSearchSubmit}
-            className="relative flex-1 max-w-md"
-          >
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6F8A92]" />
-            <input
-              type="text"
-              placeholder="Search RFQ ID, project name, contact person, or vendor..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full gm-input pl-10 pr-20 py-2 rounded-xl text-xs"
-            />
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 btn-gm-primary px-3 py-1 rounded-lg text-xs font-bold"
-            >
-              Search
-            </button>
-          </form>
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+              <div className="w-16 h-16 rounded-2xl bg-[#FFF0D5] border border-[#A66A08]/20 flex items-center justify-center shrink-0">
+                <Clock3 className="w-8 h-8 text-[#A66A08]" />
+              </div>
 
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-            <Filter className="w-3.5 h-3.5 text-[#6F8A92] shrink-0 mr-1" />
-            {STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                type="button"
-                onClick={() => setStatusFilter(f.value)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition ${
-                  statusFilter === f.value
-                    ? "bg-[#173885] text-[#FEFEFE] shadow-xs"
-                    : "bg-[#F4F6FA] text-[#606460] hover:bg-[#E4EEF3] hover:text-[#173885]"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-[#A66A08]" />
 
-        {/* RFQ List */}
-        {loading ? (
-          <div className="space-y-3 animate-pulse">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="h-28 bg-[#FEFEFE] rounded-2xl border border-[#D9E2EA]"
-              />
-            ))}
+                  <span className="text-[11px] font-black uppercase tracking-wider text-[#A66A08]">
+                    Development Status
+                  </span>
+                </div>
+
+                <h2 className="text-xl sm:text-2xl font-black text-[#173885]">
+                  Commercial RFQ workflow is not available for live operations
+                  yet.
+                </h2>
+
+                <p className="text-sm text-[#606460] mt-2 max-w-3xl leading-6">
+                  The Admin console currently keeps the Commercial Project RFQ
+                  area visible so the team can clearly track that this feature
+                  is still part of the product roadmap. Do not use this section
+                  for live commercial project processing until the remaining
+                  workflow is completed.
+                </p>
+              </div>
+
+              <div className="lg:min-w-[190px]">
+                <div className="rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] p-4">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[#6F8A92]">
+                    Current State
+                  </p>
+
+                  <p className="text-lg font-black text-[#A66A08] mt-1">
+                    PAUSED
+                  </p>
+
+                  <p className="text-[11px] text-[#606460] mt-1">
+                    Awaiting completion
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        ) : rfqs.length === 0 ? (
-          <div className="gm-panel p-12 rounded-3xl border border-[#D9E2EA] text-center space-y-2 bg-[#FEFEFE]">
-            <FileText className="w-10 h-10 text-[#6F8A92] mx-auto" />
-            <h2 className="text-base font-bold text-[#173885]">
-              No Commercial RFQs Found
-            </h2>
-            <p className="text-xs text-[#606460]">
-              No B2B quotation requests match the specified criteria.
-            </p>
+        </section>
+
+        {/* Remaining Work */}
+        <section className="gm-panel rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[#D9E2EA]">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#E4EEF3] flex items-center justify-center">
+                <GitBranch className="w-4 h-4 text-[#3C7DDA]" />
+              </div>
+
+              <div>
+                <h2 className="text-base font-black text-[#173885]">
+                  Remaining Work
+                </h2>
+
+                <p className="text-[11px] text-[#606460] mt-0.5">
+                  These areas need to be completed before this module is enabled
+                  for operations.
+                </p>
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {rfqs.map((rfq) => {
-              const quotesCount = rfq.quotations?.length || 0;
-              const hasOrder = Boolean(rfq.converted_order_id);
+
+          <div className="divide-y divide-[#D9E2EA]">
+            {REMAINING_FEATURES.map((feature, index) => {
+              const Icon = feature.icon;
 
               return (
                 <div
-                  key={rfq.id}
-                  className="gm-panel p-5 rounded-2xl border border-[#D9E2EA] bg-[#FEFEFE] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 hover:border-[#3C7DDA] transition shadow-2xs"
+                  key={feature.title}
+                  className="px-6 py-5 flex items-start gap-4"
                 >
-                  <div className="space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="font-bold text-sm text-[#173885]">
-                        {rfq.project_name || "Commercial Construction Inquiry"}
+                  <div className="w-9 h-9 rounded-xl bg-[#FFF0D5] border border-[#A66A08]/20 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-[#A66A08]" />
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-bold text-[#282926]">
+                        {index + 1}. {feature.title}
                       </span>
-                      {getStatusBadge(rfq.status)}
-                      <span className="text-[10px] font-mono text-[#6F8A92] bg-[#F4F6FA] px-2 py-0.5 rounded-md">
-                        ID: {rfq.id.slice(0, 8)}...
+
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/20">
+                        Remaining
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#606460]">
-                      <span className="flex items-center gap-1 font-semibold text-[#282926]">
-                        <Building2 className="w-3.5 h-3.5 text-[#3C7DDA]" />
-                        <span>
-                          Contractor: {rfq.contact_name || "Site Buyer"}
-                        </span>
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-[#6F8A92]" />
-                        <span>{rfq.delivery_location || "Pune Site"}</span>
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-[#6F8A92]" />
-                        <span>
-                          Req Delivery:{" "}
-                          {rfq.required_delivery_date || "Standard Timeline"}
-                        </span>
-                      </span>
-                      <span>•</span>
-                      <span className="font-bold text-[#173885]">
-                        {quotesCount}{" "}
-                        {quotesCount === 1 ? "Quotation" : "Quotations"}{" "}
-                        Received
-                      </span>
-                    </div>
-
-                    {rfq.admin_notes && (
-                      <p className="text-[11px] text-[#A66A08] bg-[#FFF0D5] px-2.5 py-0.5 rounded-md inline-block">
-                        <strong>Admin Remark:</strong> {rfq.admin_notes}
-                      </p>
-                    )}
+                    <p className="text-xs text-[#606460] mt-1.5 leading-5 max-w-3xl">
+                      {feature.description}
+                    </p>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
-                    {hasOrder && (
-                      <Link
-                        to={`/admin/orders/${rfq.converted_order_id}`}
-                        className="btn-gm-secondary px-3 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1"
-                        title="View Converted Order"
-                      >
-                        <ShoppingCart className="w-3.5 h-3.5 text-[#3F7D20]" />
-                        <span>Order #{rfq.converted_order_id.slice(0, 8)}</span>
-                      </Link>
-                    )}
-                    <Link
-                      to={`/admin/rfqs/${rfq.id}`}
-                      className="btn-gm-primary px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-[#FEFEFE]" />
-                      <span>Inspect RFQ</span>
-                    </Link>
-                  </div>
+                  <Circle className="w-4 h-4 text-[#A66A08] shrink-0 mt-1" />
                 </div>
               );
             })}
           </div>
-        )}
+        </section>
+
+        {/* Existing Foundation */}
+        <section className="gm-panel rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] overflow-hidden">
+          <div className="px-6 py-5 border-b border-[#D9E2EA]">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#E1F2D9] flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4 text-[#3F7D20]" />
+              </div>
+
+              <div>
+                <h2 className="text-base font-black text-[#173885]">
+                  Existing Foundation
+                </h2>
+
+                <p className="text-[11px] text-[#606460] mt-0.5">
+                  The following Admin-side foundation already exists.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {EXISTING_FOUNDATION.map((item) => (
+                <div
+                  key={item}
+                  className="flex items-start gap-2.5 rounded-xl border border-[#D9E2EA] bg-[#F8FAFC] p-3"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-[#3F7D20] shrink-0 mt-0.5" />
+
+                  <span className="text-xs font-semibold text-[#282926] leading-5">
+                    {item}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* What Admin Should Know */}
+        <section className="rounded-3xl border border-[#D9E2EA] bg-[#F4F6FA] p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-[#E4EEF3] flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-[#3C7DDA]" />
+            </div>
+
+            <div>
+              <h2 className="text-sm font-black text-[#173885]">
+                Admin Operational Notice
+              </h2>
+
+              <p className="text-xs text-[#606460] mt-1.5 leading-5 max-w-4xl">
+                This screen is intentionally informational. No commercial RFQ
+                records are loaded or modified from this page while the feature
+                is paused. Once the remaining workflow is completed, this page
+                can be restored as the operational RFQ Command Center.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer Status */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#A66A08]" />
+
+            <span className="text-[11px] font-bold text-[#606460]">
+              Commercial Project RFQs
+            </span>
+
+            <span className="text-[11px] text-[#6F8A92]">• Feature paused</span>
+          </div>
+
+          <div className="text-[10px] text-[#6F8A92]">
+            Enable after end-to-end RFQ workflow validation
+          </div>
+        </div>
       </div>
     </AdminPermissionGuard>
   );

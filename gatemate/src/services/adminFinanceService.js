@@ -1,9 +1,6 @@
 import { supabase } from "../lib/supabaseClient";
 
 export const adminFinanceService = {
-  /**
-   * Fetches payment transactions (Cashfree & Pay on Delivery)
-   */
   async getPaymentTransactions({
     search = "",
     paymentStatus = "ALL",
@@ -38,11 +35,13 @@ export const adminFinanceService = {
     if (paymentStatus && paymentStatus !== "ALL") {
       query = query.eq("payment_status", paymentStatus);
     }
+
     if (method && method !== "ALL") {
       query = query.eq("payment_method", method);
     }
 
     const { data, count, error } = await query;
+
     if (error) throw error;
 
     let processed = (data || []).map((tx) => ({
@@ -54,10 +53,13 @@ export const adminFinanceService = {
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      processed = processed.filter((t) => {
-        const oId = String(t.id || "").toLowerCase();
-        const vName = String(t.vendor?.business_name || "").toLowerCase();
-        return oId.includes(q) || vName.includes(q);
+
+      processed = processed.filter((tx) => {
+        const orderId = String(tx.id || "").toLowerCase();
+
+        const vendorName = String(tx.vendor?.business_name || "").toLowerCase();
+
+        return orderId.includes(q) || vendorName.includes(q);
       });
     }
 
@@ -67,9 +69,6 @@ export const adminFinanceService = {
     };
   },
 
-  /**
-   * Fetches the 5% platform commission ledger
-   */
   async getCommissionLedger({
     search = "",
     status = "ALL",
@@ -89,7 +88,9 @@ export const adminFinanceService = {
       `,
         { count: "exact" },
       )
-      .order("created_at", { ascending: false })
+      .order("created_at", {
+        ascending: false,
+      })
       .range(offset, offset + limit - 1);
 
     if (status && status !== "ALL") {
@@ -97,21 +98,27 @@ export const adminFinanceService = {
     }
 
     const { data, count, error } = await query;
+
     if (error) throw error;
 
-    let processed = (data || []).map((c) => ({
-      ...c,
-      vendor: Array.isArray(c.vendor_profiles)
-        ? c.vendor_profiles[0]
-        : c.vendor_profiles,
+    let processed = (data || []).map((commission) => ({
+      ...commission,
+      vendor: Array.isArray(commission.vendor_profiles)
+        ? commission.vendor_profiles[0]
+        : commission.vendor_profiles,
     }));
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      processed = processed.filter((c) => {
-        const oId = String(c.order_id || "").toLowerCase();
-        const vName = String(c.vendor?.business_name || "").toLowerCase();
-        return oId.includes(q) || vName.includes(q);
+
+      processed = processed.filter((commission) => {
+        const orderId = String(commission.order_id || "").toLowerCase();
+
+        const vendorName = String(
+          commission.vendor?.business_name || "",
+        ).toLowerCase();
+
+        return orderId.includes(q) || vendorName.includes(q);
       });
     }
 
@@ -122,7 +129,10 @@ export const adminFinanceService = {
   },
 
   /**
-   * Fetches vendor settlement summaries and past disbursals
+   * Admin settlement queue.
+   *
+   * Pending batches are calculated from vendor_transactions.
+   * Historical batches come from vendor_settlements.
    */
   async getSettlementOverview() {
     const [pendingTxRes, pastSettlementsRes, vendorsRes] = await Promise.all([
@@ -130,15 +140,17 @@ export const adminFinanceService = {
         .from("vendor_transactions")
         .select(
           `
-          *,
-          vendor_profiles:vendor_id (
-            id,
-            business_name,
-            bank_details
-          )
+          id,
+          vendor_id,
+          product_subtotal,
+          commission_amount,
+          vendor_payable_amount,
+          settlement_status,
+          created_at
         `,
         )
         .eq("settlement_status", "PENDING"),
+
       supabase
         .from("vendor_settlements")
         .select(
@@ -150,68 +162,113 @@ export const adminFinanceService = {
           )
         `,
         )
-        .order("created_at", { ascending: false })
-        .limit(50),
+        .order("created_at", {
+          ascending: false,
+        })
+        .limit(100),
+
       supabase
         .from("vendor_profiles")
         .select("id, business_name, bank_details")
         .eq("verification_status", "APPROVED"),
     ]);
 
-    if (pendingTxRes.error) throw pendingTxRes.error;
-    if (pastSettlementsRes.error) throw pastSettlementsRes.error;
+    if (pendingTxRes.error) {
+      throw pendingTxRes.error;
+    }
+
+    if (pastSettlementsRes.error) {
+      throw pastSettlementsRes.error;
+    }
+
+    if (vendorsRes.error) {
+      throw vendorsRes.error;
+    }
 
     const vendorMap = {};
-    (vendorsRes.data || []).forEach((v) => {
-      vendorMap[v.id] = {
-        vendorId: v.id,
-        businessName: v.business_name,
-        bankDetails: v.bank_details || {},
+
+    (vendorsRes.data || []).forEach((vendor) => {
+      vendorMap[vendor.id] = {
+        vendorId: vendor.id,
+
+        businessName: vendor.business_name || "Vendor",
+
+        bankDetails: vendor.bank_details || {},
+
         pendingAmount: 0,
+
         pendingOrdersCount: 0,
+
+        grossProductSubtotal: 0,
+
+        totalCommission: 0,
       };
     });
 
-    (pendingTxRes.data || []).forEach((tx) => {
-      if (vendorMap[tx.vendor_id]) {
-        vendorMap[tx.vendor_id].pendingAmount += Number(
-          tx.vendor_payable_amount || 0,
-        );
-        vendorMap[tx.vendor_id].pendingOrdersCount += 1;
-      }
+    (pendingTxRes.data || []).forEach((transaction) => {
+      const vendor = vendorMap[transaction.vendor_id];
+
+      if (!vendor) return;
+
+      vendor.pendingAmount += Number(transaction.vendor_payable_amount || 0);
+
+      vendor.pendingOrdersCount += 1;
+
+      vendor.grossProductSubtotal += Number(transaction.product_subtotal || 0);
+
+      vendor.totalCommission += Number(transaction.commission_amount || 0);
     });
 
     const pendingBatches = Object.values(vendorMap).filter(
-      (b) => b.pendingOrdersCount > 0,
+      (vendor) => vendor.pendingOrdersCount > 0,
+    );
+
+    const pastSettlements = (pastSettlementsRes.data || []).map(
+      (settlement) => ({
+        ...settlement,
+
+        batch_reference_id: settlement.batch_reference_id || settlement.id,
+
+        bank_reference_utr: settlement.utr_number || null,
+
+        utr_number: settlement.utr_number || null,
+
+        vendor: Array.isArray(settlement.vendor_profiles)
+          ? settlement.vendor_profiles[0]
+          : settlement.vendor_profiles,
+      }),
     );
 
     return {
       pendingBatches,
-      pastSettlements: (pastSettlementsRes.data || []).map((s) => ({
-        ...s,
-        batch_reference_id: s.id,
-        bank_reference_utr: s.utr_number,
-        vendor: Array.isArray(s.vendor_profiles)
-          ? s.vendor_profiles[0]
-          : s.vendor_profiles,
-      })),
+      pastSettlements,
     };
   },
 
   /**
-   * Processes vendor settlement with UTR verification
+   * Atomically processes one vendor's pending
+   * transactions through the database RPC.
    */
   async processSettlement({ vendorId, bankReferenceUtr, notes = "" }) {
+    const cleanUtr = String(bankReferenceUtr || "").trim();
+
+    if (!cleanUtr) {
+      throw new Error("A valid bank UTR / IMPS reference number is required.");
+    }
+
     const { data, error } = await supabase.rpc(
       "process_admin_vendor_settlement",
       {
         p_vendor_id: vendorId,
-        p_bank_reference_utr: bankReferenceUtr.trim(),
-        p_settlement_notes: notes.trim() || null,
+        p_bank_reference_utr: cleanUtr,
+        p_settlement_notes: String(notes || "").trim() || null,
       },
     );
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
     return data;
   },
 };

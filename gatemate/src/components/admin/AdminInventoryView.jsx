@@ -295,7 +295,7 @@ export const AdminInventoryView = () => {
 
                     return (
                       <tr
-                        key={item.id}
+                        key={item.product_id}
                         className="hover:bg-[#F4F6FA]/50 transition"
                       >
                         <td className="p-4">

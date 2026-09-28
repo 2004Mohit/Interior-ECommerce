@@ -140,7 +140,7 @@ export const AdminPaymentsView = () => {
               className="gm-input px-3 py-1.5 rounded-xl font-bold"
             >
               <option value="ALL">All Payment States</option>
-              <option value="PAID">PAID</option>
+              <option value="SUCCESS">SUCCESS</option>
               <option value="PENDING">PENDING</option>
               <option value="REFUNDED">REFUNDED</option>
               <option value="FAILED">FAILED</option>
@@ -249,7 +249,7 @@ export const AdminPaymentsView = () => {
                       <td className="p-4">
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                            tx.payment_status === "PAID"
+                            tx.payment_status === "SUCCESS"
                               ? "bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30"
                               : tx.payment_status === "REFUNDED"
                                 ? "bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30"
