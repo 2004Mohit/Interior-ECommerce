@@ -4,11 +4,7 @@ import {
   Search,
   RotateCcw,
   CheckCircle2,
-  Clock,
-  ShieldCheck,
-  Building2,
   FileText,
-  ArrowUpRight,
   AlertCircle,
   WalletCards,
   ReceiptIndianRupee,
@@ -90,6 +86,7 @@ export const VendorSettlements = () => {
     return settlements.filter((settlement) => {
       const searchableText = [
         settlement.id,
+        settlement.settlementId,
         settlement.batchReferenceId,
         settlement.utrNumber,
         settlement.status,
@@ -116,6 +113,10 @@ export const VendorSettlements = () => {
     (sum, settlement) => sum + Number(settlement.orderCount || 0),
     0,
   );
+
+  const processedSettlements = settlements.filter(
+    (settlement) => settlement.status === SETTLEMENT_STATUS.PROCESSED,
+  ).length;
 
   const latestSettlement = settlements[0] || null;
 
@@ -168,7 +169,7 @@ export const VendorSettlements = () => {
     <div className="space-y-7 pb-24 font-sans">
       <SeoHead
         title="Vendor Settlements | Ferrado"
-        description="Track vendor bank settlements, disbursals and UTR references."
+        description="Track vendor bank settlements, disbursals, and UTR references."
         canonicalUrl="/vendor/settlements"
         noIndex={true}
       />
@@ -185,8 +186,8 @@ export const VendorSettlements = () => {
           </h1>
 
           <p className="text-xs text-[#606460] mt-1 max-w-2xl">
-            Track completed bank disbursals, settlement batches and UTR
-            references.
+            Track completed bank disbursals, settlement batches, and UTR
+            references for your vendor account.
           </p>
         </div>
 
@@ -199,6 +200,7 @@ export const VendorSettlements = () => {
           <RotateCcw
             className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
           />
+
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
@@ -232,6 +234,10 @@ export const VendorSettlements = () => {
           <p className="text-2xl font-black text-[#173885] mt-3 font-mono">
             {loading ? "—" : settlements.length}
           </p>
+
+          <p className="text-[10px] text-[#6F8A92] mt-1">
+            Settlement batches recorded
+          </p>
         </div>
 
         <div className="gm-panel rounded-2xl p-5 border border-[#3F7D20]/25 bg-[#E1F2D9]/20">
@@ -246,27 +252,9 @@ export const VendorSettlements = () => {
           <p className="text-2xl font-black text-[#3F7D20] mt-3 font-mono">
             {loading ? "—" : formatCurrency(totalDisbursed)}
           </p>
-        </div>
-
-        <div className="gm-panel rounded-2xl p-5 border border-[#D9E2EA]">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6F8A92]">
-              Latest Settlement
-            </span>
-
-            <CheckCircle2 className="w-5 h-5 text-[#3F7D20]" />
-          </div>
-
-          <p className="text-sm font-black text-[#173885] mt-3">
-            {loading
-              ? "—"
-              : formatDateTime(
-                  latestSettlement?.processedAt || latestSettlement?.createdAt,
-                )}
-          </p>
 
           <p className="text-[10px] text-[#6F8A92] mt-1">
-            Most recent bank disbursal
+            Net amount transferred to bank
           </p>
         </div>
 
@@ -281,6 +269,28 @@ export const VendorSettlements = () => {
 
           <p className="text-2xl font-black text-[#173885] mt-3 font-mono">
             {loading ? "—" : totalOrders}
+          </p>
+
+          <p className="text-[10px] text-[#6F8A92] mt-1">
+            Orders represented by settlement batches
+          </p>
+        </div>
+
+        <div className="gm-panel rounded-2xl p-5 border border-[#D9E2EA]">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#6F8A92]">
+              Processed Batches
+            </span>
+
+            <CheckCircle2 className="w-5 h-5 text-[#3F7D20]" />
+          </div>
+
+          <p className="text-2xl font-black text-[#173885] mt-3 font-mono">
+            {loading ? "—" : processedSettlements}
+          </p>
+
+          <p className="text-[10px] text-[#6F8A92] mt-1">
+            Completed bank disbursals
           </p>
         </div>
       </section>
@@ -300,7 +310,10 @@ export const VendorSettlements = () => {
                 </p>
 
                 <h2 className="text-base font-black text-[#173885] mt-1">
-                  {latestSettlement.batchReferenceId}
+                  {latestSettlement.batchReferenceId ||
+                    latestSettlement.settlementId ||
+                    latestSettlement.id ||
+                    "Settlement Batch"}
                 </h2>
 
                 <p className="text-xs text-[#606460] mt-1">
@@ -339,7 +352,7 @@ export const VendorSettlements = () => {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search batch ID or UTR..."
+              placeholder="Search batch ID, settlement ID, or UTR..."
               className="w-full gm-input pl-9 pr-3 py-2.5 rounded-xl text-xs"
             />
           </div>
@@ -350,13 +363,15 @@ export const VendorSettlements = () => {
             className="gm-input px-3 py-2.5 rounded-xl text-xs md:w-44"
           >
             <option value="ALL">All Statuses</option>
+
             <option value={SETTLEMENT_STATUS.PROCESSED}>Processed</option>
+
             <option value={SETTLEMENT_STATUS.HOLD}>On Hold</option>
           </select>
         </div>
       </section>
 
-      {/* TABLE */}
+      {/* SETTLEMENT HISTORY */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
@@ -377,6 +392,7 @@ export const VendorSettlements = () => {
         {loading ? (
           <div className="gm-panel rounded-3xl border border-[#D9E2EA] p-10 text-center">
             <RotateCcw className="w-6 h-6 animate-spin mx-auto text-[#3C7DDA]" />
+
             <p className="text-xs text-[#606460] mt-3">
               Loading settlement history...
             </p>
@@ -400,11 +416,17 @@ export const VendorSettlements = () => {
                 <thead className="bg-[#F4F6FA] border-b border-[#D9E2EA]">
                   <tr className="text-[10px] uppercase font-bold text-[#6F8A92]">
                     <th className="p-4">Settlement</th>
+
                     <th className="p-4">Date</th>
+
                     <th className="p-4">Orders</th>
-                    <th className="p-4">Sales Value</th>
-                    <th className="p-4">Amount Disbursed</th>
+
+                    <th className="p-4">Gross</th>
+
+                    <th className="p-4">Net Disbursed</th>
+
                     <th className="p-4">UTR</th>
+
                     <th className="p-4">Status</th>
                   </tr>
                 </thead>
@@ -412,16 +434,23 @@ export const VendorSettlements = () => {
                 <tbody className="divide-y divide-[#D9E2EA]">
                   {filteredSettlements.map((settlement) => (
                     <tr
-                      key={settlement.settlementId || settlement.id}
+                      key={
+                        settlement.settlementId ||
+                        settlement.id ||
+                        settlement.batchReferenceId
+                      }
                       className="hover:bg-[#F4F6FA]/50 transition"
                     >
                       <td className="p-4">
                         <p className="font-mono font-black text-[#173885]">
-                          {settlement.batchReferenceId}
+                          {settlement.batchReferenceId ||
+                            settlement.settlementId ||
+                            settlement.id ||
+                            "—"}
                         </p>
 
                         {settlement.notes && (
-                          <p className="text-[10px] text-[#6F8A92] mt-1 max-w-[180px] truncate">
+                          <p className="text-[10px] text-[#6F8A92] mt-1 max-w-[220px] truncate">
                             {settlement.notes}
                           </p>
                         )}
@@ -434,7 +463,7 @@ export const VendorSettlements = () => {
                       </td>
 
                       <td className="p-4 font-mono font-bold text-[#282926]">
-                        {settlement.orderCount}
+                        {settlement.orderCount ?? 0}
                       </td>
 
                       <td className="p-4 font-mono text-[#282926]">

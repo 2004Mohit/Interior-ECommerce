@@ -3,15 +3,11 @@ import { Link } from "react-router-dom";
 import {
   CreditCard,
   Search,
-  Filter,
   RotateCcw,
-  Building2,
   CheckCircle2,
   AlertCircle,
   Clock,
   ArrowRight,
-  DollarSign,
-  Wallet,
 } from "lucide-react";
 import { adminFinanceService } from "../../services/adminFinanceService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
@@ -30,6 +26,7 @@ export const AdminPaymentsView = () => {
   const loadData = async () => {
     setLoading(true);
     setError(null);
+
     try {
       const res = await adminFinanceService.getPaymentTransactions({
         search,
@@ -37,10 +34,14 @@ export const AdminPaymentsView = () => {
         method,
         limit: 100,
       });
-      setTransactions(res.transactions);
-      setTotalCount(res.totalCount);
+
+      setTransactions(res?.transactions || []);
+      setTotalCount(res?.totalCount || 0);
     } catch (err) {
-      setError(err.message || "Failed to load payment transactions.");
+      console.error("Failed to load payment transactions:", err);
+      setError(err?.message || "Failed to load payment transactions.");
+      setTransactions([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -55,15 +56,82 @@ export const AdminPaymentsView = () => {
     loadData();
   };
 
-  const formatCurrency = (val) =>
-    `₹${Number(val || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  const formatCurrency = (value) =>
+    `₹${Number(value || 0).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+  const normalizeStatus = (status) => String(status || "PENDING").toUpperCase();
+
+  const getStatusClasses = (status) => {
+    const normalized = normalizeStatus(status);
+
+    if (
+      normalized === "SUCCESS" ||
+      normalized === "PAID" ||
+      normalized === "SETTLED"
+    ) {
+      return "bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30";
+    }
+
+    if (
+      normalized === "FAILED" ||
+      normalized === "CANCELLED" ||
+      normalized === "REFUNDED"
+    ) {
+      return "bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30";
+    }
+
+    return "bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30";
+  };
+
+  const getStatusIcon = (status) => {
+    const normalized = normalizeStatus(status);
+
+    if (
+      normalized === "SUCCESS" ||
+      normalized === "PAID" ||
+      normalized === "SETTLED"
+    ) {
+      return <CheckCircle2 className="w-3 h-3" />;
+    }
+
+    if (
+      normalized === "FAILED" ||
+      normalized === "CANCELLED" ||
+      normalized === "REFUNDED"
+    ) {
+      return <AlertCircle className="w-3 h-3" />;
+    }
+
+    return <Clock className="w-3 h-3" />;
+  };
+
+  const getGatewayReference = (tx) =>
+    tx?.payment_gateway_reference ||
+    tx?.gateway_payment_id ||
+    tx?.gateway_reference ||
+    tx?.payment_reference ||
+    null;
+
+  const getGatewayOrderId = (tx) =>
+    tx?.payment_gateway_order_id || tx?.gateway_order_id || null;
+
+  const getGatewayName = (tx) =>
+    tx?.payment_gateway ||
+    (String(tx?.payment_method || "")
+      .toUpperCase()
+      .includes("CASHFREE")
+      ? "CASHFREE"
+      : null);
 
   return (
     <AdminPermissionGuard permission={ADMIN_PERMISSIONS.MANAGE_PAYMENTS}>
       <div className="space-y-6 pb-20 font-sans">
         <SeoHead
           title="Payment Transactions & Gateways | Ferrado Admin"
-          description="Inspect server-verified Cashfree online payments, UPI transactions, and Pay on Delivery collections."
+          description="Inspect server-verified online payments, gateway references, and Pay on Delivery transactions."
           canonicalUrl="/admin/payments"
           noIndex={true}
         />
@@ -74,12 +142,14 @@ export const AdminPaymentsView = () => {
             <span className="badge-gm-info px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
               Treasury & Gateway Operations
             </span>
+
             <h1 className="text-2xl sm:text-3xl font-black text-[#173885] mt-1">
               Payment Transactions Oversight
             </h1>
+
             <p className="text-xs text-[#606460]">
-              Audit platform payments, Cashfree gateway references, and Pay on
-              Delivery status across site dispatches.
+              Audit online payments, gateway references, and Pay on Delivery
+              transactions across site orders.
             </p>
           </div>
 
@@ -91,6 +161,7 @@ export const AdminPaymentsView = () => {
               <span>5% Commission Ledger</span>
               <ArrowRight className="w-3.5 h-3.5 text-[#3C7DDA]" />
             </Link>
+
             <button
               onClick={loadData}
               disabled={loading}
@@ -104,6 +175,7 @@ export const AdminPaymentsView = () => {
           </div>
         </div>
 
+        {/* Error */}
         {error && (
           <div className="p-4 rounded-2xl bg-[#FBE3DE] border border-[#B43D20]/30 text-[#B43D20] text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -117,65 +189,63 @@ export const AdminPaymentsView = () => {
             onSubmit={handleSearchSubmit}
             className="relative flex-1 max-w-md"
           >
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6F8A92]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6F8A92]" />
+
             <input
               type="text"
-              placeholder="Search Order ID, gateway reference, or vendor..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full gm-input pl-10 pr-20 py-2 rounded-xl text-xs"
+              placeholder="Search order ID or vendor..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#D9E2EA] bg-white text-xs outline-none focus:ring-2 focus:ring-[#3C7DDA]/20 focus:border-[#3C7DDA]"
             />
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 btn-gm-primary px-3 py-1 rounded-lg text-xs font-bold"
-            >
-              Search
-            </button>
           </form>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={paymentStatus}
               onChange={(e) => setPaymentStatus(e.target.value)}
-              className="gm-input px-3 py-1.5 rounded-xl font-bold"
+              className="px-3 py-2.5 rounded-xl border border-[#D9E2EA] bg-white text-xs font-semibold text-[#282926] outline-none"
             >
-              <option value="ALL">All Payment States</option>
-              <option value="SUCCESS">SUCCESS</option>
-              <option value="PENDING">PENDING</option>
-              <option value="REFUNDED">REFUNDED</option>
-              <option value="FAILED">FAILED</option>
+              <option value="ALL">All Statuses</option>
+              <option value="SUCCESS">Success</option>
+              <option value="PAID">Paid</option>
+              <option value="PENDING">Pending</option>
+              <option value="FAILED">Failed</option>
+              <option value="REFUNDED">Refunded</option>
             </select>
 
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value)}
-              className="gm-input px-3 py-1.5 rounded-xl font-bold"
+              className="px-3 py-2.5 rounded-xl border border-[#D9E2EA] bg-white text-xs font-semibold text-[#282926] outline-none"
             >
-              <option value="ALL">All Gateways & Methods</option>
-              <option value="ONLINE">
-                Cashfree (UPI / Cards / NetBanking)
-              </option>
-              <option value="POD">Pay on Delivery (Cash / Site Cheque)</option>
+              <option value="ALL">All Methods</option>
+              <option value="CASHFREE_ONLINE">Cashfree Online</option>
+              <option value="PAY_ON_DELIVERY">Pay on Delivery</option>
             </select>
+
+            <span className="text-[10px] font-bold text-[#6F8A92] px-2">
+              {totalCount} transaction{totalCount === 1 ? "" : "s"}
+            </span>
           </div>
         </div>
 
-        {/* Master Transactions Table */}
+        {/* Loading */}
         {loading ? (
-          <div className="space-y-3 animate-pulse">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="h-20 bg-[#FEFEFE] rounded-2xl border border-[#D9E2EA]"
-              />
-            ))}
+          <div className="gm-panel p-12 rounded-3xl border border-[#D9E2EA] bg-[#FEFEFE] text-center">
+            <RotateCcw className="w-8 h-8 text-[#3C7DDA] mx-auto animate-spin" />
+            <p className="text-xs font-semibold text-[#6F8A92] mt-3">
+              Loading payment transactions...
+            </p>
           </div>
         ) : transactions.length === 0 ? (
           <div className="gm-panel p-12 rounded-3xl border border-[#D9E2EA] text-center space-y-2 bg-[#FEFEFE]">
             <CreditCard className="w-10 h-10 text-[#6F8A92] mx-auto" />
+
             <h2 className="text-base font-bold text-[#173885]">
               No Payment Transactions Found
             </h2>
+
             <p className="text-xs text-[#606460]">
               No transaction records match the selected filter criteria.
             </p>
@@ -188,79 +258,120 @@ export const AdminPaymentsView = () => {
                   <tr>
                     <th className="p-4">Order ID & Date</th>
                     <th className="p-4">Gateway Reference</th>
+                    <th className="p-4">Gateway Order ID</th>
                     <th className="p-4">Vendor</th>
-                    <th className="p-4">Material Subtotal</th>
-                    <th className="p-4">Grand Total (GMV)</th>
+                    <th className="p-4">Subtotal</th>
+                    <th className="p-4">Grand Total</th>
                     <th className="p-4">Method</th>
                     <th className="p-4">Status</th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-[#D9E2EA]">
-                  {transactions.map((tx) => (
-                    <tr
-                      key={tx.id}
-                      className="hover:bg-[#F4F6FA]/50 transition"
-                    >
-                      <td className="p-4">
-                        <Link
-                          to={`/admin/orders/${tx.id}`}
-                          className="font-mono font-bold text-[#173885] hover:underline block"
-                        >
-                          {tx.id}
-                        </Link>
-                        <span className="text-[10px] text-[#6F8A92] font-mono">
-                          {new Date(tx.created_at).toLocaleString("en-IN")}
-                        </span>
-                      </td>
+                  {transactions.map((tx) => {
+                    const gatewayReference = getGatewayReference(tx);
+                    const gatewayOrderId = getGatewayOrderId(tx);
+                    const gatewayName = getGatewayName(tx);
 
-                      <td className="p-4 font-mono text-[11px]">
-                        {tx.payment_reference ? (
-                          <span className="text-[#282926] bg-[#F4F6FA] px-2 py-0.5 rounded border border-[#D9E2EA]">
-                            {tx.payment_reference}
+                    return (
+                      <tr
+                        key={tx.id}
+                        className="hover:bg-[#F4F6FA]/50 transition"
+                      >
+                        {/* Order */}
+                        <td className="p-4">
+                          <Link
+                            to={`/admin/orders/${tx.id}`}
+                            className="font-mono font-bold text-[#173885] hover:underline block"
+                          >
+                            {tx.id}
+                          </Link>
+
+                          <span className="text-[10px] text-[#6F8A92] font-mono">
+                            {tx.created_at
+                              ? new Date(tx.created_at).toLocaleString("en-IN")
+                              : "—"}
                           </span>
-                        ) : (
-                          <span className="text-[#6F8A92]">—</span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="p-4">
-                        <span className="font-semibold text-[#282926] block">
-                          {tx.vendor?.business_name || "Vendor Depot"}
-                        </span>
-                        <span className="text-[10px] text-[#6F8A92]">
-                          {tx.vendor?.locality || "Pune"}
-                        </span>
-                      </td>
+                        {/* Gateway Reference */}
+                        <td className="p-4 font-mono text-[11px]">
+                          {gatewayReference ? (
+                            <div className="space-y-1">
+                              <span className="text-[#282926] bg-[#F4F6FA] px-2 py-0.5 rounded border border-[#D9E2EA] inline-block">
+                                {gatewayReference}
+                              </span>
 
-                      <td className="p-4 font-mono font-bold text-[#282926]">
-                        {formatCurrency(tx.item_subtotal)}
-                      </td>
+                              {gatewayName && (
+                                <span className="block text-[9px] uppercase font-bold text-[#6F8A92]">
+                                  {gatewayName}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[#6F8A92]">
+                              Not available
+                            </span>
+                          )}
+                        </td>
 
-                      <td className="p-4 font-mono font-bold text-[#173885]">
-                        {formatCurrency(tx.grand_total)}
-                      </td>
+                        {/* Gateway Order ID */}
+                        <td className="p-4 font-mono text-[10px]">
+                          {gatewayOrderId ? (
+                            <span className="text-[#282926] bg-[#F4F6FA] px-2 py-0.5 rounded border border-[#D9E2EA] inline-block">
+                              {gatewayOrderId}
+                            </span>
+                          ) : (
+                            <span className="text-[#6F8A92]">—</span>
+                          )}
+                        </td>
 
-                      <td className="p-4">
-                        <span className="px-2 py-0.5 rounded bg-[#F4F6FA] text-[#606460] font-bold text-[10px]">
-                          {tx.payment_method || "CASHFREE"}
-                        </span>
-                      </td>
+                        {/* Vendor */}
+                        <td className="p-4">
+                          <span className="font-semibold text-[#282926] block">
+                            {tx.vendor?.business_name ||
+                              tx.vendor_name ||
+                              "Vendor"}
+                          </span>
 
-                      <td className="p-4">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
-                            tx.payment_status === "SUCCESS"
-                              ? "bg-[#E1F2D9] text-[#3F7D20] border border-[#3F7D20]/30"
-                              : tx.payment_status === "REFUNDED"
-                                ? "bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30"
-                                : "bg-[#FFF0D5] text-[#A66A08] border border-[#A66A08]/30"
-                          }`}
-                        >
-                          {tx.payment_status || "PENDING"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                          <span className="text-[10px] text-[#6F8A92]">
+                            {tx.vendor?.locality || tx.vendor?.city || "Pune"}
+                          </span>
+                        </td>
+
+                        {/* Subtotal */}
+                        <td className="p-4 font-mono font-bold text-[#282926]">
+                          {formatCurrency(
+                            tx.item_subtotal ?? tx.product_subtotal,
+                          )}
+                        </td>
+
+                        {/* Grand Total */}
+                        <td className="p-4 font-mono font-bold text-[#173885]">
+                          {formatCurrency(tx.grand_total ?? tx.amount)}
+                        </td>
+
+                        {/* Method */}
+                        <td className="p-4">
+                          <span className="px-2 py-0.5 rounded bg-[#F4F6FA] text-[#606460] font-bold text-[10px]">
+                            {tx.payment_method || "—"}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="p-4">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${getStatusClasses(
+                              tx.payment_status,
+                            )}`}
+                          >
+                            {getStatusIcon(tx.payment_status)}
+                            {normalizeStatus(tx.payment_status)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -270,3 +381,5 @@ export const AdminPaymentsView = () => {
     </AdminPermissionGuard>
   );
 };
+
+export default AdminPaymentsView;
