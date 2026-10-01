@@ -27,6 +27,7 @@ import {
   DELIVERY_OPTIONS,
 } from "../../services/orderService";
 import { paymentService } from "../../services/payment/paymentService";
+import { cashfreeService } from "../../services/payment/cashfreeService";
 import { AddressFormModal } from "./AddressFormModal";
 import { AuthModal } from "../AuthModal";
 import { SeoHead } from "../common/SeoHead";
@@ -54,6 +55,9 @@ export const Checkout = () => {
   const [submissionError, setSubmissionError] = useState(null);
   const [completedOrder, setCompletedOrder] = useState(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [paymentVerificationMessage, setPaymentVerificationMessage] =
+    useState("");
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -124,6 +128,7 @@ export const Checkout = () => {
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
+
     if (!user) {
       setAuthModalOpen(true);
       return;
@@ -134,8 +139,14 @@ export const Checkout = () => {
       return;
     }
 
+    if (!calculatedTotals || Number(calculatedTotals.grandTotal) <= 0) {
+      setSubmissionError("Unable to calculate the final order total.");
+      return;
+    }
+
     setIsProcessing(true);
     setSubmissionError(null);
+    setPaymentVerificationMessage("");
 
     try {
       const result = await orderService.placeOrder({
@@ -148,17 +159,121 @@ export const Checkout = () => {
       });
 
       if (!result.success) {
-        setSubmissionError(result.message);
-        setIsProcessing(false);
+        setSubmissionError(result.message || "Unable to create order.");
         return;
       }
 
-      setCompletedOrder(result);
-      clearCart();
+      /*
+       * COD is already a completed checkout action because no gateway
+       * authorization is required. Online payment is different: the
+       * order remains pending until Cashfree is verified server-side.
+       */
+      if (paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY) {
+        setCompletedOrder(result);
+        clearCart();
+        return;
+      }
+
+      if (!result.paymentSessionId || !result.orderId) {
+        setSubmissionError(
+          "Cashfree payment session was not created. Please try again.",
+        );
+        return;
+      }
+
+      /*
+       * Cashfree's hosted checkout opens as a modal over this page.
+       * The checkout component remains mounted underneath it.
+       */
+      const checkoutResult = await cashfreeService.startPayment({
+        paymentSessionId: result.paymentSessionId,
+      });
+
+      if (!checkoutResult.success) {
+        setSubmissionError(
+          checkoutResult.message || "Unable to open Cashfree Checkout.",
+        );
+        return;
+      }
+
+      /*
+       * The browser callback only tells us that Cashfree finished or
+       * closed the checkout flow. It is NOT authoritative proof of payment.
+       * Ask our authenticated Edge Function to query Cashfree's Payments API
+       * and finalize the GateMate order only after SUCCESS is confirmed.
+       */
+      setIsVerifyingPayment(true);
+      setPaymentVerificationMessage("Verifying your payment securely…");
+
+      let verification = null;
+      const maxAttempts = 6;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        verification = await cashfreeService.verifyPayment({
+          orderId: result.orderId,
+        });
+
+        if (
+          verification?.status === "SUCCESS" ||
+          verification?.paymentStatus === "SUCCESS"
+        ) {
+          break;
+        }
+
+        if (
+          verification?.status === "FAILED" ||
+          verification?.status === "FAILURE" ||
+          verification?.status === "VERIFICATION_ERROR"
+        ) {
+          break;
+        }
+
+        if (attempt < maxAttempts) {
+          setPaymentVerificationMessage(
+            `Payment is still being confirmed… (${attempt}/${maxAttempts})`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
+
+      if (
+        verification?.status === "SUCCESS" ||
+        verification?.paymentStatus === "SUCCESS"
+      ) {
+        setCompletedOrder({
+          ...result,
+          paymentStatus: "SUCCESS",
+          orderStatus: verification?.orderStatus || result.orderStatus || "NEW",
+          record: verification?.record || result.record,
+          gatewayReference:
+            verification?.gatewayReference || result.gatewayReference || null,
+        });
+        clearCart();
+        return;
+      }
+
+      if (verification?.status === "PENDING") {
+        setSubmissionError(
+          verification?.message ||
+            "Your payment is still being processed. Please check your order status shortly.",
+        );
+        return;
+      }
+
+      setSubmissionError(
+        verification?.message ||
+          verification?.paymentMessage ||
+          "Payment was not completed. No successful payment was recorded.",
+      );
     } catch (err) {
-      setSubmissionError("Network error while placing order. Please retry.");
+      console.error("Checkout payment error:", err);
+      setSubmissionError(
+        err?.message || "Network error while processing payment. Please retry.",
+      );
     } finally {
       setIsProcessing(false);
+      setIsVerifyingPayment(false);
+      setPaymentVerificationMessage("");
     }
   };
 
@@ -482,11 +597,79 @@ export const Checkout = () => {
             </div>
 
             <div className="space-y-3">
-              <div
+              {/* Cashfree Online */}
+              <button
+                type="button"
+                onClick={() =>
+                  setPaymentMethod(PAYMENT_METHODS.CASHFREE_ONLINE)
+                }
+                className={`w-full text-left p-4 rounded-2xl border transition ${
+                  paymentMethod === PAYMENT_METHODS.CASHFREE_ONLINE
+                    ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                    : "gm-card hover:border-[#9AAED4]"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border shrink-0 ${
+                      paymentMethod === PAYMENT_METHODS.CASHFREE_ONLINE
+                        ? "border-[#3C7DDA] bg-[#3C7DDA]"
+                        : "border-[#9AAED4]"
+                    }`}
+                  >
+                    {paymentMethod === PAYMENT_METHODS.CASHFREE_ONLINE && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-bold text-[#282926]">
+                          Pay Online with Cashfree
+                        </div>
+                        <p className="text-[11px] text-[#606460] mt-0.5">
+                          Secure hosted checkout. Choose your preferred payment
+                          method inside Cashfree.
+                        </p>
+                      </div>
+                      <span className="text-[9px] text-[#3F7D20] font-bold bg-[#E1F2D9] px-2 py-1 rounded-full shrink-0">
+                        SECURE
+                      </span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {[
+                        { icon: QrCode, label: "UPI" },
+                        { icon: CreditCard, label: "Cards" },
+                        { icon: Building2, label: "Net Banking" },
+                        { icon: Zap, label: "Wallets & More" },
+                      ].map(({ icon: Icon, label }) => (
+                        <span
+                          key={label}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#FEFEFE] border border-[#D9E2EA] text-[10px] font-bold text-[#173885]"
+                        >
+                          <Icon className="w-3 h-3 text-[#3C7DDA]" />
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+
+                    <p className="text-[10px] text-[#606460] mt-2">
+                      The exact methods enabled for this Cashfree merchant/order
+                      are shown by Cashfree at payment time.
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Pay on Delivery */}
+              <button
+                type="button"
                 onClick={() =>
                   setPaymentMethod(PAYMENT_METHODS.PAY_ON_DELIVERY)
                 }
-                className={`p-4 rounded-2xl border cursor-pointer transition ${
+                className={`w-full text-left p-4 rounded-2xl border transition ${
                   paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
                     ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
                     : "gm-card hover:border-[#9AAED4]"
@@ -494,7 +677,7 @@ export const Checkout = () => {
               >
                 <div className="flex items-start gap-3">
                   <div
-                    className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
+                    className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border shrink-0 ${
                       paymentMethod === PAYMENT_METHODS.PAY_ON_DELIVERY
                         ? "border-[#3C7DDA] bg-[#3C7DDA]"
                         : "border-[#9AAED4]"
@@ -506,9 +689,9 @@ export const Checkout = () => {
                   </div>
                   <Banknote className="w-5 h-5 text-[#3F7D20] shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
-                      <span>
-                        Pay on Delivery (Cash / UPI on Doorstep Arrival)
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                      <span className="text-xs font-bold text-[#282926]">
+                        Pay on Delivery
                       </span>
                       <span className="text-[10px] text-[#173885] font-bold font-mono">
                         +₹49 Handling
@@ -520,87 +703,7 @@ export const Checkout = () => {
                     </p>
                   </div>
                 </div>
-              </div>
-
-              <div
-                onClick={() => setPaymentMethod(PAYMENT_METHODS.UPI_COLLECT)}
-                className={`p-4 rounded-2xl border cursor-pointer transition ${
-                  paymentMethod === PAYMENT_METHODS.UPI_COLLECT
-                    ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
-                    : "gm-card hover:border-[#9AAED4]"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
-                      paymentMethod === PAYMENT_METHODS.UPI_COLLECT
-                        ? "border-[#3C7DDA] bg-[#3C7DDA]"
-                        : "border-[#9AAED4]"
-                    }`}
-                  >
-                    {paymentMethod === PAYMENT_METHODS.UPI_COLLECT && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
-                    )}
-                  </div>
-                  <Zap className="w-5 h-5 text-[#3C7DDA] shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-[#282926] flex items-center justify-between">
-                      <span>UPI Collect (GPay, PhonePe, Paytm, BHIM)</span>
-                      <span className="text-[9px] text-[#3F7D20] font-bold">
-                        ZERO FEES
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#606460] mt-0.5">
-                      Direct instant bank transfer via your UPI Virtual Private
-                      Address.
-                    </p>
-                  </div>
-                </div>
-                {paymentMethod === PAYMENT_METHODS.UPI_COLLECT && (
-                  <div className="mt-3 pt-3 border-t border-[#D9E2EA]">
-                    <input
-                      type="text"
-                      placeholder="yourname@upi or yourname@okhdfcbank"
-                      value={upiIdInput}
-                      onChange={(e) => setUpiIdInput(e.target.value)}
-                      className="w-full gm-input px-3 py-2 rounded-xl text-xs font-mono"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div
-                onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}
-                className={`p-4 rounded-2xl border cursor-pointer transition ${
-                  paymentMethod === PAYMENT_METHODS.CARD
-                    ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
-                    : "gm-card hover:border-[#9AAED4]"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-4 h-4 rounded-full mt-1 flex items-center justify-center border ${
-                      paymentMethod === PAYMENT_METHODS.CARD
-                        ? "border-[#3C7DDA] bg-[#3C7DDA]"
-                        : "border-[#9AAED4]"
-                    }`}
-                  >
-                    {paymentMethod === PAYMENT_METHODS.CARD && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FEFEFE]" />
-                    )}
-                  </div>
-                  <CreditCard className="w-5 h-5 text-[#173885] shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-[#282926]">
-                      Credit / Debit Card
-                    </div>
-                    <p className="text-[11px] text-[#606460] mt-0.5">
-                      Visa, MasterCard, RuPay, Diners (256-bit encrypted
-                      checkout).
-                    </p>
-                  </div>
-                </div>
-              </div>
+              </button>
             </div>
 
             {isOnlinePaymentSelected && !onlinePaymentStatus.ready && (
@@ -609,8 +712,9 @@ export const Checkout = () => {
                 <div className="space-y-0.5">
                   <span className="font-bold">Gateway Integration Notice:</span>
                   <p className="text-[11px] text-[#606460] leading-relaxed">
-                    Online payments are not configured yet. Please select "Pay
-                    on Delivery" to proceed with placing this order.
+                    Cashfree is not configured yet. Please select Pay on
+                    Delivery or configure the Cashfree Edge Function
+                    credentials.
                   </p>
                 </div>
               </div>
@@ -712,15 +816,40 @@ export const Checkout = () => {
               <ShieldCheck className="w-4 h-4" />
               <span>
                 {isProcessing
-                  ? "Placing Order..."
+                  ? isVerifyingPayment
+                    ? "Verifying Payment..."
+                    : isOnlinePaymentSelected
+                      ? "Opening Secure Payment..."
+                      : "Placing Order..."
                   : isCalculating
                     ? "Calculating..."
-                    : `Confirm & Place Order (₹${calculatedTotals?.grandTotal || 0})`}
+                    : isOnlinePaymentSelected
+                      ? `Continue to Cashfree (₹${calculatedTotals?.grandTotal || 0})`
+                      : `Confirm & Place Order (₹${calculatedTotals?.grandTotal || 0})`}
               </span>
             </button>
           </div>
         </div>
       </form>
+
+      {isVerifyingPayment && (
+        <div className="fixed inset-0 z-[90] bg-[#173885]/55 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-sm gm-panel rounded-3xl p-7 text-center shadow-2xl border border-[#D9E2EA]">
+            <div className="w-14 h-14 mx-auto rounded-full border-4 border-[#D9E2EA] border-t-[#3C7DDA] animate-spin" />
+            <h3 className="mt-5 text-lg font-black text-[#173885]">
+              Confirming Payment
+            </h3>
+            <p className="mt-2 text-xs text-[#606460] leading-relaxed">
+              {paymentVerificationMessage ||
+                "Checking the payment status securely with Cashfree."}
+            </p>
+            <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-bold text-[#3C7DDA]">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Secure server-side verification
+            </div>
+          </div>
+        </div>
+      )}
 
       <AddressFormModal
         isOpen={isAddressModalOpen}

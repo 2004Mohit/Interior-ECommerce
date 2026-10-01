@@ -8,10 +8,8 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  Percent,
   ArrowUpRight,
   FileText,
-  Info,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import {
@@ -63,7 +61,7 @@ export const VendorPayments = () => {
     <div className="space-y-6 pb-24 font-sans">
       <SeoHead
         title="Vendor Payments & Transactions Ledger | Ferrado"
-        description="Transparent ledger showing Product Subtotals, 5% Ferrado commission, and net vendor payable disbursements."
+        description="Transparent ledger showing product sales and vendor disbursement records."
         canonicalUrl="/vendor/payments"
         noIndex={true}
       />
@@ -78,8 +76,8 @@ export const VendorPayments = () => {
             Vendor Payments & Transactions
           </h1>
           <p className="text-xs text-[#606460]">
-            Itemized breakdown of product sales, Ferrado 5% commission
-            deductions, and net vendor disbursements.
+            Itemized breakdown of product sales, vendor earnings, and bank
+            disbursement records.
           </p>
         </div>
 
@@ -90,21 +88,6 @@ export const VendorPayments = () => {
           <RotateCcw className="w-3.5 h-3.5" />
           <span>Refresh Ledger</span>
         </button>
-      </div>
-
-      {/* Commission Policy Callout */}
-      <div className="p-4 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40 text-xs text-[#173885] flex items-start gap-2.5">
-        <Info className="w-4 h-4 text-[#3C7DDA] shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <strong className="font-bold">
-            Transparent Ferrado Commission Policy (5%):
-          </strong>
-          <p className="text-[11px] text-[#606460] leading-relaxed">
-            Ferrado charges a flat 5% commission strictly on the{" "}
-            <strong>Product Subtotal</strong>. Commission is never calculated on
-            delivery charges, platform packaging fees, or GST taxes.
-          </p>
-        </div>
       </div>
 
       {/* Financial Overview Cards */}
@@ -118,18 +101,6 @@ export const VendorPayments = () => {
           </div>
           <span className="text-[10px] text-[#606460] mt-0.5 block">
             From {summary?.transactionCount || 0} customer orders
-          </span>
-        </div>
-
-        <div className="gm-card p-5 rounded-2xl border border-[#D9E2EA]">
-          <span className="text-[11px] font-bold text-[#6F8A92] uppercase tracking-wider block">
-            Ferrado Commission (5%)
-          </span>
-          <div className="text-2xl font-black text-[#173885] mt-1 font-mono">
-            -₹{summary?.totalPlatformCommission?.toLocaleString("en-IN") || 0}
-          </div>
-          <span className="text-[10px] text-[#3C7DDA] font-semibold mt-0.5 block">
-            Applied only on Product subtotal
           </span>
         </div>
 
@@ -219,8 +190,7 @@ export const VendorPayments = () => {
                   <th className="p-3.5">Transaction & Order Ref</th>
                   <th className="p-3.5">Customer</th>
                   <th className="p-3.5 text-right">Product Subtotal</th>
-                  <th className="p-3.5 text-right">Commission (5%)</th>
-                  <th className="p-3.5 text-right">Net Vendor Amount</th>
+                  <th className="p-3.5 text-right">Vendor Earnings</th>
                   <th className="p-3.5">Payment Mode</th>
                   <th className="p-3.5">Settlement Status</th>
                 </tr>
@@ -246,13 +216,6 @@ export const VendorPayments = () => {
 
                     <td className="p-3.5 text-right font-mono font-bold text-[#282926]">
                       ₹{txn.productSubtotal}
-                    </td>
-
-                    <td className="p-3.5 text-right font-mono text-[#B43D20] font-semibold">
-                      -₹{txn.commissionAmount}
-                      <span className="text-[9px] text-[#6F8A92] block">
-                        ({txn.commissionRate * 100}%)
-                      </span>
                     </td>
 
                     <td className="p-3.5 text-right font-mono font-black text-sm text-[#3F7D20]">

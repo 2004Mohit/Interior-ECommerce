@@ -128,6 +128,7 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
   const handlePlaceOrder = async () => {
     setIsSubmitting(true);
     setSubmissionError(null);
+    setPaymentInitiated(false);
 
     try {
       const result = await orderService.placeOrder({
@@ -144,16 +145,11 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
         return;
       }
 
-      if (!result.paymentSessionId) {
+      if (!result.paymentSessionId || !result.orderId) {
         setSubmissionError("Cashfree payment session was not created.");
         return;
       }
 
-      /*
-       * Store the order immediately.
-       *
-       * Do NOT mark payment as paid here.
-       */
       setConfirmedOrder(result);
       setCurrentStep(6);
 
@@ -169,6 +165,70 @@ export const CheckoutDrawer = ({ isOpen, onClose, onRequireAuth }) => {
       }
 
       setPaymentInitiated(true);
+
+      /*
+       * The Cashfree browser callback is not authoritative. Verify the
+       * transaction through the authenticated Supabase Edge Function.
+       */
+      let verification = null;
+      const maxAttempts = 6;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        verification = await cashfreeService.verifyPayment({
+          orderId: result.orderId,
+        });
+
+        if (
+          verification?.status === "SUCCESS" ||
+          verification?.paymentStatus === "SUCCESS"
+        ) {
+          break;
+        }
+
+        if (
+          verification?.status === "FAILED" ||
+          verification?.status === "FAILURE" ||
+          verification?.status === "VERIFICATION_ERROR"
+        ) {
+          break;
+        }
+
+        if (attempt < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
+
+      if (
+        verification?.status === "SUCCESS" ||
+        verification?.paymentStatus === "SUCCESS"
+      ) {
+        const finalOrder = {
+          ...result,
+          paymentStatus: "SUCCESS",
+          orderStatus: verification?.orderStatus || result.orderStatus || "NEW",
+          record: verification?.record || result.record,
+          gatewayReference: verification?.gatewayReference || null,
+        };
+
+        setConfirmedOrder(finalOrder);
+        setCurrentStep(7);
+        clearCart();
+        return;
+      }
+
+      if (verification?.status === "PENDING") {
+        setSubmissionError(
+          verification?.message ||
+            "Payment is still being processed. Please check your order status shortly.",
+        );
+        return;
+      }
+
+      setSubmissionError(
+        verification?.message ||
+          verification?.paymentMessage ||
+          "Payment was not completed. No successful payment was recorded.",
+      );
     } catch (error) {
       console.error("Checkout payment error:", error);
 

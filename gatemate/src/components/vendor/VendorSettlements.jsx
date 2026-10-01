@@ -12,7 +12,6 @@ import {
   AlertCircle,
   WalletCards,
   ReceiptIndianRupee,
-  CircleDollarSign,
 } from "lucide-react";
 
 import { useVendorAuth } from "../../context/VendorAuthContext";
@@ -113,11 +112,6 @@ export const VendorSettlements = () => {
     0,
   );
 
-  const totalCommission = settlements.reduce(
-    (sum, settlement) => sum + Number(settlement.totalCommissionDeducted || 0),
-    0,
-  );
-
   const totalOrders = settlements.reduce(
     (sum, settlement) => sum + Number(settlement.orderCount || 0),
     0,
@@ -174,7 +168,7 @@ export const VendorSettlements = () => {
     <div className="space-y-7 pb-24 font-sans">
       <SeoHead
         title="Vendor Settlements | Ferrado"
-        description="Track vendor bank settlements, disbursals, commission deductions and UTR references."
+        description="Track vendor bank settlements, disbursals and UTR references."
         canonicalUrl="/vendor/settlements"
         noIndex={true}
       />
@@ -191,8 +185,8 @@ export const VendorSettlements = () => {
           </h1>
 
           <p className="text-xs text-[#606460] mt-1 max-w-2xl">
-            Track completed bank disbursals, settlement batches, platform
-            commission deductions and UTR references.
+            Track completed bank disbursals, settlement batches and UTR
+            references.
           </p>
         </div>
 
@@ -257,18 +251,22 @@ export const VendorSettlements = () => {
         <div className="gm-panel rounded-2xl p-5 border border-[#D9E2EA]">
           <div className="flex justify-between items-center">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#6F8A92]">
-              Commission Deducted
+              Latest Settlement
             </span>
 
-            <CircleDollarSign className="w-5 h-5 text-[#A66A08]" />
+            <CheckCircle2 className="w-5 h-5 text-[#3F7D20]" />
           </div>
 
-          <p className="text-2xl font-black text-[#A66A08] mt-3 font-mono">
-            {loading ? "—" : formatCurrency(totalCommission)}
+          <p className="text-sm font-black text-[#173885] mt-3">
+            {loading
+              ? "—"
+              : formatDateTime(
+                  latestSettlement?.processedAt || latestSettlement?.createdAt,
+                )}
           </p>
 
           <p className="text-[10px] text-[#6F8A92] mt-1">
-            Standard platform rate: 5%
+            Most recent bank disbursal
           </p>
         </div>
 
@@ -404,9 +402,8 @@ export const VendorSettlements = () => {
                     <th className="p-4">Settlement</th>
                     <th className="p-4">Date</th>
                     <th className="p-4">Orders</th>
-                    <th className="p-4">Gross</th>
-                    <th className="p-4">Commission</th>
-                    <th className="p-4">Net Disbursed</th>
+                    <th className="p-4">Sales Value</th>
+                    <th className="p-4">Amount Disbursed</th>
                     <th className="p-4">UTR</th>
                     <th className="p-4">Status</th>
                   </tr>
@@ -442,10 +439,6 @@ export const VendorSettlements = () => {
 
                       <td className="p-4 font-mono text-[#282926]">
                         {formatCurrency(settlement.grossProductSubtotal)}
-                      </td>
-
-                      <td className="p-4 font-mono text-[#A66A08]">
-                        -{formatCurrency(settlement.totalCommissionDeducted)}
                       </td>
 
                       <td className="p-4 font-mono font-black text-[#3F7D20]">

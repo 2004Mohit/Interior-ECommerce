@@ -24,7 +24,7 @@ export const VendorBenefits = () => {
   const benefits = [
     {
       title: "Direct Access to Active Job Sites",
-      desc: "Connect with certified civil contractors, structural engineers, and real estate developers across Pune & PCMC without intermediary commissions.",
+      desc: "Connect with certified civil contractors, structural engineers, and real estate developers across Pune & PCMC through a direct digital sales channel.",
       icon: Users,
     },
     {
@@ -39,7 +39,7 @@ export const VendorBenefits = () => {
     },
     {
       title: "Reliable Direct Bank Settlements",
-      desc: "Transparent 5% platform fee calculated exclusively on Product Subtotals with prompt weekly payouts and UTR tracking.",
+      desc: "Reliable weekly bank settlements with clear payout records and UTR tracking.",
       icon: CreditCard,
     },
     {

@@ -218,13 +218,6 @@ export const VendorLogin = () => {
     }
   };
 
-  const handleDemoAccount = () => {
-    setEmail("depot@punemegaconstruct.in");
-    setPassword("password123");
-    setError(null);
-    setSuccess(null);
-  };
-
   return (
     <div className="min-h-screen bg-[#F4F6FA] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
       <SeoHead
@@ -294,17 +287,6 @@ export const VendorLogin = () => {
                   disabled={loading || authLoading}
                 />
               </div>
-
-              <p className="text-[10px] text-[#6F8A92] mt-1">
-                Demo Account:{" "}
-                <button
-                  type="button"
-                  onClick={handleDemoAccount}
-                  className="text-[#3C7DDA] hover:underline font-bold font-mono"
-                >
-                  depot@punemegaconstruct.in
-                </button>
-              </p>
             </div>
 
             {/* PASSWORD */}

@@ -417,15 +417,29 @@ export const vendorDashboardService = {
            * Existing property names used
            * by VendorDashboard.jsx.
            */
-          grossVolume: Number(safeFinancials?.grossProductSubtotal || 0),
-
-          netRevenue: Number(safeFinancials?.totalVendorEarnings || 0),
-
-          pendingSettlements: Number(
-            safeFinancials?.pendingSettlementAmount || 0,
+          grossVolume: Number(
+            safeFinancials?.grossProductSubtotal ??
+              safeFinancials?.grossVolume ??
+              0,
           ),
 
-          settledRevenue: Number(safeFinancials?.settledDisbursedAmount || 0),
+          netRevenue: Number(
+            safeFinancials?.totalVendorEarnings ??
+              safeFinancials?.netRevenue ??
+              0,
+          ),
+
+          pendingSettlements: Number(
+            safeFinancials?.pendingSettlementAmount ??
+              safeFinancials?.pendingSettlement ??
+              0,
+          ),
+
+          settledRevenue: Number(
+            safeFinancials?.settledDisbursedAmount ??
+              safeFinancials?.settledAmount ??
+              0,
+          ),
 
           inventoryAlertsCount: lowStockItems.length,
 

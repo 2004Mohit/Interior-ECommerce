@@ -125,18 +125,7 @@ export const VendorGuidelines = () => {
 
           <div className="space-y-1">
             <h3 className="font-bold text-[#173885]">
-              2. Product Subtotal Commission Model (5%)
-            </h3>
-            <p className="text-[#606460] leading-relaxed">
-              Ferrado deducts a flat 5% platform service fee solely on the
-              Product Subtotal. Freight logistics, packaging fees, and taxes are
-              excluded from commission deductions.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <h3 className="font-bold text-[#173885]">
-              3. Direct NEFT/RTGS Bank Settlements
+              2. Direct NEFT/RTGS Bank Settlements
             </h3>
             <p className="text-[#606460] leading-relaxed">
               Payments for completed and delivered site orders are settled

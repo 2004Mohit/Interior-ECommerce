@@ -6,42 +6,32 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-const jsonResponse = (body: Record<string, unknown>, status = 200) => {
-  return new Response(JSON.stringify(body), {
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
     status,
     headers: {
       ...corsHeaders,
       "Content-Type": "application/json",
     },
   });
-};
 
 const cleanText = (value: unknown): string => {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
+  if (value === null || value === undefined) return "";
   return String(value).trim();
 };
 
 const normalizeAmount = (value: unknown): number | null => {
   const amount = Number(value);
-
-  if (!Number.isFinite(amount)) {
-    return null;
-  }
-
-  return Number(amount.toFixed(2));
+  return Number.isFinite(amount) ? Number(amount.toFixed(2)) : null;
 };
 
-const getCashfreeBaseUrl = (mode: string): string => {
-  return mode === "production"
+const getCashfreeBaseUrl = (mode: string) =>
+  mode === "production"
     ? "https://api.cashfree.com/pg"
     : "https://sandbox.cashfree.com/pg";
-};
 
 const redirectToFrontend = (
   frontendUrl: string,
@@ -50,55 +40,27 @@ const redirectToFrontend = (
   message?: string,
 ) => {
   const url = new URL(frontendUrl);
-
   url.searchParams.set("payment", status);
   url.searchParams.set("order_id", orderId);
-
-  if (message) {
-    url.searchParams.set("message", message);
-  }
-
+  if (message) url.searchParams.set("message", message);
   return Response.redirect(url.toString(), 303);
 };
 
 const getCashfreeErrorMessage = (
   data: Record<string, unknown>,
   fallback: string,
-): string => {
+) => {
   const message =
     cleanText(data.message) ||
     cleanText(data.message_text) ||
     cleanText(data.error_message) ||
     cleanText(data.error);
-
   const code = cleanText(data.code) || cleanText(data.error_code);
 
-  if (code && message) {
-    return `${code}: ${message}`;
-  }
-
-  if (message) {
-    return message;
-  }
-
-  if (code) {
-    return code;
-  }
-
-  return fallback;
+  if (code && message) return `${code}: ${message}`;
+  return message || code || fallback;
 };
 
-/*
- * ============================================================
- * CASHFREE REQUEST WITH RETRY
- * ============================================================
- *
- * Cashfree can occasionally return temporary 502/503/504
- * gateway errors. We retry only those transient statuses.
- *
- * We NEVER retry authentication/validation errors such as
- * 400, 401, 403 or 404.
- */
 const cashfreeFetchWithRetry = async (
   url: string,
   options: RequestInit,
@@ -107,93 +69,70 @@ const cashfreeFetchWithRetry = async (
 ): Promise<Response> => {
   let lastResponse: Response | null = null;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      console.log(`${label}: attempt ${attempt}/${maxAttempts}`);
-
       const response = await fetch(url, options);
-
       lastResponse = response;
 
-      if (
-        response.status !== 502 &&
-        response.status !== 503 &&
-        response.status !== 504
-      ) {
-        return response;
-      }
-
-      console.warn(`${label}: transient Cashfree status ${response.status}`);
+      if (![502, 503, 504].includes(response.status)) return response;
 
       if (attempt < maxAttempts) {
-        const delayMs = attempt * 1000;
-
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
       }
     } catch (error) {
-      console.error(`${label}: network error on attempt ${attempt}:`, error);
-
+      console.error(`${label}: network error on attempt ${attempt}`, error);
       if (attempt < maxAttempts) {
-        const delayMs = attempt * 1000;
-
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
       }
     }
   }
 
-  if (lastResponse) {
-    return lastResponse;
-  }
-
+  if (lastResponse) return lastResponse;
   throw new Error(`${label}: Cashfree request failed.`);
 };
 
-Deno.serve(async (req) => {
-  /*
-   * ============================================================
-   * OPTIONS
-   * ============================================================
-   */
+const getAuthenticatedUserId = async (
+  req: Request,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+) => {
+  const authorization = req.headers.get("Authorization") || "";
+  if (!authorization.startsWith("Bearer ")) return null;
 
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authorization } },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  return user?.id || null;
+};
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      status: 200,
-      headers: corsHeaders,
-    });
+    return new Response("ok", { status: 200, headers: corsHeaders });
   }
 
-  /*
-   * Cashfree return URL uses GET.
-   */
-
-  if (req.method !== "GET") {
+  if (req.method !== "GET" && req.method !== "POST") {
     return jsonResponse(
-      {
-        success: false,
-        message:
-          "Method not allowed. Cashfree payment return endpoint requires GET.",
-      },
+      { success: false, message: "Method not allowed." },
       405,
     );
   }
 
   try {
-    /*
-     * ============================================================
-     * ENVIRONMENT
-     * ============================================================
-     */
-
     const supabaseUrl = cleanText(Deno.env.get("SUPABASE_URL"));
-
+    const supabaseAnonKey = cleanText(Deno.env.get("SUPABASE_ANON_KEY"));
     const serviceRoleKey = cleanText(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-
     const cashfreeAppId = cleanText(Deno.env.get("CASHFREE_APP_ID"));
-
     const cashfreeSecretKey = cleanText(Deno.env.get("CASHFREE_SECRET_KEY"));
-
     const cashfreeMode = cleanText(Deno.env.get("CASHFREE_MODE")) || "sandbox";
-
     const frontendUrl =
       cleanText(Deno.env.get("FRONTEND_URL")) || "http://localhost:5173";
 
@@ -203,48 +142,82 @@ Deno.serve(async (req) => {
       !cashfreeAppId ||
       !cashfreeSecretKey
     ) {
-      console.error("Cashfree return function environment is incomplete.");
-
       return jsonResponse(
         {
           success: false,
-          message: "Cashfree return function environment is incomplete.",
+          status: "VERIFICATION_ERROR",
+          message: "Cashfree verification function environment is incomplete.",
         },
         500,
       );
     }
 
-    /*
-     * ============================================================
-     * ORDER ID
-     * ============================================================
-     */
-
     const requestUrl = new URL(req.url);
+    let orderId = cleanText(requestUrl.searchParams.get("order_id"));
+    let authenticatedUserId: string | null = null;
 
-    const orderId = cleanText(requestUrl.searchParams.get("order_id"));
+    /*
+     * POST is the authenticated browser verification path used by the
+     * React checkout after the Cashfree modal closes.
+     */
+    if (req.method === "POST") {
+      if (!supabaseAnonKey) {
+        return jsonResponse(
+          {
+            success: false,
+            status: "VERIFICATION_ERROR",
+            message: "Supabase anonymous key is not configured.",
+          },
+          500,
+        );
+      }
+
+      try {
+        const body = await req.json();
+        orderId = orderId || cleanText(body?.orderId);
+      } catch {
+        // Query parameter fallback remains supported.
+      }
+
+      if (!orderId) {
+        return jsonResponse(
+          {
+            success: false,
+            status: "INVALID_ORDER",
+            message: "orderId is required.",
+          },
+          400,
+        );
+      }
+
+      authenticatedUserId = await getAuthenticatedUserId(
+        req,
+        supabaseUrl,
+        supabaseAnonKey,
+      );
+
+      if (!authenticatedUserId) {
+        return jsonResponse(
+          {
+            success: false,
+            status: "AUTH_REQUIRED",
+            message: "Authenticated customer verification is required.",
+          },
+          401,
+        );
+      }
+    }
 
     if (!orderId) {
       return jsonResponse(
         {
           success: false,
-          message: "order_id query parameter is required.",
+          status: "INVALID_ORDER",
+          message: "order_id is required.",
         },
         400,
       );
     }
-
-    console.log("Cashfree payment return received:", orderId);
-
-    console.log("Cashfree mode:", cashfreeMode);
-
-    /*
-     * ============================================================
-     * SUPABASE SERVICE ROLE CLIENT
-     * ============================================================
-     *
-     * Server-side only.
-     */
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
@@ -253,13 +226,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    /*
-     * ============================================================
-     * LOAD GATEMATE ORDER
-     * ============================================================
-     */
-
-    const { data: gateMateOrder, error: gateMateOrderError } = await supabase
+    const { data: gateMateOrder, error: orderError } = await supabase
       .from("vendor_orders")
       .select(
         `
@@ -274,108 +241,106 @@ Deno.serve(async (req) => {
       .eq("id", orderId)
       .maybeSingle();
 
-    if (gateMateOrderError) {
-      console.error("Unable to load GateMate order:", gateMateOrderError);
-
-      return redirectToFrontend(
-        frontendUrl,
-        orderId,
-        "error",
-        "Unable to load GateMate order.",
-      );
+    if (orderError) {
+      console.error("Unable to load GateMate order:", orderError);
+      return req.method === "GET"
+        ? redirectToFrontend(
+            frontendUrl,
+            orderId,
+            "error",
+            "Unable to load GateMate order.",
+          )
+        : jsonResponse(
+            {
+              success: false,
+              status: "VERIFICATION_ERROR",
+              message: "Unable to load GateMate order.",
+            },
+            500,
+          );
     }
 
     if (!gateMateOrder) {
-      console.error("GateMate order not found:", orderId);
-
-      return redirectToFrontend(
-        frontendUrl,
-        orderId,
-        "error",
-        "GateMate order was not found.",
-      );
+      return req.method === "GET"
+        ? redirectToFrontend(
+            frontendUrl,
+            orderId,
+            "error",
+            "GateMate order was not found.",
+          )
+        : jsonResponse(
+            {
+              success: false,
+              status: "ORDER_NOT_FOUND",
+              message: "GateMate order was not found.",
+            },
+            404,
+          );
     }
 
-    /*
-     * ============================================================
-     * IDEMPOTENCY
-     * ============================================================
-     */
+    /* Never allow the browser to verify/finalize another customer's order. */
+    if (
+      req.method === "POST" &&
+      authenticatedUserId !== cleanText(gateMateOrder.customer_id)
+    ) {
+      return jsonResponse(
+        {
+          success: false,
+          status: "FORBIDDEN",
+          message: "This order does not belong to the authenticated customer.",
+        },
+        403,
+      );
+    }
 
     const currentPaymentStatus = cleanText(
       gateMateOrder.payment_status,
     ).toUpperCase();
 
     if (currentPaymentStatus === "PAID" || currentPaymentStatus === "SUCCESS") {
-      console.log("GateMate order already marked paid:", orderId);
+      const response = {
+        success: true,
+        status: "SUCCESS",
+        orderId,
+        paymentStatus: "SUCCESS",
+        orderStatus: cleanText(gateMateOrder.status) || "NEW",
+        message: "Payment is already confirmed.",
+      };
 
-      return redirectToFrontend(frontendUrl, orderId, "success");
+      return req.method === "GET"
+        ? redirectToFrontend(frontendUrl, orderId, "success")
+        : jsonResponse(response);
     }
-
-    /*
-     * ============================================================
-     * VERIFY AMOUNT FROM GATEMATE DATABASE
-     * ============================================================
-     */
 
     const expectedAmount = normalizeAmount(gateMateOrder.grand_total);
 
     if (expectedAmount === null) {
-      console.error("GateMate order has invalid grand_total:", {
-        orderId,
-        grandTotal: gateMateOrder.grand_total,
-      });
-
-      return redirectToFrontend(
-        frontendUrl,
-        orderId,
-        "verification_error",
-        "Unable to verify the GateMate order amount.",
-      );
+      const message = "Unable to verify the GateMate order amount.";
+      return req.method === "GET"
+        ? redirectToFrontend(
+            frontendUrl,
+            orderId,
+            "verification_error",
+            message,
+          )
+        : jsonResponse(
+            { success: false, status: "VERIFICATION_ERROR", message },
+            400,
+          );
     }
 
-    /*
-     * ============================================================
-     * CASHFREE BASE URL
-     * ============================================================
-     */
-
     const cashfreeBaseUrl = getCashfreeBaseUrl(cashfreeMode);
-
-    /*
-     * ============================================================
-     * STEP 1:
-     * GET CASHFREE PAYMENTS FOR THIS ORDER
-     * ============================================================
-     *
-     * This is the important change.
-     *
-     * Cashfree's current integration documentation uses:
-     *
-     * GET /pg/orders/{order_id}/payments
-     *
-     * to determine the final transaction state.
-     */
-
-    const paymentsUrl =
-      `${cashfreeBaseUrl}/orders/` + `${encodeURIComponent(orderId)}/payments`;
-
-    console.log("Checking Cashfree payments:", paymentsUrl);
+    const paymentsUrl = `${cashfreeBaseUrl}/orders/${encodeURIComponent(orderId)}/payments`;
 
     const paymentsResponse = await cashfreeFetchWithRetry(
       paymentsUrl,
       {
         method: "GET",
-
         headers: {
           Accept: "application/json",
-
           "x-client-id": cashfreeAppId,
-
           "x-client-secret": cashfreeSecretKey,
-
           "x-api-version": CASHFREE_API_VERSION,
-
           "x-request-id": crypto.randomUUID(),
         },
       },
@@ -384,7 +349,6 @@ Deno.serve(async (req) => {
     );
 
     const paymentsText = await paymentsResponse.text();
-
     let paymentsData: unknown = [];
 
     try {
@@ -392,18 +356,6 @@ Deno.serve(async (req) => {
     } catch {
       paymentsData = [];
     }
-
-    console.log("Cashfree payments response:", {
-      status: paymentsResponse.status,
-      ok: paymentsResponse.ok,
-      data: paymentsData,
-    });
-
-    /*
-     * ============================================================
-     * CASHFREE PAYMENT API ERROR
-     * ============================================================
-     */
 
     if (!paymentsResponse.ok) {
       const cashfreeError =
@@ -416,75 +368,51 @@ Deno.serve(async (req) => {
             )
           : "Cashfree payment status could not be verified.";
 
-      console.error("Cashfree payment status request failed:", {
-        orderId,
-        httpStatus: paymentsResponse.status,
-        error: cashfreeError,
-      });
-
-      return redirectToFrontend(
-        frontendUrl,
-        orderId,
-        "verification_error",
-        `Cashfree API ${paymentsResponse.status}: ${cashfreeError}`,
-      );
+      return req.method === "GET"
+        ? redirectToFrontend(
+            frontendUrl,
+            orderId,
+            "verification_error",
+            `Cashfree API ${paymentsResponse.status}: ${cashfreeError}`,
+          )
+        : jsonResponse(
+            {
+              success: false,
+              status: "VERIFICATION_ERROR",
+              message: `Cashfree API ${paymentsResponse.status}: ${cashfreeError}`,
+            },
+            502,
+          );
     }
-
-    /*
-     * ============================================================
-     * NORMALIZE PAYMENT LIST
-     * ============================================================
-     */
 
     const paymentList = Array.isArray(paymentsData) ? paymentsData : [];
 
     if (paymentList.length === 0) {
-      console.warn("Cashfree returned no payment transactions yet:", orderId);
-
-      return redirectToFrontend(
-        frontendUrl,
-        orderId,
-        "pending",
-        "Cashfree has not returned a payment transaction yet.",
-      );
+      const message = "Cashfree has not returned a payment transaction yet.";
+      return req.method === "GET"
+        ? redirectToFrontend(frontendUrl, orderId, "pending", message)
+        : jsonResponse({
+            success: false,
+            status: "PENDING",
+            orderId,
+            paymentStatus: "PENDING",
+            message,
+          });
     }
 
-    /*
-     * ============================================================
-     * FIND PAYMENT STATES
-     * ============================================================
-     */
-
     const normalizedPayments = paymentList.map((payment) => {
-      const paymentObject =
+      const item =
         payment && typeof payment === "object"
           ? (payment as Record<string, unknown>)
           : {};
 
       return {
-        paymentStatus: cleanText(paymentObject.payment_status).toUpperCase(),
-
-        cfPaymentId: cleanText(paymentObject.cf_payment_id),
-
-        paymentAmount: normalizeAmount(paymentObject.payment_amount),
-
-        paymentCurrency: cleanText(
-          paymentObject.payment_currency,
-        ).toUpperCase(),
-
-        paymentMessage: cleanText(paymentObject.payment_message),
+        paymentStatus: cleanText(item.payment_status).toUpperCase(),
+        cfPaymentId: cleanText(item.cf_payment_id),
+        paymentAmount: normalizeAmount(item.payment_amount),
+        paymentMessage: cleanText(item.payment_message),
       };
     });
-
-    console.log("Normalized Cashfree payments:", normalizedPayments);
-
-    /*
-     * ============================================================
-     * VERIFY PAYMENT AMOUNT
-     * ============================================================
-     *
-     * If Cashfree provides payment_amount, verify it.
-     */
 
     const successfulPayment = normalizedPayments.find(
       (payment) => payment.paymentStatus === "SUCCESS",
@@ -496,59 +424,32 @@ Deno.serve(async (req) => {
 
     if (
       paidPayment?.paymentAmount !== null &&
-      paidPayment?.paymentAmount !== undefined
+      paidPayment?.paymentAmount !== undefined &&
+      paidPayment.paymentAmount !== expectedAmount
     ) {
-      if (paidPayment.paymentAmount !== expectedAmount) {
-        console.error("Payment amount mismatch:", {
-          orderId,
-          expectedAmount,
-          cashfreePaymentAmount: paidPayment.paymentAmount,
-        });
-
-        return redirectToFrontend(
-          frontendUrl,
-          orderId,
-          "verification_error",
-          "Payment amount verification failed.",
-        );
-      }
+      const message = "Payment amount verification failed.";
+      return req.method === "GET"
+        ? redirectToFrontend(
+            frontendUrl,
+            orderId,
+            "verification_error",
+            message,
+          )
+        : jsonResponse(
+            { success: false, status: "VERIFICATION_ERROR", message },
+            400,
+          );
     }
-
-    /*
-     * ============================================================
-     * SUCCESS
-     * ============================================================
-     *
-     * Cashfree documentation identifies SUCCESS as the
-     * successful transaction state.
-     */
 
     if (successfulPayment) {
       const gatewayReference =
         successfulPayment.cfPaymentId || `CASHFREE-${orderId}`;
 
-      console.log("Cashfree payment SUCCESS:", {
-        orderId,
-        gatewayReference,
-        expectedAmount,
-      });
-
-      /*
-       * ==========================================================
-       * RECORD PAYMENT + COMMISSION
-       * ==========================================================
-       *
-       * Existing GateMate RPC.
-       */
-
       const { data: paymentRecord, error: paymentRecordError } =
         await supabase.rpc("record_order_payment_and_commission", {
           p_order_id: orderId,
-
           p_payment_gateway_ref: gatewayReference,
-
           p_payment_method: "CASHFREE_ONLINE",
-
           p_idempotency_key: `CASHFREE-${orderId}`,
         });
 
@@ -558,98 +459,108 @@ Deno.serve(async (req) => {
           paymentRecordError,
         );
 
-        return redirectToFrontend(
-          frontendUrl,
-          orderId,
-          "verification_error",
-          "Payment succeeded at Cashfree but GateMate could not finalize the order.",
-        );
-      }
+        const message =
+          "Payment succeeded at Cashfree but GateMate could not finalize the order yet.";
 
-      console.log("Payment finalization result:", paymentRecord);
+        return req.method === "GET"
+          ? redirectToFrontend(
+              frontendUrl,
+              orderId,
+              "verification_error",
+              message,
+            )
+          : jsonResponse(
+              {
+                success: false,
+                status: "VERIFICATION_ERROR",
+                message,
+              },
+              500,
+            );
+      }
 
       if (!paymentRecord || paymentRecord.success !== true) {
-        console.error(
-          "Payment record function returned unsuccessful response:",
-          paymentRecord,
-        );
+        const message =
+          "Payment succeeded but GateMate order finalization failed.";
 
-        return redirectToFrontend(
-          frontendUrl,
-          orderId,
-          "verification_error",
-          "Payment succeeded but GateMate order finalization failed.",
-        );
+        return req.method === "GET"
+          ? redirectToFrontend(
+              frontendUrl,
+              orderId,
+              "verification_error",
+              message,
+            )
+          : jsonResponse(
+              {
+                success: false,
+                status: "VERIFICATION_ERROR",
+                message,
+              },
+              500,
+            );
       }
 
-      console.log("GateMate payment successfully finalized:", {
+      const response = {
+        success: true,
+        status: "SUCCESS",
         orderId,
+        paymentStatus: "SUCCESS",
         gatewayReference,
-        paymentRecord,
-      });
+        orderStatus:
+          cleanText(paymentRecord?.orderStatus) ||
+          cleanText(gateMateOrder.status) ||
+          "NEW",
+        record: paymentRecord,
+        message: "Payment verified and order finalized successfully.",
+      };
 
-      return redirectToFrontend(frontendUrl, orderId, "success");
+      return req.method === "GET"
+        ? redirectToFrontend(frontendUrl, orderId, "success")
+        : jsonResponse(response);
     }
 
-    /*
-     * ============================================================
-     * PENDING
-     * ============================================================
-     */
-
-    const hasPendingPayment = normalizedPayments.some(
+    const pendingPayment = normalizedPayments.find(
       (payment) => payment.paymentStatus === "PENDING",
     );
 
-    if (hasPendingPayment) {
-      console.log("Cashfree payment is pending:", orderId);
-
-      return redirectToFrontend(
-        frontendUrl,
+    if (pendingPayment) {
+      const response = {
+        success: false,
+        status: "PENDING",
         orderId,
-        "pending",
-        "Payment is still being processed.",
-      );
+        paymentStatus: "PENDING",
+        paymentMessage: pendingPayment.paymentMessage || null,
+        message: "Payment is still being processed.",
+      };
+
+      return req.method === "GET"
+        ? redirectToFrontend(frontendUrl, orderId, "pending", response.message)
+        : jsonResponse(response);
     }
 
-    /*
-     * ============================================================
-     * USER DROPPED / FAILED / OTHER
-     * ============================================================
-     */
-
     const latestPayment = normalizedPayments[0];
-
     const latestStatus = latestPayment?.paymentStatus || "UNKNOWN";
+    const message = `Payment status: ${latestStatus}`;
 
-    console.log("Cashfree payment was not successful:", {
-      orderId,
-      latestStatus,
-    });
-
-    return redirectToFrontend(
-      frontendUrl,
-      orderId,
-      "failed",
-      `Payment status: ${latestStatus}`,
-    );
+    return req.method === "GET"
+      ? redirectToFrontend(frontendUrl, orderId, "failed", message)
+      : jsonResponse({
+          success: false,
+          status: "FAILED",
+          orderId,
+          paymentStatus: latestStatus,
+          paymentMessage: latestPayment?.paymentMessage || null,
+          message,
+        });
   } catch (error) {
-    /*
-     * ============================================================
-     * UNEXPECTED ERROR
-     * ============================================================
-     */
-
     console.error("cashfree-payment-return unexpected error:", error);
 
     const requestUrl = new URL(req.url);
-
     const orderId = cleanText(requestUrl.searchParams.get("order_id"));
+    const frontendUrl =
+      cleanText(Deno.env.get("FRONTEND_URL")) || "http://localhost:5173";
 
-    if (orderId) {
-      const frontendUrl =
-        cleanText(Deno.env.get("FRONTEND_URL")) || "http://localhost:5173";
-
+    if (req.method === "GET" && orderId) {
       return redirectToFrontend(
         frontendUrl,
         orderId,
@@ -661,6 +572,7 @@ Deno.serve(async (req) => {
     return jsonResponse(
       {
         success: false,
+        status: "VERIFICATION_ERROR",
         message: "Unexpected error while verifying payment.",
       },
       500,

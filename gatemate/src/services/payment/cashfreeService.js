@@ -350,53 +350,35 @@ export const cashfreeService = {
     }
 
     try {
-      console.log("Opening Cashfree checkout...");
-
-      console.log("Cashfree payment session ID:", paymentSessionId);
-
       const cashfree = await getCashfreeInstance();
 
       /*
-       * Cashfree checkout configuration.
+       * Cashfree's official popup checkout keeps the customer on the
+       * current page and renders the hosted payment UI as a modal.
        *
-       * We intentionally use the payment session
-       * returned by our backend.
+       * Do not build or iframe the individual UPI/card/net-banking
+       * fields ourselves. Cashfree owns that secure UI and shows the
+       * payment methods enabled for the merchant/order.
        */
       const checkoutOptions = {
-        paymentSessionId: paymentSessionId,
+        paymentSessionId,
+        redirectTarget: "_modal",
       };
 
-      /*
-       * Normally the return URL is already configured
-       * while creating the Cashfree order.
-       *
-       * Only override it when the caller explicitly
-       * supplies one.
-       */
       if (returnUrl) {
         checkoutOptions.returnUrl = returnUrl;
       }
 
-      console.log("Cashfree checkout options:", {
-        paymentSessionId: paymentSessionId
-          ? `${String(paymentSessionId).slice(0, 12)}...`
-          : null,
-        hasReturnUrl: Boolean(returnUrl),
+      console.log("Opening Cashfree popup checkout:", {
+        paymentSessionId: `${String(paymentSessionId).slice(0, 12)}...`,
+        redirectTarget: "_modal",
       });
 
-      /*
-       * Open Cashfree checkout.
-       */
       const result = await cashfree.checkout(checkoutOptions);
 
-      console.log("Cashfree checkout result:", result);
+      console.log("Cashfree popup checkout result:", result);
 
-      /*
-       * Cashfree returned an explicit error.
-       */
       if (result?.error) {
-        console.error("Cashfree checkout error:", result.error);
-
         return {
           success: false,
           error: result.error,
@@ -406,48 +388,14 @@ export const cashfreeService = {
         };
       }
 
-      /*
-       * Redirect flow.
-       *
-       * Cashfree may navigate the browser away
-       * from the current page.
-       */
-      if (result?.redirect) {
-        return {
-          success: true,
-          paymentStatus: "REDIRECTING",
-          result,
-        };
-      }
-
-      /*
-       * Payment details returned by Cashfree.
-       *
-       * IMPORTANT:
-       * This does NOT mean the GateMate order
-       * should be marked PAID by the browser.
-       */
-      if (result?.paymentDetails) {
-        return {
-          success: true,
-          paymentStatus: "PROCESSING",
-          paymentDetails: result.paymentDetails,
-          result,
-        };
-      }
-
-      /*
-       * Some Cashfree checkout flows return an
-       * empty object after successfully opening
-       * the checkout UI.
-       */
       return {
         success: true,
-        paymentStatus: "INITIATED",
+        paymentStatus: result?.paymentDetails ? "PROCESSING" : "INITIATED",
+        paymentDetails: result?.paymentDetails || null,
         result,
       };
     } catch (error) {
-      console.error("Cashfree checkout failed:", error);
+      console.error("Cashfree popup checkout failed:", error);
 
       return {
         success: false,
@@ -458,19 +406,6 @@ export const cashfreeService = {
     }
   },
 
-  /*
-   * ==========================================================
-   * SERVER-SIDE VERIFICATION STATUS
-   * ==========================================================
-   *
-   * The browser does NOT verify payment directly.
-   *
-   * Your deployed:
-   *
-   * cashfree-payment-return
-   *
-   * function is responsible for server-side verification.
-   */
   async verifyPayment({ orderId }) {
     if (!orderId) {
       return {
@@ -480,28 +415,59 @@ export const cashfreeService = {
       };
     }
 
-    console.log(
-      "Payment verification is handled by:",
-      "cashfree-payment-return",
-      {
-        orderId,
-      },
-    );
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "cashfree-payment-return",
+        {
+          body: { orderId },
+        },
+      );
 
-    return {
-      success: true,
-      orderId,
-      status: "AWAITING_SERVER_VERIFICATION",
-      message:
-        "Payment verification is handled by the Cashfree return function.",
-    };
+      if (error) {
+        console.error("Cashfree payment verification error:", error);
+
+        let message = error.message || "Unable to verify Cashfree payment.";
+
+        try {
+          if (error?.context && typeof error.context.json === "function") {
+            const body = await error.context.json();
+            message = body?.message || body?.error || message;
+          }
+        } catch {
+          // Keep the original error message.
+        }
+
+        return {
+          success: false,
+          status: "VERIFICATION_ERROR",
+          message,
+        };
+      }
+
+      return {
+        success: Boolean(data?.success),
+        status: data?.status || "UNKNOWN",
+        orderId: data?.orderId || orderId,
+        paymentStatus: data?.paymentStatus || null,
+        paymentMessage: data?.paymentMessage || null,
+        gatewayReference: data?.gatewayReference || null,
+        orderStatus: data?.orderStatus || null,
+        record: data?.record || null,
+        message: data?.message || null,
+      };
+    } catch (error) {
+      console.error("Unexpected Cashfree payment verification error:", error);
+
+      return {
+        success: false,
+        status: "VERIFICATION_ERROR",
+        message:
+          getErrorMessage(error) ||
+          "Unable to verify Cashfree payment. Please check your order status.",
+      };
+    }
   },
 
-  /*
-   * ==========================================================
-   * WEBHOOK DOCUMENTATION
-   * ==========================================================
-   */
   getWebhookContractDocumentation() {
     return {
       endpoint: "/functions/v1/cashfree-webhook",

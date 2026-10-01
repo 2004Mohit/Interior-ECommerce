@@ -337,14 +337,14 @@ export const VendorDashboard = () => {
           </div>
         </Link>
 
-        {/* 4. Net Revenue (After 5% Ferrado Commission) */}
+        {/* 4. Vendor Earnings */}
         <Link
           to="/vendor/payments"
           className="gm-card gm-card-hover p-4 sm:p-5 rounded-2xl flex flex-col justify-between border border-[#D9E2EA] bg-[#E1F2D9]/30"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-[#3F7D20] uppercase tracking-wider">
-              Net Revenue
+              Vendor Earnings
             </span>
             <div className="w-8 h-8 rounded-xl bg-[#E1F2D9] text-[#3F7D20] flex items-center justify-center">
               <Banknote className="w-4 h-4" />
@@ -358,7 +358,7 @@ export const VendorDashboard = () => {
               })}
             </div>
             <span className="text-[10px] text-[#3F7D20] font-semibold mt-0.5 block">
-              After 5% platform commission
+              Total vendor earnings
             </span>
           </div>
         </Link>

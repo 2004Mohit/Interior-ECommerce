@@ -48,7 +48,7 @@ export const VendorSidebar = ({ isMobileOpen, onCloseMobile }) => {
       links: [
         {
           to: "/vendor/payments",
-          label: "Transactions & 5%",
+          label: "Transactions",
           icon: CreditCard,
         },
         { to: "/vendor/settlements", label: "Bank Disbursals", icon: Banknote },
