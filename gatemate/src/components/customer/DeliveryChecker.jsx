@@ -107,8 +107,7 @@ export const DeliveryChecker = ({
                   Outside Immediate Fast Zone
                 </span>
                 <p className="text-[11px] text-[#606460] mt-0.5">
-                  Location {pincode} requires custom truckload booking via our
-                  commercial B2B desk.
+                  Location {pincode} requires custom truckload booking.
                 </p>
               </div>
             </div>

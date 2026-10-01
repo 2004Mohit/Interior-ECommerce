@@ -189,26 +189,6 @@ export const ProductListing = () => {
             ? data.items
             : [];
 
-      console.log(
-        "========== PRODUCT IMAGE DEBUG ==========",
-        JSON.stringify(
-          productList.map((product) => ({
-            id: product.id,
-            name: product.name,
-            img: product.img,
-            image: product.image,
-            coverImageUrl: product.coverImageUrl,
-            images: product.images,
-            imageUrls: product.imageUrls,
-            originalImageUrls: product.originalRow?.image_urls,
-            originalCoverImageUrl: product.originalRow?.cover_image_url,
-          })),
-          null,
-          2,
-        ),
-      );
-      console.log("=========================================");
-
       setProducts(productList);
     } catch (err) {
       console.error("ProductListing: failed to load products:", err);

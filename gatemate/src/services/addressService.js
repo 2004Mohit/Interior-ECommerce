@@ -3,9 +3,22 @@ import { supabase } from "../lib/supabaseClient";
 // Initial Launch Operational Geography (Pune Municipal Corporation + PCMC)
 export const SUPPORTED_DELIVERY_ZONES = [
   // Pune Municipal Corporation (PMC)
+
   {
     pincode: "411001",
     area: "Pune Station / Camp",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411002",
+    area: "Pune City / Shaniwar Peth",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411003",
+    area: "Khadki",
     city: "Pune",
     isExpress30Min: true,
   },
@@ -23,7 +36,43 @@ export const SUPPORTED_DELIVERY_ZONES = [
   },
   {
     pincode: "411006",
-    area: "Yerawada / Koregaon Park",
+    area: "Yerawada / Airport Road",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411007",
+    area: "Aundh / Ganeshkhind",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411008",
+    area: "NCL / Pashan",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411009",
+    area: "Parvati / Sahakarnagar",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411011",
+    area: "Kasba Peth / Shukrawar Peth",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411012",
+    area: "Dapodi",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411013",
+    area: "Hadapsar Industrial Estate",
     city: "Pune",
     isExpress30Min: true,
   },
@@ -34,8 +83,50 @@ export const SUPPORTED_DELIVERY_ZONES = [
     isExpress30Min: true,
   },
   {
+    pincode: "411015",
+    area: "Dighi / Vishrantwadi",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
     pincode: "411016",
     area: "Model Colony / SB Road",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411020",
+    area: "Range Hills / Bopodi",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411021",
+    area: "Warje / NDA Road",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411022",
+    area: "Viman Nagar / Air Force Area",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411023",
+    area: "Khadakwasla / NDA",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411024",
+    area: "Khadakwasla",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411025",
+    area: "Girinagar / Sinhagad Road",
     city: "Pune",
     isExpress30Min: true,
   },
@@ -46,8 +137,86 @@ export const SUPPORTED_DELIVERY_ZONES = [
     isExpress30Min: true,
   },
   {
+    pincode: "411030",
+    area: "Sadashiv Peth / SP College",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411031",
+    area: "CME / Dapodi",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411032",
+    area: "Yerawada / Air Force Station",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411034",
+    area: "Bopodi / Khadki",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411035",
+    area: "Kothrud / Paud Road",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411036",
+    area: "Kharadi / Chandan Nagar",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411037",
+    area: "Bibwewadi / Dhankawadi",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
     pincode: "411038",
     area: "Kothrud",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411039",
+    area: "Bhosari / Landewadi",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411040",
+    area: "Wanowrie / Fatima Nagar",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411041",
+    area: "Ambegaon / Katraj",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411042",
+    area: "Swargate / Mukund Nagar",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411043",
+    area: "Dhankawadi / Balaji Nagar",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411044",
+    area: "Warje / Karvenagar",
     city: "Pune",
     isExpress30Min: true,
   },
@@ -58,13 +227,56 @@ export const SUPPORTED_DELIVERY_ZONES = [
     isExpress30Min: true,
   },
   {
+    pincode: "411046",
+    area: "Kondhwa / NIBM",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411047",
+    area: "Lohegaon / Dhanori",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411048",
+    area: "Kondhwa / Undri",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411052",
+    area: "Karve Nagar / Navsahyadri",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
     pincode: "411057",
     area: "Wakad / Hinjawadi Phase 1",
     city: "Pune",
     isExpress30Min: true,
   },
+  {
+    pincode: "411058",
+    area: "Warje / Shivane",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411060",
+    area: "Bibwewadi / Upper Indiranagar",
+    city: "Pune",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411061",
+    area: "Pimple Saudagar",
+    city: "Pune",
+    isExpress30Min: true,
+  },
 
   // Pimpri-Chinchwad Municipal Corporation (PCMC)
+
   {
     pincode: "411017",
     area: "Pimpri Colony",
@@ -84,6 +296,12 @@ export const SUPPORTED_DELIVERY_ZONES = [
     isExpress30Min: true,
   },
   {
+    pincode: "411026",
+    area: "Bhosari",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
     pincode: "411027",
     area: "Sangvi / Pimple Gurav",
     city: "Pimpri-Chinchwad",
@@ -96,8 +314,56 @@ export const SUPPORTED_DELIVERY_ZONES = [
     isExpress30Min: true,
   },
   {
+    pincode: "411034",
+    area: "Bhosari / Dighi",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411035",
+    area: "Akurdi / Pradhikaran",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411044",
+    area: "Nigdi / Pradhikaran",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411047",
+    area: "Dhanori / Lohegaon",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411057",
+    area: "Wakad / Hinjawadi Phase 1",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411058",
+    area: "Tathawade / Punawale",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
     pincode: "411061",
     area: "Pimple Saudagar",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411062",
+    area: "Pimpri-Chinchwad / Moshi",
+    city: "Pimpri-Chinchwad",
+    isExpress30Min: true,
+  },
+  {
+    pincode: "411057",
+    area: "Hinjawadi / Wakad",
     city: "Pimpri-Chinchwad",
     isExpress30Min: true,
   },

@@ -883,7 +883,7 @@ export const ProductDetails = () => {
           {/* ---------------------------------------------------------------- */}
 
           <DeliveryChecker
-            initialPincode={product.vendor?.pincode || "411006"}
+            initialPincode={product.vendor?.pincode}
             deliveryClass={deliveryClass}
             compact={true}
           />

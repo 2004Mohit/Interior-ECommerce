@@ -17,7 +17,7 @@ export const AddressFormModal = ({
     landmark: "",
     city: "Pune",
     state: "Maharashtra",
-    pincode: "411006",
+    pincode: "",
     isDefault: false,
   });
 
@@ -35,7 +35,7 @@ export const AddressFormModal = ({
         landmark: "",
         city: "Pune",
         state: "Maharashtra",
-        pincode: "411006",
+        pincode: "",
         isDefault: false,
       });
     }
