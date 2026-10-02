@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 const jsonResponse = (body: Record<string, unknown>, status = 200) => {
@@ -141,7 +141,7 @@ const cashfreeFetchWithRetry = async (
 Deno.serve(async (req) => {
   /*
    * ============================================================
-   * OPTIONS
+   * OPTIONS / CORS
    * ============================================================
    */
 
@@ -153,15 +153,28 @@ Deno.serve(async (req) => {
   }
 
   /*
-   * Cashfree return URL uses GET.
+   * ============================================================
+   * REQUEST MODE
+   * ============================================================
+   *
+   * GET
+   * ----
+   * Used by Cashfree return_url.
+   *
+   * POST
+   * ----
+   * Used by Ferrado frontend after Cashfree popup closes.
+   *
+   * This function intentionally supports both.
    */
 
-  if (req.method !== "GET") {
+  const isFrontendVerification = req.method === "POST";
+
+  if (req.method !== "GET" && req.method !== "POST") {
     return jsonResponse(
       {
         success: false,
-        message:
-          "Method not allowed. Cashfree payment return endpoint requires GET.",
+        message: "Method not allowed.",
       },
       405,
     );
@@ -175,9 +188,13 @@ Deno.serve(async (req) => {
      */
 
     const supabaseUrl = cleanText(Deno.env.get("SUPABASE_URL"));
+
     const serviceRoleKey = cleanText(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+
     const cashfreeAppId = cleanText(Deno.env.get("CASHFREE_APP_ID"));
+
     const cashfreeSecretKey = cleanText(Deno.env.get("CASHFREE_SECRET_KEY"));
+
     const cashfreeMode = cleanText(Deno.env.get("CASHFREE_MODE")) || "sandbox";
 
     const frontendUrl =
@@ -202,25 +219,167 @@ Deno.serve(async (req) => {
 
     /*
      * ============================================================
+     * AUTHENTICATE FRONTEND VERIFICATION REQUESTS
+     * ============================================================
+     *
+     * Cashfree calls this function with GET and does not provide
+     * a Supabase user JWT.
+     *
+     * Ferrado frontend calls this function with POST and MUST
+     * provide the authenticated user's Supabase access token.
+     *
+     * This prevents an unauthenticated browser from asking the
+     * function to finalize arbitrary customer orders.
+     */
+
+    let authenticatedUserId = "";
+
+    if (isFrontendVerification) {
+      const authorization = req.headers.get("Authorization") || "";
+
+      const supabaseAnonKey = cleanText(Deno.env.get("SUPABASE_ANON_KEY"));
+
+      if (!authorization.startsWith("Bearer ") || !supabaseAnonKey) {
+        return jsonResponse(
+          {
+            success: false,
+            status: "AUTH_REQUIRED",
+            message: "Authentication required for payment verification.",
+          },
+          401,
+        );
+      }
+
+      const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: authorization,
+          },
+        },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+
+      const {
+        data: { user },
+        error: authError,
+      } = await authClient.auth.getUser();
+
+      if (authError || !user) {
+        console.error(
+          "Frontend payment verification authentication failed:",
+          authError,
+        );
+
+        return jsonResponse(
+          {
+            success: false,
+            status: "AUTH_REQUIRED",
+            message: "Authenticated customer could not be verified.",
+          },
+          401,
+        );
+      }
+
+      authenticatedUserId = user.id;
+    }
+
+    /*
+     * ============================================================
+     * RESPONSE HELPER
+     * ============================================================
+     *
+     * GET
+     * ---
+     * Cashfree request -> redirect customer back to Ferrado.
+     *
+     * POST
+     * ----
+     * Ferrado frontend -> structured JSON response.
+     *
+     * Payment/business verification failures intentionally return
+     * HTTP 200 for POST. This allows:
+     *
+     * supabase.functions.invoke()
+     *
+     * to receive the structured result instead of converting it
+     * into FunctionsHttpError.
+     */
+
+    const respondVerification = (
+      orderIdForResponse: string,
+      status: string,
+      message?: string,
+      extra: Record<string, unknown> = {},
+    ) => {
+      if (!isFrontendVerification) {
+        return redirectToFrontend(
+          frontendUrl,
+          orderIdForResponse,
+          status.toLowerCase(),
+          message,
+        );
+      }
+
+      return jsonResponse({
+        success: status === "SUCCESS",
+        status,
+        orderId: orderIdForResponse,
+        message: message || null,
+        ...extra,
+      });
+    };
+
+    /*
+     * ============================================================
      * ORDER ID
      * ============================================================
      */
 
     const requestUrl = new URL(req.url);
 
-    const orderId = cleanText(requestUrl.searchParams.get("order_id"));
+    let orderId = cleanText(requestUrl.searchParams.get("order_id"));
+
+    /*
+     * Frontend POST:
+     *
+     * {
+     *   orderId: "..."
+     * }
+     */
+
+    if (isFrontendVerification) {
+      try {
+        const body = await req.json();
+
+        orderId = cleanText(body?.orderId || body?.order_id);
+      } catch {
+        return jsonResponse(
+          {
+            success: false,
+            status: "INVALID_REQUEST",
+            message: "A valid orderId is required.",
+          },
+          400,
+        );
+      }
+    }
 
     if (!orderId) {
       return jsonResponse(
         {
           success: false,
-          message: "order_id query parameter is required.",
+          status: "INVALID_REQUEST",
+          message: "orderId is required.",
         },
         400,
       );
     }
 
-    console.log("Cashfree payment return received:", orderId);
+    console.log("Cashfree payment verification received:", orderId);
+
     console.log("Cashfree mode:", cashfreeMode);
 
     /*
@@ -265,10 +424,9 @@ Deno.serve(async (req) => {
     if (gateMateOrderError) {
       console.error("Unable to load GateMate order:", gateMateOrderError);
 
-      return redirectToFrontend(
-        frontendUrl,
+      return respondVerification(
         orderId,
-        "error",
+        "VERIFICATION_ERROR",
         "Unable to load GateMate order.",
       );
     }
@@ -276,11 +434,42 @@ Deno.serve(async (req) => {
     if (!gateMateOrder) {
       console.error("GateMate order not found:", orderId);
 
-      return redirectToFrontend(
-        frontendUrl,
+      return respondVerification(
         orderId,
-        "error",
+        "VERIFICATION_ERROR",
         "GateMate order was not found.",
+      );
+    }
+
+    /*
+     * ============================================================
+     * FRONTEND ORDER OWNERSHIP CHECK
+     * ============================================================
+     *
+     * Only the customer who owns the order can trigger a browser
+     * verification request.
+     *
+     * Cashfree GET requests are not subject to this check because
+     * Cashfree does not have the customer's Supabase JWT.
+     */
+
+    if (
+      isFrontendVerification &&
+      gateMateOrder.customer_id !== authenticatedUserId
+    ) {
+      console.error("Frontend payment verification order ownership mismatch:", {
+        orderId,
+        authenticatedUserId,
+        orderCustomerId: gateMateOrder.customer_id,
+      });
+
+      return jsonResponse(
+        {
+          success: false,
+          status: "FORBIDDEN",
+          message: "You are not allowed to verify this order.",
+        },
+        403,
       );
     }
 
@@ -298,10 +487,9 @@ Deno.serve(async (req) => {
         grandTotal: gateMateOrder.grand_total,
       });
 
-      return redirectToFrontend(
-        frontendUrl,
+      return respondVerification(
         orderId,
-        "verification_error",
+        "VERIFICATION_ERROR",
         "Unable to verify the GateMate order amount.",
       );
     }
@@ -317,7 +505,7 @@ Deno.serve(async (req) => {
     /*
      * ============================================================
      * STEP 1:
-     * VERIFY CASHFREE ORDER STATUS
+     * VERIFY CASHFREE ORDER
      * ============================================================
      */
 
@@ -371,10 +559,9 @@ Deno.serve(async (req) => {
         error: cashfreeError,
       });
 
-      return redirectToFrontend(
-        frontendUrl,
+      return respondVerification(
         orderId,
-        "verification_error",
+        "VERIFICATION_ERROR",
         `Cashfree API ${cashfreeOrderResponse.status}: ${cashfreeError}`,
       );
     }
@@ -399,6 +586,10 @@ Deno.serve(async (req) => {
      * STEP 2:
      * GET CASHFREE PAYMENTS
      * ============================================================
+     *
+     * Cashfree documents this endpoint as:
+     *
+     * GET /pg/orders/{order_id}/payments
      */
 
     const paymentsUrl =
@@ -455,10 +646,9 @@ Deno.serve(async (req) => {
         error: cashfreeError,
       });
 
-      return redirectToFrontend(
-        frontendUrl,
+      return respondVerification(
         orderId,
-        "verification_error",
+        "VERIFICATION_ERROR",
         `Cashfree API ${paymentsResponse.status}: ${cashfreeError}`,
       );
     }
@@ -475,19 +665,21 @@ Deno.serve(async (req) => {
       console.warn("Cashfree returned no payment transactions yet:", orderId);
 
       if (cashfreeOrderStatus === "PAID") {
-        return redirectToFrontend(
-          frontendUrl,
+        return respondVerification(
           orderId,
-          "verification_error",
+          "VERIFICATION_ERROR",
           "Cashfree order is PAID but no payment transaction was returned.",
         );
       }
 
-      return redirectToFrontend(
-        frontendUrl,
+      return respondVerification(
         orderId,
-        "pending",
+        "PENDING",
         "Cashfree has not returned a payment transaction yet.",
+        {
+          paymentStatus: "PENDING",
+          orderStatus: gateMateOrder.status || "NEW",
+        },
       );
     }
 
@@ -561,10 +753,9 @@ Deno.serve(async (req) => {
           cashfreePaymentAmount: paidPayment.paymentAmount,
         });
 
-        return redirectToFrontend(
-          frontendUrl,
+        return respondVerification(
           orderId,
-          "verification_error",
+          "VERIFICATION_ERROR",
           "Payment amount verification failed.",
         );
       }
@@ -611,8 +802,14 @@ Deno.serve(async (req) => {
 
       /*
        * ==========================================================
-       * RECORD PAYMENT + COMMISSION
+       * RECORD PAYMENT
        * ==========================================================
+       *
+       * Existing database RPC remains the authority for creating
+       * the payment/financial records.
+       *
+       * The idempotency key prevents repeated Cashfree callbacks
+       * from creating duplicate payment records.
        */
 
       const { data: paymentRecord, error: paymentRecordError } =
@@ -629,10 +826,9 @@ Deno.serve(async (req) => {
           paymentRecordError,
         );
 
-        return redirectToFrontend(
-          frontendUrl,
+        return respondVerification(
           orderId,
-          "verification_error",
+          "VERIFICATION_ERROR",
           "Payment succeeded at Cashfree but GateMate could not finalize the order.",
         );
       }
@@ -645,10 +841,9 @@ Deno.serve(async (req) => {
           paymentRecord,
         );
 
-        return redirectToFrontend(
-          frontendUrl,
+        return respondVerification(
           orderId,
-          "verification_error",
+          "VERIFICATION_ERROR",
           "Payment succeeded but GateMate order finalization failed.",
         );
       }
@@ -701,10 +896,9 @@ Deno.serve(async (req) => {
           gatewayUpdateError,
         );
 
-        return redirectToFrontend(
-          frontendUrl,
+        return respondVerification(
           orderId,
-          "verification_error",
+          "VERIFICATION_ERROR",
           "Payment succeeded but Cashfree transaction metadata could not be saved.",
         );
       }
@@ -784,21 +978,11 @@ Deno.serve(async (req) => {
 
       /*
        * ==========================================================
-       * PHASE 5
        * CREATE / VERIFY CUSTOMER INVOICE
        * ==========================================================
        *
-       * create_order_invoice() is already idempotent.
-       *
-       * If an invoice exists for this order:
-       *   -> it returns the existing invoice.
-       *
-       * If no invoice exists:
-       *   -> it creates the invoice.
-       *   -> it copies vendor_order_items into invoice_items.
-       *
-       * Therefore repeated Cashfree returns/callbacks cannot
-       * create multiple invoices for the same order.
+       * Existing create_order_invoice() function is expected to
+       * be idempotent.
        */
 
       const { data: invoiceRecord, error: invoiceError } = await supabase.rpc(
@@ -811,10 +995,9 @@ Deno.serve(async (req) => {
       if (invoiceError) {
         console.error("create_order_invoice failed:", invoiceError);
 
-        return redirectToFrontend(
-          frontendUrl,
+        return respondVerification(
           orderId,
-          "verification_error",
+          "VERIFICATION_ERROR",
           "Payment succeeded but the customer invoice could not be created.",
         );
       }
@@ -827,17 +1010,16 @@ Deno.serve(async (req) => {
           invoiceRecord,
         );
 
-        return redirectToFrontend(
-          frontendUrl,
+        return respondVerification(
           orderId,
-          "verification_error",
+          "VERIFICATION_ERROR",
           "Payment succeeded but invoice generation could not be completed.",
         );
       }
 
       /*
        * ==========================================================
-       * FINAL SUCCESS LOG
+       * FINAL SUCCESS
        * ==========================================================
        */
 
@@ -857,7 +1039,15 @@ Deno.serve(async (req) => {
         invoiceIdempotent: invoiceRecord.idempotent === true,
       });
 
-      return redirectToFrontend(frontendUrl, orderId, "success");
+      return respondVerification(orderId, "SUCCESS", undefined, {
+        paymentStatus: "SUCCESS",
+
+        orderStatus: updatedOrder?.status || gateMateOrder.status || "NEW",
+
+        gatewayReference,
+
+        record: paymentRecord,
+      });
     }
 
     /*
@@ -873,11 +1063,15 @@ Deno.serve(async (req) => {
     if (hasPendingPayment || cashfreeOrderStatus === "ACTIVE") {
       console.log("Cashfree payment is pending:", orderId);
 
-      return redirectToFrontend(
-        frontendUrl,
+      return respondVerification(
         orderId,
-        "pending",
+        "PENDING",
         "Payment is still being processed.",
+        {
+          paymentStatus: "PENDING",
+
+          orderStatus: gateMateOrder.status || "NEW",
+        },
       );
     }
 
@@ -897,11 +1091,15 @@ Deno.serve(async (req) => {
       latestStatus,
     });
 
-    return redirectToFrontend(
-      frontendUrl,
+    return respondVerification(
       orderId,
-      "failed",
+      "FAILED",
       `Payment status: ${latestStatus}`,
+      {
+        paymentStatus: latestStatus,
+
+        orderStatus: gateMateOrder.status || "NEW",
+      },
     );
   } catch (error) {
     /*
@@ -920,10 +1118,25 @@ Deno.serve(async (req) => {
       const frontendUrl =
         cleanText(Deno.env.get("FRONTEND_URL")) || "http://localhost:5173";
 
+      /*
+       * Frontend POST must receive JSON.
+       */
+      if (isFrontendVerification) {
+        return jsonResponse({
+          success: false,
+          status: "VERIFICATION_ERROR",
+          orderId,
+          message: "Unexpected error while verifying payment.",
+        });
+      }
+
+      /*
+       * Cashfree GET must receive a redirect.
+       */
       return redirectToFrontend(
         frontendUrl,
         orderId,
-        "error",
+        "verification_error",
         "Unexpected error while verifying payment.",
       );
     }
