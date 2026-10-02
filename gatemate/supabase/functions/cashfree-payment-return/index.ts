@@ -802,50 +802,263 @@ Deno.serve(async (req) => {
 
       /*
        * ==========================================================
-       * RECORD PAYMENT
+       * RECORD PAYMENT TRANSACTION
        * ==========================================================
        *
-       * Existing database RPC remains the authority for creating
-       * the payment/financial records.
+       * Do NOT use the old
+       * record_order_payment_and_commission RPC here.
        *
-       * The idempotency key prevents repeated Cashfree callbacks
-       * from creating duplicate payment records.
+       * Cashfree has already confirmed the payment.
+       * payment_transactions is the authoritative payment ledger.
+       *
+       * This is idempotent using:
+       *   CASHFREE-${orderId}
+       *
+       * This also avoids the old commission RPC dependency.
        */
 
-      const { data: paymentRecord, error: paymentRecordError } =
-        await supabase.rpc("record_order_payment_and_commission", {
-          p_order_id: orderId,
-          p_payment_gateway_ref: gatewayReference,
-          p_payment_method: "CASHFREE_ONLINE",
-          p_idempotency_key: `CASHFREE-${orderId}`,
-        });
+      const paymentIdempotencyKey = `CASHFREE-${orderId}`;
 
-      if (paymentRecordError) {
+      const {
+        data: existingPaymentTransaction,
+        error: existingPaymentLookupError,
+      } = await supabase
+        .from("payment_transactions")
+        .select(
+          `
+    id,
+    order_id,
+    customer_id,
+    vendor_id,
+    payment_gateway,
+    gateway_order_id,
+    gateway_payment_id,
+    payment_method,
+    payment_status,
+    amount,
+    currency,
+    payment_message,
+    bank_reference,
+    payment_group,
+    gateway_payment_time,
+    gateway_completion_time,
+    raw_gateway_response,
+    idempotency_key
+  `,
+        )
+        .eq("order_id", orderId)
+        .eq("idempotency_key", paymentIdempotencyKey)
+        .maybeSingle();
+
+      if (existingPaymentLookupError) {
         console.error(
-          "record_order_payment_and_commission failed:",
-          paymentRecordError,
+          "Failed to check existing payment transaction:",
+          existingPaymentLookupError,
         );
 
         return respondVerification(
           orderId,
           "VERIFICATION_ERROR",
-          "Payment succeeded at Cashfree but GateMate could not finalize the order.",
+          "Payment succeeded but GateMate could not verify the existing payment transaction.",
         );
       }
 
-      console.log("Payment finalization result:", paymentRecord);
+      const paymentTransactionPayload = {
+        order_id: orderId,
 
-      if (!paymentRecord || paymentRecord.success !== true) {
-        console.error(
-          "Payment record function returned unsuccessful response:",
-          paymentRecord,
-        );
+        customer_id: gateMateOrder.customer_id || null,
 
-        return respondVerification(
-          orderId,
-          "VERIFICATION_ERROR",
-          "Payment succeeded but GateMate order finalization failed.",
-        );
+        vendor_id: gateMateOrder.vendor_id || null,
+
+        payment_gateway: "CASHFREE",
+
+        gateway_order_id: gatewayOrderId,
+
+        gateway_payment_id: gatewayReference,
+
+        payment_method: "CASHFREE_ONLINE",
+
+        payment_status: "SUCCESS",
+
+        amount: expectedAmount,
+
+        currency: paymentForFinalization?.paymentCurrency || "INR",
+
+        payment_message:
+          paymentForFinalization?.paymentMessage || "Payment successful.",
+
+        bank_reference: paymentForFinalization?.bankReference || null,
+
+        payment_group: paymentForFinalization?.paymentGroup || null,
+
+        gateway_payment_time: paymentForFinalization?.paymentTime
+          ? new Date(paymentForFinalization.paymentTime).toISOString()
+          : null,
+
+        gateway_completion_time: gatewayCompletionTime
+          ? new Date(gatewayCompletionTime).toISOString()
+          : new Date().toISOString(),
+
+        raw_gateway_response: {
+          cashfree_order: cashfreeOrderData,
+
+          cashfree_payment: paymentForFinalization?.raw || null,
+        },
+
+        idempotency_key: paymentIdempotencyKey,
+
+        updated_at: new Date().toISOString(),
+      };
+
+      let paymentRecord: Record<string, unknown> | null = null;
+
+      /*
+       * ==========================================================
+       * UPDATE EXISTING TRANSACTION
+       * ==========================================================
+       */
+
+      if (existingPaymentTransaction?.id) {
+        const { data: updatedPaymentTransaction, error: paymentUpdateError } =
+          await supabase
+            .from("payment_transactions")
+            .update(paymentTransactionPayload)
+            .eq("id", existingPaymentTransaction.id)
+            .select(
+              `
+      id,
+      order_id,
+      customer_id,
+      vendor_id,
+      payment_gateway,
+      gateway_order_id,
+      gateway_payment_id,
+      payment_method,
+      payment_status,
+      amount,
+      currency,
+      payment_message,
+      bank_reference,
+      payment_group,
+      gateway_payment_time,
+      gateway_completion_time,
+      idempotency_key
+    `,
+            )
+            .single();
+
+        if (paymentUpdateError) {
+          console.error(
+            "Failed to update payment transaction:",
+            paymentUpdateError,
+          );
+
+          return respondVerification(
+            orderId,
+            "VERIFICATION_ERROR",
+            "Payment succeeded but GateMate could not update the payment transaction.",
+          );
+        }
+
+        paymentRecord = updatedPaymentTransaction;
+
+        console.log("Existing payment transaction updated:", paymentRecord);
+      } else {
+        /*
+         * ==========================================================
+         * CREATE NEW TRANSACTION
+         * ==========================================================
+         */
+
+        const { data: insertedPaymentTransaction, error: paymentInsertError } =
+          await supabase
+            .from("payment_transactions")
+            .insert(paymentTransactionPayload)
+            .select(
+              `
+      id,
+      order_id,
+      customer_id,
+      vendor_id,
+      payment_gateway,
+      gateway_order_id,
+      gateway_payment_id,
+      payment_method,
+      payment_status,
+      amount,
+      currency,
+      payment_message,
+      bank_reference,
+      payment_group,
+      gateway_payment_time,
+      gateway_completion_time,
+      idempotency_key
+    `,
+            )
+            .single();
+
+        if (paymentInsertError) {
+          console.error(
+            "Failed to create payment transaction:",
+            paymentInsertError,
+          );
+
+          /*
+           * Another request may have finalized the same
+           * Cashfree payment at the same time.
+           *
+           * Check once more before treating it as a failure.
+           */
+
+          const {
+            data: concurrentPayment,
+            error: concurrentPaymentLookupError,
+          } = await supabase
+            .from("payment_transactions")
+            .select(
+              `
+        id,
+        order_id,
+        customer_id,
+        vendor_id,
+        payment_gateway,
+        gateway_order_id,
+        gateway_payment_id,
+        payment_method,
+        payment_status,
+        amount,
+        currency,
+        payment_message,
+        bank_reference,
+        payment_group,
+        gateway_payment_time,
+        gateway_completion_time,
+        idempotency_key
+      `,
+            )
+            .eq("order_id", orderId)
+            .eq("idempotency_key", paymentIdempotencyKey)
+            .maybeSingle();
+
+          if (concurrentPaymentLookupError || !concurrentPayment) {
+            return respondVerification(
+              orderId,
+              "VERIFICATION_ERROR",
+              "Payment succeeded but GateMate could not create the payment transaction.",
+            );
+          }
+
+          paymentRecord = concurrentPayment;
+
+          console.log(
+            "Concurrent payment transaction found; using existing transaction:",
+            paymentRecord,
+          );
+        } else {
+          paymentRecord = insertedPaymentTransaction;
+
+          console.log("New payment transaction created:", paymentRecord);
+        }
       }
 
       /*
