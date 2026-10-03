@@ -95,7 +95,7 @@ export const AccountWishlist = () => {
         {wishlist.length > 0 && (
           <Link
             to="/products"
-            className="text-xs font-bold text-dark-400 hover:underline self-start sm:self-auto"
+            className="gm-input pl-9 pr-8 py-2 rounded-xl text-xs font-bold appearance-none cursor-pointer bg-[#FEFEFE]"
           >
             + Browse More Products
           </Link>
@@ -166,7 +166,7 @@ export const AccountWishlist = () => {
               {wishlist.map((product) => (
                 <div
                   key={product.id}
-                  className="premium-card premium-card-hover rounded-2xl overflow-hidden flex flex-col justify-between group border border-white/10 relative"
+                  className="gm-card premium-card premium-card-hover rounded-2xl overflow-hidden flex flex-col justify-between group border border-white/10 relative"
                 >
                   <div>
                     <div className="relative h-48 w-full overflow-hidden bg-[#060e1a]">
@@ -223,7 +223,7 @@ export const AccountWishlist = () => {
                   <div className="p-4 pt-0">
                     <button
                       onClick={() => handleMoveToCart(product)}
-                      className="w-full dark-gradient-btn py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
+                      className="w-full bg-[#1673f2] dark-gradient-btn py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-slate-950"
                     >
                       <ShoppingBag className="w-3.5 h-3.5" />
                       <span>Move to Bag</span>
