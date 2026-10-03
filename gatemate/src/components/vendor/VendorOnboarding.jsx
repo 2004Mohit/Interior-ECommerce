@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Building2,
@@ -18,6 +18,8 @@ import {
   ShieldAlert,
   RotateCcw,
   Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useVendorAuth } from "../../context/VendorAuthContext";
 import { uploadService } from "../../services/uploadService";
@@ -26,7 +28,7 @@ import {
   vendorOnboardingService,
   VENDOR_APPLICATION_STATUS,
 } from "../../services/vendorOnboardingService";
-import { CATALOGUE_CATEGORIES } from "../../data/categories";
+import { productCategoryService } from "../../services/productCategoryService";
 import { SeoHead } from "../common/SeoHead";
 
 export const VendorOnboarding = () => {
@@ -40,6 +42,11 @@ export const VendorOnboarding = () => {
   const [uploadingDoc, setUploadingDoc] = useState(null);
   const [formError, setFormError] = useState(null);
   const [successNotice, setSuccessNotice] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [showAccountNumber, setShowAccountNumber] = useState(false);
+  const [confirmAccountPeek, setConfirmAccountPeek] = useState(false);
+  const confirmPeekTimerRef = useRef(null);
 
   const [formData, setFormData] = useState({
     businessDetails: {
@@ -60,9 +67,9 @@ export const VendorOnboarding = () => {
     businessAddress: {
       depotAddressLine1: "",
       locality: "",
-      city: "Pune",
+      city: "",
       state: "Maharashtra",
-      pincode: "411028",
+      pincode: "",
       serviceablePincodes: [
         "411001",
         "411004",
@@ -91,6 +98,43 @@ export const VendorOnboarding = () => {
       branchName: "",
     },
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const data = await productCategoryService.getCategories();
+        if (!cancelled) {
+          setCategories(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCategories([]);
+          setFormError(err.message || "Unable to load product categories.");
+        }
+      } finally {
+        if (!cancelled) {
+          setCategoriesLoading(false);
+        }
+      }
+    };
+
+    loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (confirmPeekTimerRef.current) {
+        window.clearTimeout(confirmPeekTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const loadApplication = async () => {
@@ -188,6 +232,19 @@ export const VendorOnboarding = () => {
     loadApplication();
   }, [vendorUser, authLoading]);
 
+  useEffect(() => {
+    if (!application?.status) return;
+
+    if (application.status === VENDOR_APPLICATION_STATUS.APPROVED) {
+      navigate("/vendor/dashboard", { replace: true });
+    } else if (
+      application.status === VENDOR_APPLICATION_STATUS.SUBMITTED ||
+      application.status === VENDOR_APPLICATION_STATUS.UNDER_REVIEW
+    ) {
+      navigate("/vendor/verification", { replace: true });
+    }
+  }, [application?.status, navigate]);
+
   if (loading || authLoading) {
     return (
       <div className="max-w-4xl mx-auto py-12 px-4 space-y-6 animate-pulse">
@@ -255,9 +312,10 @@ export const VendorOnboarding = () => {
       if (!/^\d{10}$/.test(mobileNumber.trim()))
         return "Please enter a valid 10-digit mobile phone number.";
     } else if (stepNum === 3) {
-      const { depotAddressLine1, locality, pincode } = formData.businessAddress;
-      if (!depotAddressLine1.trim() || !locality.trim())
-        return "Please provide your physical depot/yard address details.";
+      const { depotAddressLine1, locality, city, pincode } =
+        formData.businessAddress;
+      if (!depotAddressLine1.trim() || !locality.trim() || !city.trim())
+        return "Please provide your physical depot/yard address and city.";
       if (!/^\d{6}$/.test(pincode.trim()))
         return "Please enter a valid 6-digit PIN code.";
     } else if (stepNum === 4) {
@@ -783,13 +841,23 @@ export const VendorOnboarding = () => {
 
               <div>
                 <label className="text-xs font-semibold text-[#282926] block mb-1">
-                  City
+                  City *
                 </label>
                 <input
                   type="text"
-                  disabled
-                  value="Pune"
-                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs bg-[#F4F6FA]"
+                  required
+                  placeholder="e.g. Pune / Pimpri-Chinchwad"
+                  value={formData.businessAddress.city}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      businessAddress: {
+                        ...formData.businessAddress,
+                        city: e.target.value,
+                      },
+                    })
+                  }
+                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs"
                 />
               </div>
 
@@ -852,49 +920,60 @@ export const VendorOnboarding = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {CATALOGUE_CATEGORIES.map((cat) => {
-                const isSelected = formData.productCategories.includes(
-                  cat.slug,
-                );
-                return (
-                  <div
-                    key={cat.id}
-                    onClick={() => handleCategoryToggle(cat.slug)}
-                    className={`p-3.5 rounded-2xl border transition flex items-center justify-between cursor-pointer ${
-                      isSelected
-                        ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
-                        : "gm-card hover:border-[#9AAED4]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={cat.image}
-                        alt=""
-                        className="w-8 h-8 rounded-lg object-cover bg-[#F4F6FA] shrink-0"
-                      />
-                      <div>
-                        <h4 className="text-xs font-bold text-[#282926]">
-                          {cat.name}
-                        </h4>
-                        <p className="text-[10px] text-[#606460] line-clamp-1">
-                          {cat.descriptor}
-                        </p>
-                      </div>
-                    </div>
+            {categoriesLoading ? (
+              <div className="p-5 rounded-2xl border border-[#D9E2EA] bg-[#F4F6FA] text-xs text-[#606460]">
+                Loading active categories…
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="p-5 rounded-2xl border border-[#D9E2EA] bg-[#FBE3DE] text-xs text-[#B43D20]">
+                No active product categories are available yet. Please ask an
+                admin to create or activate a category.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {categories.map((cat) => {
+                  const isSelected = formData.productCategories.includes(
+                    cat.slug,
+                  );
+                  return (
                     <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                      key={cat.id}
+                      onClick={() => handleCategoryToggle(cat.slug)}
+                      className={`p-3.5 rounded-2xl border transition flex items-center justify-between cursor-pointer ${
                         isSelected
-                          ? "bg-[#3C7DDA] border-[#3C7DDA] text-[#FEFEFE]"
-                          : "border-[#D9E2EA]"
+                          ? "bg-[#E4EEF3] border-[#3C7DDA] shadow-xs"
+                          : "gm-card hover:border-[#9AAED4]"
                       }`}
                     >
-                      {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={cat.image_url || ""}
+                          alt=""
+                          className="w-8 h-8 rounded-lg object-cover bg-[#F4F6FA] shrink-0"
+                        />
+                        <div>
+                          <h4 className="text-xs font-bold text-[#282926]">
+                            {cat.name}
+                          </h4>
+                          <p className="text-[10px] text-[#606460] line-clamp-1">
+                            {cat.descriptor}
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                          isSelected
+                            ? "bg-[#3C7DDA] border-[#3C7DDA] text-[#FEFEFE]"
+                            : "border-[#D9E2EA]"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -1080,21 +1159,41 @@ export const VendorOnboarding = () => {
                 <label className="text-xs font-semibold text-[#282926] block mb-1">
                   Account Number *
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={formData.bankDetails.accountNumber}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      bankDetails: {
-                        ...formData.bankDetails,
-                        accountNumber: e.target.value,
-                      },
-                    })
-                  }
-                  className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
-                />
+                <div className="relative">
+                  <input
+                    type={showAccountNumber ? "text" : "password"}
+                    required
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={formData.bankDetails.accountNumber}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        bankDetails: {
+                          ...formData.bankDetails,
+                          accountNumber: e.target.value.replace(/\D/g, ""),
+                        },
+                      })
+                    }
+                    className="w-full gm-input px-3.5 py-2.5 pr-10 rounded-xl text-xs font-mono font-bold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAccountNumber((visible) => !visible)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-[#606460] hover:text-[#173885] hover:bg-[#E4EEF3]"
+                    aria-label={
+                      showAccountNumber
+                        ? "Hide account number"
+                        : "Show account number"
+                    }
+                  >
+                    {showAccountNumber ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -1102,20 +1201,37 @@ export const VendorOnboarding = () => {
                   Confirm Account Number *
                 </label>
                 <input
-                  type="text"
+                  type={confirmAccountPeek ? "text" : "password"}
                   required
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={formData.bankDetails.confirmAccountNumber}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
                     setFormData({
                       ...formData,
                       bankDetails: {
                         ...formData.bankDetails,
-                        confirmAccountNumber: e.target.value,
+                        confirmAccountNumber: value,
                       },
-                    })
-                  }
+                    });
+                    setConfirmAccountPeek(true);
+                    if (confirmPeekTimerRef.current) {
+                      window.clearTimeout(confirmPeekTimerRef.current);
+                    }
+                    confirmPeekTimerRef.current = window.setTimeout(() => {
+                      setConfirmAccountPeek(false);
+                    }, 700);
+                  }}
                   className="w-full gm-input px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold"
+                  aria-describedby="confirm-account-help"
                 />
+                <p
+                  id="confirm-account-help"
+                  className="mt-1 text-[10px] text-[#6F8A92]"
+                >
+                  The latest digit stays visible briefly, then is masked.
+                </p>
               </div>
 
               <div>
@@ -1176,7 +1292,10 @@ export const VendorOnboarding = () => {
               <span>
                 {saving
                   ? "Submitting..."
-                  : "Submit Application & Open Dashboard"}
+                  : application?.status ===
+                      VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED
+                    ? "Resubmit for Verification"
+                    : "Submit Application"}
               </span>
               <Check className="w-3.5 h-3.5" />
             </button>

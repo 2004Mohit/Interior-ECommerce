@@ -9,6 +9,39 @@ export const VENDOR_APPLICATION_STATUS = {
   CHANGES_REQUESTED: "CHANGES_REQUESTED",
 };
 
+const mergeApplicationData = (currentApp, incomingData = {}) => ({
+  businessDetails: {
+    ...(currentApp?.businessDetails || {}),
+    ...(incomingData.businessDetails || {}),
+  },
+
+  ownerDetails: {
+    ...(currentApp?.ownerDetails || {}),
+    ...(incomingData.ownerDetails || {}),
+  },
+
+  businessAddress: {
+    ...(currentApp?.businessAddress || {}),
+    ...(incomingData.businessAddress || {}),
+  },
+
+  productCategories: Array.isArray(incomingData.productCategories)
+    ? incomingData.productCategories
+    : Array.isArray(currentApp?.productCategories)
+      ? currentApp.productCategories
+      : [],
+
+  verificationDocuments: {
+    ...(currentApp?.verificationDocuments || {}),
+    ...(incomingData.verificationDocuments || {}),
+  },
+
+  bankDetails: {
+    ...(currentApp?.bankDetails || {}),
+    ...(incomingData.bankDetails || {}),
+  },
+});
+
 export const vendorOnboardingService = {
   /**
    * Fetch the vendor application for a specific Supabase Auth user UUID.
@@ -35,79 +68,65 @@ export const vendorOnboardingService = {
       return null;
     }
 
-    // Convert database snake_case into the camelCase structure
-    // expected by VendorOnboarding.jsx.
-    return {
-      ...data,
-
-      businessDetails: data.business_details || {},
-      ownerDetails: data.owner_details || {},
-      businessAddress: data.business_address || {},
-      productCategories: Array.isArray(data.product_categories)
-        ? data.product_categories
-        : [],
-      verificationDocuments: data.verification_documents || {},
-      bankDetails: data.bank_details || {},
-      currentStep: data.current_step || 1,
-    };
+    return this.normalizeApplication(data);
   },
 
   /**
-   * Save or update an onboarding draft application.
+   * Save onboarding progress.
+   *
+   * DRAFT remains DRAFT.
+   * CHANGES_REQUESTED remains CHANGES_REQUESTED while the vendor edits.
+   *
+   * It becomes SUBMITTED only when submitApplication() is called.
    */
-  async saveDraft(userId, formData, step) {
+  async saveDraft(userId, partialData, targetStep) {
     if (!userId) {
+      throw new Error("AUTH_REQUIRED");
+    }
+
+    const currentApp = await this.getApplication(userId);
+
+    if (!currentApp) {
       throw new Error(
-        "A valid Supabase Auth user ID is required to save a draft.",
+        "Your vendor application could not be found. Please restart onboarding.",
       );
     }
 
-    const existing = await this.getApplication(userId);
+    const editableStatuses = [
+      VENDOR_APPLICATION_STATUS.DRAFT,
+      VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED,
+    ];
 
-    const payload = {
-      user_id: userId,
-
-      current_step: Number(step) || 1,
-
-      business_details: formData.businessDetails || {},
-      owner_details: formData.ownerDetails || {},
-      business_address: formData.businessAddress || {},
-      product_categories: Array.isArray(formData.productCategories)
-        ? formData.productCategories
-        : [],
-      verification_documents: formData.verificationDocuments || {},
-      bank_details: formData.bankDetails || {},
-
-      status:
-        existing?.status === VENDOR_APPLICATION_STATUS.SUBMITTED
-          ? VENDOR_APPLICATION_STATUS.SUBMITTED
-          : VENDOR_APPLICATION_STATUS.DRAFT,
-
-      updated_at: new Date().toISOString(),
-    };
-
-    let query;
-
-    if (existing?.id) {
-      query = supabase
-        .from("vendor_applications")
-        .update(payload)
-        .eq("id", existing.id)
-        .select()
-        .single();
-    } else {
-      query = supabase
-        .from("vendor_applications")
-        .insert(payload)
-        .select()
-        .single();
+    if (currentApp.status && !editableStatuses.includes(currentApp.status)) {
+      throw new Error(
+        "Your application is currently under review and cannot be edited.",
+      );
     }
 
-    const { data, error } = await query;
+    const merged = mergeApplicationData(currentApp, partialData);
+
+    const updatedAt = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("vendor_applications")
+      .update({
+        current_step: targetStep || currentApp.currentStep || 1,
+        business_details: merged.businessDetails,
+        owner_details: merged.ownerDetails,
+        business_address: merged.businessAddress,
+        product_categories: merged.productCategories,
+        verification_documents: merged.verificationDocuments,
+        bank_details: merged.bankDetails,
+        updated_at: updatedAt,
+      })
+      .eq("id", currentApp.id)
+      .eq("user_id", userId)
+      .select()
+      .single();
 
     if (error) {
-      console.error("Failed to save vendor application draft:", error);
-      throw new Error(`Unable to save draft: ${error.message}`);
+      console.error("Failed to save vendor onboarding changes:", error);
+      throw new Error(`Unable to save onboarding changes: ${error.message}`);
     }
 
     return this.normalizeApplication(data);
@@ -115,58 +134,72 @@ export const vendorOnboardingService = {
 
   /**
    * Submit the vendor application for admin review.
+   *
+   * This is the ONLY operation that changes an editable application
+   * to SUBMITTED.
    */
-  async submitApplication(userId, formData) {
+  async submitApplication(userId, finalData) {
     if (!userId) {
+      throw new Error("AUTH_REQUIRED");
+    }
+
+    const currentApp = await this.getApplication(userId);
+
+    if (!currentApp) {
       throw new Error(
-        "A valid Supabase Auth user ID is required to submit an application.",
+        "Your vendor application could not be found. Please restart onboarding.",
       );
     }
 
-    const existing = await this.getApplication(userId);
+    const editableStatuses = [
+      VENDOR_APPLICATION_STATUS.DRAFT,
+      VENDOR_APPLICATION_STATUS.CHANGES_REQUESTED,
+      VENDOR_APPLICATION_STATUS.REJECTED,
+    ];
 
-    const payload = {
-      user_id: userId,
-
-      current_step: 6,
-
-      business_details: formData.businessDetails || {},
-      owner_details: formData.ownerDetails || {},
-      business_address: formData.businessAddress || {},
-      product_categories: Array.isArray(formData.productCategories)
-        ? formData.productCategories
-        : [],
-      verification_documents: formData.verificationDocuments || {},
-      bank_details: formData.bankDetails || {},
-
-      status: VENDOR_APPLICATION_STATUS.SUBMITTED,
-
-      submitted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    let query;
-
-    if (existing?.id) {
-      query = supabase
-        .from("vendor_applications")
-        .update(payload)
-        .eq("id", existing.id)
-        .select()
-        .single();
-    } else {
-      query = supabase
-        .from("vendor_applications")
-        .insert(payload)
-        .select()
-        .single();
+    if (currentApp.status && !editableStatuses.includes(currentApp.status)) {
+      throw new Error(
+        "Your application cannot be resubmitted while it is under review.",
+      );
     }
 
-    const { data, error } = await query;
+    const merged = mergeApplicationData(currentApp, finalData);
+
+    const submittedAt = new Date().toISOString();
+    const updatedAt = submittedAt;
+
+    const { data, error } = await supabase
+      .from("vendor_applications")
+      .update({
+        status: VENDOR_APPLICATION_STATUS.SUBMITTED,
+        current_step: 6,
+
+        /*
+         * Clear the previous review message after the vendor
+         * has resubmitted the corrected application.
+         */
+        reviewer_notes: "",
+        rejection_reason: "",
+        changes_requested_items: [],
+
+        business_details: merged.businessDetails,
+        owner_details: merged.ownerDetails,
+        business_address: merged.businessAddress,
+        product_categories: merged.productCategories,
+        verification_documents: merged.verificationDocuments,
+        bank_details: merged.bankDetails,
+
+        submitted_at: submittedAt,
+        updated_at: updatedAt,
+      })
+      .eq("id", currentApp.id)
+      .eq("user_id", userId)
+      .select()
+      .single();
 
     if (error) {
-      console.error("Failed to submit vendor application:", error);
-      throw new Error(`Unable to submit application: ${error.message}`);
+      console.error("Failed to resubmit vendor application:", error);
+      throw new Error(`Unable to resubmit application: ${error.message}`);
     }
 
     return this.normalizeApplication(data);
@@ -204,8 +237,7 @@ export const vendorOnboardingService = {
   },
 
   /**
-   * Convert Supabase database format to the format
-   * used by the React onboarding component.
+   * Convert Supabase database format to the format used by React.
    */
   normalizeApplication(data) {
     if (!data) {
@@ -218,27 +250,31 @@ export const vendorOnboardingService = {
       businessDetails: data.business_details || {},
       ownerDetails: data.owner_details || {},
       businessAddress: data.business_address || {},
+
       productCategories: Array.isArray(data.product_categories)
         ? data.product_categories
         : [],
+
       verificationDocuments: data.verification_documents || {},
       bankDetails: data.bank_details || {},
 
       currentStep: data.current_step || 1,
+
+      reviewerNotes: data.reviewer_notes || "",
+      rejectionReason: data.rejection_reason || "",
+
+      requestedChanges: Array.isArray(data.changes_requested_items)
+        ? data.changes_requested_items
+        : [],
+
+      updatedAt: data.updated_at || null,
+      submittedAt: data.submitted_at || null,
     };
   },
 
   /**
-   * Generate a short-lived signed URL for the vendor's
-   * own verification document.
-   *
-   * Supports both:
-   *
-   * 1. Existing files:
-   *    vendor-verification-docs/{vendorId}/{documentType}/{file}
-   *
-   * 2. Future/standard files:
-   *    {vendorId}/{documentType}/{file}
+   * Generate a short-lived signed URL for the vendor's own
+   * verification document.
    */
   async getVerificationDocumentUrl(userId, documentPath) {
     if (!userId) {
@@ -253,9 +289,6 @@ export const vendorOnboardingService = {
 
     let storedPath = String(documentPath).trim();
 
-    /*
-     * Remove accidental full Storage URL prefixes.
-     */
     const publicMarker = `/storage/v1/object/public/${bucket}/`;
     const signMarker = `/storage/v1/object/sign/${bucket}/`;
 
@@ -265,26 +298,11 @@ export const vendorOnboardingService = {
       storedPath = storedPath.split(signMarker)[1];
     }
 
-    /*
-     * Decode URL encoding if the database contains
-     * an encoded storage path.
-     */
     try {
       storedPath = decodeURIComponent(storedPath);
     } catch {
-      // Keep original path if decoding is unnecessary/invalid.
+      // Keep the original path if decoding is unnecessary/invalid.
     }
-
-    /*
-     * IMPORTANT:
-     *
-     * The current uploadService stores existing files as:
-     *
-     * vendor-verification-docs/{userId}/{documentType}/{file}
-     *
-     * Therefore we must NOT remove the bucket prefix
-     * before createSignedUrl().
-     */
 
     const bucketPrefix = `${bucket}/`;
 
@@ -294,12 +312,6 @@ export const vendorOnboardingService = {
       ownershipPath = ownershipPath.substring(bucketPrefix.length);
     }
 
-    /*
-     * Security check.
-     *
-     * The actual vendor-owned portion must begin with
-     * the authenticated user's ID.
-     */
     const expectedPrefix = `${userId}/`;
 
     if (!ownershipPath.startsWith(expectedPrefix)) {
@@ -313,15 +325,8 @@ export const vendorOnboardingService = {
       throw new Error("You are not authorized to view this document.");
     }
 
-    /*
-     * Use the ORIGINAL stored path for existing files.
-     */
     const pathsToTry = [storedPath];
 
-    /*
-     * Also support correctly stored future paths without
-     * the bucket prefix.
-     */
     if (storedPath.startsWith(bucketPrefix)) {
       const relativePath = storedPath.substring(bucketPrefix.length);
 

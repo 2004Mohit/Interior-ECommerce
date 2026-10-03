@@ -33,14 +33,13 @@ export const VendorNotifications = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
+
   const [activeCategory, setActiveCategory] = useState(
     VENDOR_NOTIFICATION_CATEGORIES.ALL,
   );
 
   /**
-   * ---------------------------------------------------------
-   * Load notifications
-   * ---------------------------------------------------------
+   * Load notifications from Supabase.
    */
   const loadNotifications = useCallback(
     async (showRefreshState = false) => {
@@ -65,6 +64,8 @@ export const VendorNotifications = () => {
       } catch (err) {
         console.error("Unable to load vendor notifications:", err);
 
+        setNotifications([]);
+
         setError(
           err?.message || "Unable to load notifications. Please try again.",
         );
@@ -77,110 +78,67 @@ export const VendorNotifications = () => {
   );
 
   /**
-   * ---------------------------------------------------------
-   * Initial load
-   * ---------------------------------------------------------
+   * Initial notification load.
    */
   useEffect(() => {
     loadNotifications(false);
   }, [loadNotifications]);
 
   /**
-   * ---------------------------------------------------------
-   * Realtime subscription
+   * Refresh notifications when the browser tab becomes visible.
    *
-   * Automatically updates the notification list when:
-   *
-   * INSERT  -> new notification
-   * UPDATE  -> read/unread or other notification update
-   * DELETE  -> notification removed
-   * ---------------------------------------------------------
+   * This gives us fresh notifications even though
+   * Supabase Realtime is not currently enabled for
+   * vendor_notifications.
    */
   useEffect(() => {
-    let unsubscribe = null;
-    let cancelled = false;
-
-    const setupRealtime = async () => {
-      if (!vendorUser?.id) return;
-
-      try {
-        unsubscribe = await vendorNotificationService.subscribeToNotifications(
-          ({ event, notification }) => {
-            if (cancelled) return;
-
-            if (!notification) {
-              return;
-            }
-
-            setNotifications((currentNotifications) => {
-              if (event === "INSERT") {
-                const alreadyExists = currentNotifications.some(
-                  (item) => item.id === notification.id,
-                );
-
-                if (alreadyExists) {
-                  return currentNotifications;
-                }
-
-                return [notification, ...currentNotifications];
-              }
-
-              if (event === "UPDATE") {
-                const exists = currentNotifications.some(
-                  (item) => item.id === notification.id,
-                );
-
-                if (!exists) {
-                  return [notification, ...currentNotifications];
-                }
-
-                return currentNotifications.map((item) =>
-                  item.id === notification.id ? notification : item,
-                );
-              }
-
-              if (event === "DELETE") {
-                return currentNotifications.filter(
-                  (item) => item.id !== notification.id,
-                );
-              }
-
-              return currentNotifications;
-            });
-          },
-        );
-      } catch (err) {
-        console.error("Unable to setup vendor notification realtime:", err);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadNotifications(true);
       }
     };
 
-    setupRealtime();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      cancelled = true;
-
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [vendorUser?.id]);
+  }, [loadNotifications]);
 
   /**
-   * ---------------------------------------------------------
-   * Manual refresh
-   * ---------------------------------------------------------
+   * Periodically refresh notifications.
+   *
+   * This is intentionally lightweight and does not
+   * require Supabase Realtime to be enabled.
+   */
+  useEffect(() => {
+    if (!vendorUser?.id) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      loadNotifications(false);
+    }, 30000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [vendorUser?.id, loadNotifications]);
+
+  /**
+   * Manual refresh.
    */
   const handleRefresh = async () => {
     await loadNotifications(true);
   };
 
   /**
-   * ---------------------------------------------------------
-   * Mark one notification as read
-   * ---------------------------------------------------------
+   * Mark one notification as read.
    */
   const handleMarkAsRead = async (id) => {
-    if (!id || actionLoading) return;
+    if (!id || actionLoading) {
+      return;
+    }
 
     try {
       setActionLoading(true);
@@ -199,12 +157,12 @@ export const VendorNotifications = () => {
   };
 
   /**
-   * ---------------------------------------------------------
-   * Mark all notifications as read
-   * ---------------------------------------------------------
+   * Mark all notifications as read.
    */
   const handleMarkAllAsRead = async () => {
-    if (actionLoading) return;
+    if (actionLoading) {
+      return;
+    }
 
     try {
       setActionLoading(true);
@@ -223,18 +181,14 @@ export const VendorNotifications = () => {
   };
 
   /**
-   * ---------------------------------------------------------
-   * Unread count
-   * ---------------------------------------------------------
+   * Calculate unread count from the actual notification data.
    */
   const unreadCount = notifications.filter(
     (notification) => !notification.isRead,
   ).length;
 
   /**
-   * ---------------------------------------------------------
-   * Category filtering
-   * ---------------------------------------------------------
+   * Filter by category.
    */
   const filteredNotifications = notifications.filter((notification) => {
     if (activeCategory === VENDOR_NOTIFICATION_CATEGORIES.ALL) {
@@ -245,9 +199,7 @@ export const VendorNotifications = () => {
   });
 
   /**
-   * ---------------------------------------------------------
-   * Category icon
-   * ---------------------------------------------------------
+   * Category icon.
    */
   const getCategoryIcon = (category) => {
     switch (category) {
@@ -275,9 +227,7 @@ export const VendorNotifications = () => {
   };
 
   /**
-   * ---------------------------------------------------------
-   * Category tabs
-   * ---------------------------------------------------------
+   * Notification categories.
    */
   const categoryTabs = [
     {
@@ -311,9 +261,7 @@ export const VendorNotifications = () => {
   ];
 
   /**
-   * ---------------------------------------------------------
-   * Date formatter
-   * ---------------------------------------------------------
+   * Format notification date.
    */
   const formatNotificationDate = (createdAt) => {
     if (!createdAt) {
@@ -329,6 +277,7 @@ export const VendorNotifications = () => {
     return date.toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
+      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -343,9 +292,7 @@ export const VendorNotifications = () => {
         noIndex={true}
       />
 
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D9E2EA] pb-5">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-[#E4EEF3] border border-[#9AAED4]/40 flex items-center justify-center text-[#173885]">
@@ -392,6 +339,7 @@ export const VendorNotifications = () => {
             disabled={refreshing}
             className="btn-gm-secondary p-2 rounded-xl text-[#606460] hover:text-[#173885] disabled:opacity-50 disabled:cursor-not-allowed"
             title="Refresh notifications"
+            aria-label="Refresh notifications"
           >
             <RotateCcw
               className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -400,21 +348,7 @@ export const VendorNotifications = () => {
         </div>
       </div>
 
-      {/* =====================================================
-          REALTIME STATUS
-      ====================================================== */}
-      <div className="flex items-center gap-2 text-[10px] text-[#6F8A92]">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full rounded-full bg-[#3F7D20] opacity-60 animate-ping" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3F7D20]" />
-        </span>
-
-        <span>Notifications update automatically in real time</span>
-      </div>
-
-      {/* =====================================================
-          ERROR MESSAGE
-      ====================================================== */}
+      {/* ERROR */}
       {error && (
         <div className="flex items-start gap-3 p-4 rounded-2xl border border-[#E5B4A6] bg-[#FFF5F2]">
           <AlertCircle className="w-5 h-5 text-[#B43D20] shrink-0 mt-0.5" />
@@ -440,15 +374,14 @@ export const VendorNotifications = () => {
             onClick={() => setError("")}
             className="text-[#6F8A92] hover:text-[#282926]"
             title="Dismiss"
+            aria-label="Dismiss error"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* =====================================================
-          CATEGORY TABS
-      ====================================================== */}
+      {/* CATEGORY TABS */}
       <div className="flex gap-1.5 overflow-x-auto pb-2 border-b border-[#D9E2EA] scrollbar-none">
         {categoryTabs.map((tab) => {
           const isSelected = activeCategory === tab.key;
@@ -504,9 +437,7 @@ export const VendorNotifications = () => {
         })}
       </div>
 
-      {/* =====================================================
-          LOADING
-      ====================================================== */}
+      {/* LOADING */}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((item) => (
@@ -517,9 +448,7 @@ export const VendorNotifications = () => {
           ))}
         </div>
       ) : filteredNotifications.length === 0 ? (
-        /* ===================================================
-           EMPTY STATE
-        ==================================================== */
+        /* EMPTY STATE */
         <div className="gm-panel p-16 rounded-3xl text-center space-y-3 border border-[#D9E2EA]">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-[#E4EEF3] flex items-center justify-center">
             <Bell className="w-7 h-7 text-[#6F8A92]" />
@@ -547,9 +476,7 @@ export const VendorNotifications = () => {
           </button>
         </div>
       ) : (
-        /* ===================================================
-           NOTIFICATIONS LIST
-        ==================================================== */
+        /* NOTIFICATIONS */
         <div className="space-y-3">
           {filteredNotifications.map((notif) => (
             <div

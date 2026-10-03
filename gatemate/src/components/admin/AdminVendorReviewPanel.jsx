@@ -223,9 +223,9 @@ export const AdminVendorReviewPanel = () => {
                 "Unnamed Vendor Depot";
               const location = `${app.business_address?.locality || "Pune"}, ${app.business_address?.city || "Maharashtra"}`;
               const contact =
-                app.ownerDetails?.primaryContactName || "Authorized Contact";
-              const email = app.ownerDetails?.email || "No email provided";
-              const phone = app.ownerDetails?.mobileNumber || "No phone";
+                app.owner_details?.primaryContactName || "Authorized Contact";
+              const email = app.owner_details?.email || "No email provided";
+              const phone = app.owner_details?.mobileNumber || "No phone";
 
               return (
                 <div

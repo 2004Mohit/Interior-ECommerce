@@ -59,6 +59,7 @@ import { VendorSettlements } from "./components/vendor/VendorSettlements";
 import { VendorReviews } from "./components/vendor/VendorReviews";
 import { VendorNotifications } from "./components/vendor/VendorNotifications";
 import { VendorProfile } from "./components/vendor/VendorProfile";
+import { useVendorAuth } from "./context/VendorAuthContext";
 
 // Admin Views & Architecture
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -183,6 +184,20 @@ export default function App() {
                     path="/vendor/onboarding"
                     element={<VendorOnboarding />}
                   />
+                  <Route
+                    path="/vendor/verification"
+                    element={
+                      <VendorProtectedRoute allowUnapproved>
+                        <VendorVerificationStatus />
+                      </VendorProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/vendor/guidelines"
+                    element={<VendorGuidelines />}
+                  />
+
+                  <Route path="/vendor/benefits" element={<VendorBenefits />} />
                   {/* Protected Vendor Operations Terminal */}
                   <Route
                     path="/vendor"
@@ -219,12 +234,7 @@ export default function App() {
                       path="notifications"
                       element={<VendorNotifications />}
                     />
-                    <Route
-                      path="verification"
-                      element={<VendorVerificationStatus />}
-                    />
-                    <Route path="guidelines" element={<VendorGuidelines />} />
-                    <Route path="benefits" element={<VendorBenefits />} />
+
                     <Route path="profile" element={<VendorProfile />} />
                   </Route>
                   {/* Protected Admin Console Workspaces with AdminLayout */}

@@ -35,9 +35,10 @@ export const adminVendorService = {
             app.business_details?.tradeName ||
             "",
         ).toLowerCase();
-        const email = String(app.ownerDetails?.email || "").toLowerCase();
+        const email = String(app.owner_details?.email || "").toLowerCase();
+
         const phone = String(
-          app.ownerDetails?.mobileNumber || "",
+          app.owner_details?.mobileNumber || "",
         ).toLowerCase();
         const gstin = String(app.business_details?.gstin || "").toLowerCase();
 

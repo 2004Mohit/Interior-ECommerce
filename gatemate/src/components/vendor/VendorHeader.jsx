@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { useVendorAuth } from "../../context/VendorAuthContext";
+
 import { supabase } from "../../lib/supabaseClient";
 
 import {
@@ -19,14 +20,24 @@ import {
   VENDOR_APPLICATION_STATUS,
 } from "../../services/vendorOnboardingService";
 
+import { vendorNotificationService } from "../../services/vendorNotificationService";
+
 export const VendorHeader = ({ onOpenMobileNav }) => {
   const navigate = useNavigate();
+
   const { vendorUser, logout } = useVendorAuth();
 
   const [profile, setProfile] = useState(null);
   const [appStatus, setAppStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
+  const [notificationLoading, setNotificationLoading] = useState(false);
+
+  /**
+   * Load vendor profile and application status.
+   */
   useEffect(() => {
     let mounted = true;
 
@@ -37,6 +48,7 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
           setAppStatus(null);
           setLoading(false);
         }
+
         return;
       }
 
@@ -50,38 +62,37 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
          *
          * vendor_profiles.id is a different UUID.
          */
-
         const { data: vendorProfile, error: profileError } = await supabase
           .from("vendor_profiles")
           .select(
             `
-              id,
-              user_id,
-              business_name,
-              trade_name,
-              business_type,
-              contact_person,
-              designation,
-              email,
-              phone,
-              gstin,
-              pan_number,
-              yard_address_line1,
-              locality,
-              city,
-              state,
-              pincode,
-              serviceable_pincodes,
-              has_heavy_trailer_access,
-              is_express_30min_enabled,
-              verification_status,
-              reviewer_notes,
-              reviewed_at,
-              reviewed_by,
-              bank_details,
-              created_at,
-              updated_at
-            `,
+                id,
+                user_id,
+                business_name,
+                trade_name,
+                business_type,
+                contact_person,
+                designation,
+                email,
+                phone,
+                gstin,
+                pan_number,
+                yard_address_line1,
+                locality,
+                city,
+                state,
+                pincode,
+                serviceable_pincodes,
+                has_heavy_trailer_access,
+                is_express_30min_enabled,
+                verification_status,
+                reviewer_notes,
+                reviewed_at,
+                reviewed_by,
+                bank_details,
+                created_at,
+                updated_at
+              `,
           )
           .eq("user_id", vendorUser.id)
           .maybeSingle();
@@ -92,9 +103,6 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
           );
         }
 
-        /*
-         * Load application status separately.
-         */
         const application = await vendorOnboardingService.getApplication(
           vendorUser.id,
         );
@@ -124,6 +132,72 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
     };
   }, [vendorUser?.id]);
 
+  /**
+   * Load the actual unread notification count.
+   */
+  const loadUnreadNotificationCount = async () => {
+    if (!vendorUser?.id) {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    try {
+      setNotificationLoading(true);
+
+      const count = await vendorNotificationService.getUnreadCount();
+
+      setUnreadNotificationCount(Number.isFinite(count) ? count : 0);
+    } catch (error) {
+      console.error("Failed to load vendor notification count:", error);
+
+      /*
+       * Don't show a fake number if notification loading fails.
+       */
+      setUnreadNotificationCount(0);
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
+  /**
+   * Initial unread count + periodic refresh.
+   */
+  useEffect(() => {
+    loadUnreadNotificationCount();
+
+    if (!vendorUser?.id) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      loadUnreadNotificationCount();
+    }, 30000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [vendorUser?.id]);
+
+  /**
+   * Refresh unread count when the user returns to this tab.
+   */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadUnreadNotificationCount();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [vendorUser?.id]);
+
+  /**
+   * Vendor verification status badge.
+   */
   const getStatusBadge = () => {
     /*
      * Prefer vendor_profiles.verification_status
@@ -174,7 +248,7 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
       return (
         <Link
           to="/vendor/verification"
-          className="bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 font-bold hover:underline"
+          className="bg-[#FBE3DE] text-[#B43D20] border border-[#B43D20]/30 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 font-bold"
         >
           Rejected
         </Link>
@@ -184,7 +258,7 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
     return null;
   };
 
-  /*
+  /**
    * Real vendor business name.
    */
   const businessName =
@@ -194,7 +268,7 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
     vendorUser?.user_metadata?.business_name ||
     "Vendor Portal";
 
-  /*
+  /**
    * Real contact person.
    */
   const contactPerson =
@@ -239,22 +313,32 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
           {profile?.is_express_30min_enabled && (
             <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E4EEF3] border border-[#9AAED4]/40 text-[#173885] text-xs font-bold">
               <Zap className="w-3.5 h-3.5 fill-[#3C7DDA] text-[#3C7DDA]" />
+
               <span>30-Min Dispatch Active</span>
             </span>
           )}
 
+          {/* Vendor Notifications */}
           <Link
             to="/vendor/notifications"
             className="relative p-2.5 rounded-xl bg-[#FEFEFE] border border-[#D9E2EA] hover:border-[#3C7DDA] text-[#606460] hover:text-[#173885] transition"
             title="Vendor Notifications"
+            aria-label={`Vendor Notifications${
+              unreadNotificationCount > 0
+                ? `, ${unreadNotificationCount} unread`
+                : ""
+            }`}
           >
             <Bell className="w-4 h-4 text-[#3C7DDA]" />
 
-            <span className="absolute -top-1 -right-1 bg-[#B43D20] text-[#FEFEFE] text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
-              2
-            </span>
+            {!notificationLoading && unreadNotificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#B43D20] text-[#FEFEFE] text-[9px] font-black min-w-[14px] h-3.5 px-0.5 rounded-full flex items-center justify-center">
+                {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+              </span>
+            )}
           </Link>
 
+          {/* Vendor Profile */}
           <Link
             to="/vendor/profile"
             className="px-3 py-1.5 rounded-xl bg-[#E4EEF3] border border-[#9AAED4]/40 text-[#173885] hover:bg-[#D9E2EA] transition flex items-center gap-2 text-xs font-bold"
@@ -264,12 +348,17 @@ export const VendorHeader = ({ onOpenMobileNav }) => {
             <span className="hidden sm:inline">{contactPerson}</span>
           </Link>
 
+          {/* Sign Out */}
           {vendorUser && (
             <button
+              type="button"
               onClick={async () => {
                 try {
                   await logout();
-                  navigate("/sell", { replace: true });
+
+                  navigate("/sell", {
+                    replace: true,
+                  });
                 } catch (error) {
                   console.error("Vendor sign out failed:", error);
                 }

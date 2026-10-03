@@ -28,20 +28,24 @@ export const productCategoryService = {
     const { data, error } = await supabase
       .from("product_categories")
       .select("*")
+      .eq("is_active", true)
       .order("display_order", {
         ascending: true,
       });
 
     if (error) {
+      console.error("Failed to load product categories:", error);
+
       throw new Error(`Unable to load product categories: ${error.message}`);
     }
 
     return (data || []).filter(
       (category) =>
         category &&
-        category.slug &&
-        category.name &&
-        category.is_active !== false,
+        typeof category.slug === "string" &&
+        category.slug.trim() !== "" &&
+        typeof category.name === "string" &&
+        category.name.trim() !== "",
     );
   },
 

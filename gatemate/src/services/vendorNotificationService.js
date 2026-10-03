@@ -22,36 +22,53 @@ export const VENDOR_NOTIFICATION_CATEGORIES = {
   PLATFORM_NOTICES: "PLATFORM_NOTICES",
 };
 
+/**
+ * Normalize a database notification into the exact
+ * camelCase shape expected by the React components.
+ *
+ * Actual database columns:
+ * id
+ * vendor_id
+ * category
+ * title
+ * message
+ * link
+ * is_read
+ * created_at
+ */
 const normalizeNotification = (notification) => {
-  if (!notification) return null;
+  if (!notification) {
+    return null;
+  }
 
   return {
-    id: notification.id,
+    id: notification.id ?? null,
+
     vendorId: notification.vendor_id ?? notification.vendorId ?? null,
-    category: notification.category ?? "PLATFORM_NOTICES",
+
+    category:
+      notification.category ?? VENDOR_NOTIFICATION_CATEGORIES.PLATFORM_NOTICES,
+
     title: notification.title ?? "",
+
     message: notification.message ?? "",
+
     link: notification.link ?? null,
 
-    // Database -> React naming
     isRead: notification.is_read ?? notification.isRead ?? false,
 
-    createdAt:
-      notification.created_at ??
-      notification.createdAt ??
-      new Date().toISOString(),
-
-    updatedAt: notification.updated_at ?? notification.updatedAt ?? null,
-
-    // Keep any additional database fields available
-    ...notification,
+    createdAt: notification.created_at ?? notification.createdAt ?? null,
   };
 };
 
 export const vendorNotificationService = {
   /**
-   * Resolve the vendor profile ID belonging to the
-   * currently authenticated vendor user.
+   * Resolve the vendor_profiles.id belonging to
+   * the currently authenticated vendor.
+   *
+   * IMPORTANT:
+   * vendor_profiles.id is the value stored in
+   * vendor_notifications.vendor_id.
    */
   async _resolveVendorId() {
     const { data: vendorId, error } = await supabase.rpc(
@@ -64,7 +81,7 @@ export const vendorNotificationService = {
 
     if (!vendorId) {
       throw new Error(
-        "Vendor profile not found. The vendor may not be approved yet.",
+        "Vendor profile not found. Please make sure your vendor account is approved.",
       );
     }
 
@@ -72,16 +89,17 @@ export const vendorNotificationService = {
   },
 
   /**
-   * Get all notifications for the current vendor.
-   *
-   * Returns normalized camelCase objects for React.
+   * Get all notifications for the currently
+   * authenticated vendor.
    */
   async getNotifications() {
     const vendorId = await this._resolveVendorId();
 
     const { data, error } = await supabase
       .from("vendor_notifications")
-      .select("*")
+      .select(
+        "id, vendor_id, category, title, message, link, is_read, created_at",
+      )
       .eq("vendor_id", vendorId)
       .order("created_at", {
         ascending: false,
@@ -95,7 +113,7 @@ export const vendorNotificationService = {
   },
 
   /**
-   * Get unread notification count.
+   * Get unread notification count for the current vendor.
    */
   async getUnreadCount() {
     const vendorId = await this._resolveVendorId();
@@ -115,7 +133,7 @@ export const vendorNotificationService = {
       );
     }
 
-    return count || 0;
+    return count ?? 0;
   },
 
   /**
@@ -144,7 +162,7 @@ export const vendorNotificationService = {
   },
 
   /**
-   * Mark all vendor notifications as read.
+   * Mark all notifications as read.
    */
   async markAllAsRead() {
     const vendorId = await this._resolveVendorId();
@@ -165,16 +183,14 @@ export const vendorNotificationService = {
   },
 
   /**
-   * Subscribe to realtime notification changes for the current vendor.
+   * Optional realtime subscription.
    *
-   * Callback receives:
+   * The application does NOT depend on this for loading
+   * notifications. Initial data always comes from
+   * getNotifications().
    *
-   * {
-   *   event: "INSERT" | "UPDATE" | "DELETE",
-   *   notification: normalizedNotification | null
-   * }
-   *
-   * Returns an unsubscribe function.
+   * If Supabase Realtime is not enabled for the table,
+   * the subscription may fail harmlessly.
    */
   async subscribeToNotifications(callback) {
     if (typeof callback !== "function") {
@@ -205,7 +221,9 @@ export const vendorNotificationService = {
 
             if (eventType === "INSERT" || eventType === "UPDATE") {
               notification = normalizeNotification(payload.new);
-            } else if (eventType === "DELETE") {
+            }
+
+            if (eventType === "DELETE") {
               notification = normalizeNotification(payload.old);
             }
 
@@ -228,21 +246,14 @@ export const vendorNotificationService = {
         }
 
         if (status === "CHANNEL_ERROR") {
-          console.error("Vendor notification realtime channel error:", error);
+          console.warn("Vendor notification realtime is unavailable:", error);
         }
 
         if (status === "TIMED_OUT") {
-          console.error("Vendor notification realtime subscription timed out.");
-        }
-
-        if (status === "CLOSED") {
-          console.log("Vendor notification realtime subscription closed.");
+          console.warn("Vendor notification realtime subscription timed out.");
         }
       });
 
-    /**
-     * Cleanup function.
-     */
     return async () => {
       try {
         await supabase.removeChannel(channel);
