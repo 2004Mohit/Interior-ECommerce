@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Search, ShoppingBag, Star, Filter } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCart } from "../context/CartContext";

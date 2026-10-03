@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Star, ShoppingBag, Heart, Zap, Package, MapPin } from "lucide-react";
 

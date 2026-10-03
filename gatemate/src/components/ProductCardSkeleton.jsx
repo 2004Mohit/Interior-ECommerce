@@ -1,5 +1,3 @@
-import React from "react";
-
 export const ProductCardSkeleton = () => {
   return (
     <div className="gm-card rounded-2xl overflow-hidden animate-pulse flex flex-col justify-between">

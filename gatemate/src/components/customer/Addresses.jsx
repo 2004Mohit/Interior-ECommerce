@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AccountNav } from "./AccountNav";
 import { supabase } from "../../lib/supabaseClient";
 import { addressService } from "../../services/addressService";

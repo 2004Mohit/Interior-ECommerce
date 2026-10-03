@@ -1,18 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  Percent,
-  Search,
-  Filter,
-  RotateCcw,
-  Building2,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  DollarSign,
-  TrendingUp,
-  ShieldCheck,
-} from "lucide-react";
+import { Percent, Search, RotateCcw, ArrowRight } from "lucide-react";
 import { adminFinanceService } from "../../services/adminFinanceService";
 import { AdminPermissionGuard } from "./AdminPermissionGuard";
 import { ADMIN_PERMISSIONS } from "../../services/adminPermissionService";

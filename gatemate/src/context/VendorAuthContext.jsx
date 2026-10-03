@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { supabaseVendor } from "../lib/supabaseClient";
 
 const VendorAuthContext = createContext(null);

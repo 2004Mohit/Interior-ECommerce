@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { SITE_CONFIG } from "../../services/seoService";
 
 export const SeoHead = ({

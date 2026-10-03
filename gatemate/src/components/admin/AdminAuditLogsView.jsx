@@ -1,17 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   ShieldCheck,
-  Search,
   Filter,
   RotateCcw,
   ChevronDown,
   ChevronUp,
-  FileCode,
   Clock,
-  User,
-  CheckCircle2,
   AlertCircle,
-  Eye,
 } from "lucide-react";
 import {
   adminAuditService,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Layers,
@@ -8,11 +8,6 @@ import {
   Trash2,
   CheckCircle2,
   AlertCircle,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  MoveUp,
-  MoveDown,
   RotateCcw,
 } from "lucide-react";
 import { adminCatalogueService } from "../../services/adminCatalogueService";
